@@ -118,7 +118,8 @@ const state = {
 };
 
 // ---------- Boot ----------
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadModuleRegistry();
   renderModules();
   renderGuide();
   renderProcess("pending");
@@ -126,6 +127,39 @@ document.addEventListener("DOMContentLoaded", () => {
   bindModal();
   loadCases();
 });
+
+// /api/modules에서 받은 ModuleDefinition을 UI MODULES 형태로 변환
+function toUiModule(m) {
+  return {
+    id: m.id,
+    name: m.name,
+    available: m.status === "active",
+    status: m.status,
+    agency: (m.ui && m.ui.agency) || "—",
+    target: (m.ui && m.ui.target) || "—",
+    difficulty: (m.ui && m.ui.difficulty) || "—",
+    rewardLikelihood: (m.ui && m.ui.rewardLikelihood) || "공식 기준 확인 필요",
+    guide: m.ui && m.ui.guide ? m.ui.guide : undefined
+  };
+}
+
+async function loadModuleRegistry() {
+  try {
+    const res = await fetch("/api/modules");
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.ok || !Array.isArray(data.modules) || data.modules.length === 0) return;
+    const mapped = data.modules.map(toUiModule);
+    MODULES.splice(0, MODULES.length, ...mapped);
+    const defaultId = data.defaultModuleId;
+    const defaultMod = MODULES.find((m) => m.id === defaultId);
+    if (defaultMod && defaultMod.available) {
+      state.selectedModuleId = defaultId;
+    }
+  } catch (err) {
+    console.warn("Module registry fetch failed; using local fallback.", err);
+  }
+}
 
 // ---------- Modules ----------
 function renderModules() {
@@ -243,7 +277,7 @@ function bindForm() {
       const res = await fetch("/api/cases/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url, memo, moduleId: "false_ad" })
+        body: JSON.stringify({ url, memo, moduleId: state.selectedModuleId || "false_ad" })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "분석 실패");

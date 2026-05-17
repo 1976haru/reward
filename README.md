@@ -70,6 +70,29 @@ The first module is intentionally limited to health functional food advertising 
 
 See [`mvp_scope.md`](./mvp_scope.md) for the detailed MVP scope and keyword set.
 
+## Module Registry
+
+Modules are registered through a central registry. Runtime dynamic loading is intentionally not supported — modules are added by editing `src/modules/index.ts`.
+
+Current active module:
+
+- `false_ad`: health functional food online false/misleading ad detection
+
+Planned modules (registered but not executable):
+
+- `counterfeit_goods`
+- `origin_labeling`
+- `subsidy_fraud`
+- `bid_collusion`
+
+API:
+
+- `GET /api/modules`
+- `GET /api/modules/:moduleId`
+- `POST /api/cases/analyze` — gated by registry; planned modules return `MODULE_NOT_READY`
+
+See [`docs/module_registry.md`](./docs/module_registry.md) for details.
+
 ## Agency and Reward Basis
 
 The first MVP uses a module-level agency configuration file for reporting guidance.

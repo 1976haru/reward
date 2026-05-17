@@ -6,6 +6,7 @@ import { OrchestratorAgent } from "./agents/OrchestratorAgent.js";
 import { CaseRepository } from "./services/CaseRepository.js";
 import { config } from "./utils/config.js";
 import { ensureDir } from "./utils/fs.js";
+import { moduleRegistry } from "./modules/index.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -26,27 +27,77 @@ app.use("/data", express.static(path.join(process.cwd(), "data")));
 
 const analyzeSchema = z.object({
   url: z.string().url(),
-  moduleId: z.literal("false_ad").default("false_ad"),
+  moduleId: z.string().optional(),
   memo: z.string().optional()
 });
 
 app.get("/api/health", (_req, res) => {
+  const defaultModule = moduleRegistry.getDefault();
   res.json({
     ok: true,
     service: "reward-agent-mvp",
-    module: "false_ad",
-    category: "health_functional_food",
+    module: defaultModule.id,
+    category: defaultModule.category,
     environment: config.env,
     port: config.port,
     mockAi: config.mockAi,
+    registeredModules: moduleRegistry.list().length,
     timestamp: new Date().toISOString()
   });
+});
+
+app.get("/api/modules", (_req, res) => {
+  res.json({
+    ok: true,
+    defaultModuleId: moduleRegistry.getDefault().id,
+    modules: moduleRegistry.list()
+  });
+});
+
+app.get("/api/modules/:moduleId", (req, res) => {
+  const mod = moduleRegistry.get(req.params.moduleId);
+  if (!mod) {
+    return res.status(404).json({ ok: false, error: "MODULE_NOT_FOUND", message: `Unknown moduleId: ${req.params.moduleId}` });
+  }
+  res.json({ ok: true, module: mod });
 });
 
 app.post("/api/cases/analyze", async (req, res) => {
   try {
     const payload = analyzeSchema.parse(req.body);
-    const result = await orchestrator.analyze(payload);
+    const requestedModuleId = payload.moduleId ?? moduleRegistry.getDefault().id;
+    const moduleDef = moduleRegistry.get(requestedModuleId);
+
+    if (!moduleDef) {
+      return res.status(404).json({
+        ok: false,
+        error: "MODULE_NOT_FOUND",
+        message: `Unknown moduleId: ${requestedModuleId}`
+      });
+    }
+    if (moduleDef.status !== "active") {
+      return res.status(409).json({
+        ok: false,
+        error: "MODULE_NOT_READY",
+        message: "해당 모듈은 아직 준비 중입니다.",
+        moduleId: moduleDef.id,
+        moduleStatus: moduleDef.status
+      });
+    }
+    if (moduleDef.id !== "false_ad") {
+      return res.status(501).json({
+        ok: false,
+        error: "MODULE_NOT_IMPLEMENTED",
+        message: "분석 파이프라인이 아직 연결되지 않은 모듈입니다.",
+        moduleId: moduleDef.id
+      });
+    }
+
+    const result = await orchestrator.analyze({
+      url: payload.url,
+      moduleId: "false_ad",
+      memo: payload.memo
+    });
     res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";

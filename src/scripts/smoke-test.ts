@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { detectFalseAdRules } from "../modules/false-ad/config.js";
 import { ScoringAgent } from "../agents/ScoringAgent.js";
+import { moduleRegistry } from "../modules/index.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -37,6 +38,20 @@ try {
   failures.push(`agency_config.json parse failed: ${(error as Error).message}`);
 }
 
+// 5) Module Registry — false_ad active + getDefault + planned 차단
+const moduleList = moduleRegistry.list();
+check("registry list is array", Array.isArray(moduleList), `len=${moduleList.length}`);
+check("registry has false_ad", moduleRegistry.has("false_ad"));
+const falseAd = moduleRegistry.get("false_ad");
+check("false_ad status is active", falseAd?.status === "active", `status=${falseAd?.status}`);
+const defaultModule = moduleRegistry.getDefault();
+check("default module is false_ad", defaultModule?.id === "false_ad", `default=${defaultModule?.id}`);
+const planned = moduleRegistry.get("counterfeit_goods");
+check("counterfeit_goods registered", Boolean(planned));
+check("counterfeit_goods is not active", planned?.status !== "active", `status=${planned?.status}`);
+check("false_ad has reportTemplatePath", typeof falseAd?.reportTemplatePath === "string");
+check("false_ad has agencyConfigPath", typeof falseAd?.agencyConfigPath === "string");
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);
@@ -47,5 +62,6 @@ console.log("SMOKE_TEST_OK", {
   hits: hits.length,
   score,
   cleanScore,
-  agencyConfig: "ok"
+  agencyConfig: "ok",
+  registry: { total: moduleList.length, active: moduleRegistry.getActive().length, default: defaultModule.id }
 });
