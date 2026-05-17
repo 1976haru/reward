@@ -1196,12 +1196,45 @@ async function loadCandidates() {
             <span class="badge ${grade.cls.replace("grade-", "")}">1차점수 ${c.firstScore}</span>
             <span class="badge ${isAnalyzed ? "ok" : "muted"}">${escapeHtml(c.status)}</span>
             <button class="primary" data-analyze="${escapeAttr(c.id)}" type="button" ${isAnalyzed ? "disabled" : ""} style="padding:8px 12px;font-size:13px;">${isAnalyzed ? "분석 완료" : "분석하기"}</button>
+            <button class="ghost" data-scout-queue="${escapeAttr(c.id)}" type="button" style="padding:8px 12px;font-size:13px;">대기열로 보내기</button>
+            <button class="ghost" data-scout-reject="${escapeAttr(c.id)}" type="button" style="padding:8px 12px;font-size:13px;">폐기</button>
           </div>
         </div>
       `;
     }).join("");
     root.querySelectorAll("button[data-analyze]").forEach((btn) => {
       btn.addEventListener("click", () => analyzeCandidate(btn.getAttribute("data-analyze"), btn));
+    });
+    root.querySelectorAll("button[data-scout-queue]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-scout-queue");
+        btn.disabled = true;
+        try {
+          const r = await fetch(`/api/scout/candidates/${encodeURIComponent(id)}/queue`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+          const d = await r.json();
+          if (!d.ok) throw new Error(d.message || `HTTP ${r.status}`);
+          alert("대기열로 보냈습니다. " + (d.note || ""));
+          await loadCandidates();
+          await loadQueue();
+        } catch (e) {
+          alert("실패: " + e.message);
+        } finally { btn.disabled = false; }
+      });
+    });
+    root.querySelectorAll("button[data-scout-reject]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-scout-reject");
+        if (!window.confirm("후보를 폐기 상태로 변경하시겠습니까?")) return;
+        btn.disabled = true;
+        try {
+          const r = await fetch(`/api/scout/candidates/${encodeURIComponent(id)}/reject`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+          const d = await r.json();
+          if (!d.ok) throw new Error(d.message || `HTTP ${r.status}`);
+          await loadCandidates();
+        } catch (e) {
+          alert("실패: " + e.message);
+        } finally { btn.disabled = false; }
+      });
     });
   } catch (err) {
     root.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;

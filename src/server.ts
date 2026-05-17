@@ -14,6 +14,7 @@ import { analyzeRouter } from "./routes/analyze.js";
 import { scoreRouter } from "./routes/score.js";
 import { reviewRouter } from "./routes/review.js";
 import { policyRouter } from "./routes/policy.js";
+import { scoutRouter } from "./routes/scout.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -137,6 +138,9 @@ app.use("/api/review", reviewRouter);
 
 // Approval Gate — 자동 제출 차단 정책 + 공식 신고처 링크
 app.use("/api/policy", policyRouter);
+
+// Scout Agent — 키워드 기반 후보 자동 발굴. 외부 자동 제출은 수행하지 않습니다.
+app.use("/api/scout", scoutRouter);
 
 app.listen(config.port, () => {
   console.log(`Reward Agent MVP running at http://localhost:${config.port}`);

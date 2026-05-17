@@ -47,6 +47,10 @@ import {
   getOfficialReportingLinks,
   requireManualSubmissionConfirmation
 } from "../policy/approvalGate.js";
+import { searchSourceRegistry } from "../services/scout/SearchSourceRegistry.js";
+import { MockSearchAdapter } from "../services/scout/MockSearchAdapter.js";
+import { NaverSearchAdapter } from "../services/scout/NaverSearchAdapter.js";
+import { scoutAgent } from "../services/scout/ScoutAgent.js";
 import {
   loadFalseAdKeywordsSync,
   validateKeywordConfig,
@@ -854,6 +858,29 @@ check("requireManualSubmissionConfirmation accepts full input", g3.ok === true);
 // SUBMITTED 외 상태는 통과
 const g4 = requireManualSubmissionConfirmation({ status: "REVIEW" });
 check("requireManualSubmissionConfirmation passes non-SUBMITTED", g4.ok === true);
+
+// 18) Scout Agent — 9 tests
+const sources = searchSourceRegistry.listSources();
+check("scout sources count == 4", sources.length === 4);
+const mockSrc = sources.find((s) => s.sourceType === "mock");
+check("mock source active", mockSrc?.status === "active");
+const naverSrc = sources.find((s) => s.sourceType === "naver");
+check("naver source disabled without keys", naverSrc?.status === "disabled");
+const openAiSrc = sources.find((s) => s.sourceType === "openai_web_search");
+check("openai_web_search source planned", openAiSrc?.status === "planned");
+const rssSrc = sources.find((s) => s.sourceType === "rss");
+check("rss source planned", rssSrc?.status === "planned");
+
+const mockAdapter = new MockSearchAdapter();
+check("MockSearchAdapter isEnabled", mockAdapter.isEnabled());
+const mockResults = await mockAdapter.search("당뇨 완치", { limit: 5, moduleId: "false_ad", topicId: "blood-sugar" });
+check("MockSearchAdapter returns candidates", mockResults.length > 0);
+check("Mock results use reserved domains", mockResults.every((c) => /(\.test|\.example|\.invalid)/.test(c.url)));
+
+const naverAdapter = new NaverSearchAdapter();
+check("NaverSearchAdapter disabled without keys", !naverAdapter.isEnabled());
+
+check("scoutAgent.listTopics returns 12", scoutAgent.listTopics("false_ad").length === 12);
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

@@ -36,5 +36,13 @@ export const config = {
   discovery: {
     mock: parseBool(process.env.MOCK_DISCOVERY, true),
     maxCandidates: Number(process.env.DISCOVERY_MAX_CANDIDATES ?? 30)
+  },
+  scout: {
+    mock: parseBool(process.env.MOCK_SCOUT, true),
+    dailyLimit: Number(process.env.SCOUT_DAILY_LIMIT ?? 50),
+    naverClientId: process.env.NAVER_CLIENT_ID ?? "",
+    naverClientSecret: process.env.NAVER_CLIENT_SECRET ?? "",
+    openaiWebSearchEnabled: parseBool(process.env.OPENAI_WEB_SEARCH_ENABLED, false),
+    rssEnabled: parseBool(process.env.RSS_SCOUT_ENABLED, false)
   }
 };

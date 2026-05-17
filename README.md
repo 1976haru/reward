@@ -140,6 +140,25 @@ OrchestratorAgent는 `TextExtractor`의 `claimCandidates → reviewCandidates �
 
 자세한 명세는 [`docs/candidate_discovery.md`](./docs/candidate_discovery.md)를 참고하세요.
 
+## Search Collector / Scout Agent
+
+The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.
+
+- Search engine HTML scraping is **forbidden**. Only official APIs, allowed RSS, manual seeds, and Mock are used.
+- Daily target: **50 candidates/day** (`SCOUT_DAILY_LIMIT`). Actual yield depends on API keys, source limits, and ToS.
+- Mock Scout uses RFC 6761 reserved domains (`.test/.example/.invalid`) — no real network hits.
+- Naver Search adapter activates only when `NAVER_CLIENT_ID` + `NAVER_CLIENT_SECRET` are both set.
+
+API:
+
+- `GET /api/scout/topics`, `GET /api/scout/sources`
+- `POST /api/scout/discover` (topics + mode + sourceTypes)
+- `GET /api/scout/candidates`
+- `POST /api/scout/candidates/:id/queue` (creates DRAFT Case → Review Queue)
+- `POST /api/scout/candidates/:id/reject`
+
+See [`docs/search_collector.md`](./docs/search_collector.md).
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:
