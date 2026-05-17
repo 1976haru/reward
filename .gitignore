@@ -1,7 +1,13 @@
 node_modules
 dist
+coverage
 .env
-data/cases/*.json
+.env.local
+.env.*.local
+*.log
+
+# 분석 산출물은 커밋하지 않는다 (.gitkeep만 유지)
+data/cases/*
 data/evidence/*
 data/reports/*
 data/raw/*

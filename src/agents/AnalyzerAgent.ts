@@ -6,7 +6,8 @@ export class AnalyzerAgent {
   private client: OpenAI | null;
 
   constructor() {
-    this.client = config.openaiApiKey ? new OpenAI({ apiKey: config.openaiApiKey }) : null;
+    const useReal = !config.mockAi && Boolean(config.openaiApiKey);
+    this.client = useReal ? new OpenAI({ apiKey: config.openaiApiKey }) : null;
   }
 
   async analyze(doc: CollectedDocument, ruleHits: RuleHit[], score: number): Promise<AiFinding> {

@@ -6,7 +6,7 @@ import { ensureDir } from "../utils/fs.js";
 
 export class ReportService {
   async createReport(rewardCase: RewardCase): Promise<string> {
-    const reportDir = path.join(config.dataDir, "reports");
+    const reportDir = config.reportsDir;
     await ensureDir(reportDir);
     const reportPath = path.join(reportDir, `${rewardCase.id}.md`);
 

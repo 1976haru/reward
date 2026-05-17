@@ -5,10 +5,19 @@ import { z } from "zod";
 import { OrchestratorAgent } from "./agents/OrchestratorAgent.js";
 import { CaseRepository } from "./services/CaseRepository.js";
 import { config } from "./utils/config.js";
+import { ensureDir } from "./utils/fs.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
 const cases = new CaseRepository();
+
+// 시작 시 데이터 폴더 보장 (초보자 환경에서 EXDIR 오류 방지)
+await Promise.all([
+  ensureDir(path.join(config.dataDir, "cases")),
+  ensureDir(config.evidenceDir),
+  ensureDir(config.reportsDir),
+  ensureDir(path.join(config.dataDir, "raw"))
+]);
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
@@ -22,7 +31,16 @@ const analyzeSchema = z.object({
 });
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "reward-agent-mvp", time: new Date().toISOString() });
+  res.json({
+    ok: true,
+    service: "reward-agent-mvp",
+    module: "false_ad",
+    category: "health_functional_food",
+    environment: config.env,
+    port: config.port,
+    mockAi: config.mockAi,
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.post("/api/cases/analyze", async (req, res) => {

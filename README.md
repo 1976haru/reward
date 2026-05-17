@@ -3,16 +3,57 @@
 이 프로젝트는 "포상금 자동화 프로그램"이 아니라 **공개자료 기반 신고 후보 탐지·증거정리·신고서 초안 생성 도구**입니다.
 사용자가 입력한 공개 URL을 수집·분석해 의심 문구를 추출하고 증거를 정리하며 신고서 초안을 만듭니다. 실제 신고 제출은 사람이 직접 수행합니다.
 
-## 실행 순서
+## Quick Start for Windows PowerShell
 
-```bash
+처음 클론한 사람을 위한 최소 실행 절차입니다. (Node.js 18 이상, PowerShell 기준)
+
+```powershell
+# 1) 저장소 클론
+git clone https://github.com/1976haru/reward.git
+
+# 2) 프로젝트 폴더로 이동
+cd reward
+
+# 3) 의존성 설치
 npm install
-cp .env.example .env
+
+# 4) .env.example을 .env로 복사
+Copy-Item .env.example .env
+
+# 5) .env 파일을 열어 PORT=3001 인지 확인 (기본값)
+notepad .env
+
+# 6) Playwright 브라우저 설치 (스크린샷/PDF 생성용)
 npm run playwright:install
+
+# 7) 타입 체크 및 빌드
+npm run build
+
+# 8) 스모크 테스트 실행
+npm run test
+
+# 9) 개발 서버 실행 (포트 3001)
 npm run dev
+
+# 10) 브라우저로 접속
+#     http://localhost:3001
 ```
 
-브라우저에서 `http://localhost:3001` 접속 후 URL을 입력합니다.
+macOS/Linux 사용자는 5번을 `cp .env.example .env`, 6번 이하 동일하게 진행하세요.
+
+### Verification
+
+서버가 정상이라면 다음 응답을 받습니다.
+
+```powershell
+curl http://localhost:3001/api/health
+# → { "ok": true, "service": "reward-agent-mvp", "module": "false_ad",
+#     "category": "health_functional_food", "environment": "development",
+#     "port": 3001, "mockAi": true, "timestamp": "..." }
+
+curl http://localhost:3001/api/cases
+# → []  (처음에는 빈 배열)
+```
 
 ## 핵심 원칙
 
@@ -70,18 +111,75 @@ Official laws, agency guidance, and reward rules must be reviewed before any ext
 
 백엔드 API(`/api/cases`, `/api/cases/analyze`, `/api/cases/:id`)는 변경하지 않았습니다.
 
-## 폴더 구조
+## Project Structure
 
 ```text
 src/
-  agents/       에이전트 분업 로직
-  modules/      분야별 탐지 규칙
-  services/     저장소, 캡처, 보고서 서비스
-  types/        공통 타입
-  utils/        유틸리티
-public/         단순 웹 UI
-data/           로컬 저장소
+  agents/          오케스트레이터·수집·규칙·점수화·AI 분석·정책 에이전트
+  modules/
+    false-ad/      건강기능식품 허위·과대광고 탐지 룰과 agency_config.json
+  services/        CaseRepository, EvidenceService, ReportService (현재 Repository 클래스도 여기 위치)
+  scripts/         smoke-test 등 단발성 스크립트
+  types/           공통 타입 정의
+  utils/           config, fs 헬퍼
+public/            단순 정적 웹 UI (index.html, styles.css, app.js)
+docs/              운영·정책 문서 (agency_research.md, agency_config_schema.md, setup_checklist.md)
+data/              로컬 산출물 — .gitkeep 외에는 커밋되지 않음
+  cases/           Case JSON
+  evidence/        스크린샷·PDF·HTML·TXT
+  reports/         신고서 초안 (Markdown)
+  raw/             기타 원자료
+dist/              tsc 빌드 산출물 (gitignored)
 ```
+
+리포지토리 패턴 클래스를 별도 폴더(`src/repositories/`)로 분리할 계획이 있지만, 현재 MVP에서는 단일 `CaseRepository`만 존재해 `services/` 안에 둡니다. 클래스가 늘어나면 분리합니다.
+
+## Scripts
+
+| 명령 | 설명 |
+|---|---|
+| `npm run dev` | tsx watch로 개발 서버 실행 (포트 3001, .ts 직접 실행, 파일 변경 시 자동 재시작) |
+| `npm run build` | TypeScript 컴파일 (`tsc -p tsconfig.json`) → `dist/` 생성 |
+| `npm run test` | 스모크 테스트 실행 (룰 탐지·점수 범위·agency_config 검증) |
+| `npm run check` | `build` + `test`를 순서대로 실행 (CI/사전 점검용) |
+| `npm start` | `node dist/server.js`로 빌드 산출물 실행 (운영 시) |
+| `npm run playwright:install` | Playwright 크로미움 브라우저 설치 (스크린샷/PDF 캡처에 필요) |
+
+## Environment Variables
+
+`.env.example`을 `.env`로 복사한 뒤 값을 채워 사용합니다. `.env`는 절대 커밋하지 않습니다.
+
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| `PORT` | `3001` | Express 서버 포트 |
+| `MOCK_AI` | `true` | `true`면 OpenAI를 호출하지 않고 룰 기반 mock 분석으로 동작 |
+| `OPENAI_API_KEY` | (없음) | `MOCK_AI=false`일 때만 사용 |
+| `AI_MODEL` | `gpt-4.1-mini` | OpenAI 모델명 (실제 호출 시) |
+| `DATA_DIR` | `./data` | 데이터 루트 |
+| `EVIDENCE_DIR` | `${DATA_DIR}/evidence` | 증거 패키지 저장 경로 |
+| `REPORTS_DIR` | `${DATA_DIR}/reports` | 신고서 초안 저장 경로 |
+
+## Troubleshooting
+
+문제가 생기면 순서대로 확인하세요.
+
+| 증상 | 확인할 것 |
+|---|---|
+| `npm install` 실패 | Node.js 18 이상인지 (`node -v`), 회사·학교 네트워크 프록시 차단 여부 |
+| `npm run dev` 시 포트 사용 중 | `.env`의 `PORT` 변경 또는 `Get-NetTCPConnection -LocalPort 3001`로 점유 프로세스 확인 |
+| Playwright 캡처 실패 | `npm run playwright:install` 재실행, Windows Defender·사내 백신이 chromium 실행 차단 여부 |
+| `/api/health`가 안 뜸 | 서버 콘솔의 에러, 다른 프로세스가 3001 점유 여부 |
+| 분석 결과 AI 요약이 비어 있음 | `MOCK_AI=true` 상태로 동작 중인지 (.env 확인). 실제 모델 호출은 `MOCK_AI=false` + 유효한 `OPENAI_API_KEY` 필요 |
+| `data/`에 파일이 안 생김 | 폴더 권한, 디스크 여유 공간 |
+| 빌드 시 import 경로 에러 | `tsconfig.json`의 `module: NodeNext` 유지, `.js` 확장자 import 유지 |
+
+## Safety Notes
+
+- 이 도구는 **자동 신고 프로그램이 아닙니다.** 외부 신고기관 자동 제출·자동 로그인·자동 민원 기능을 제공하지 않습니다.
+- **포상금 수령을 보장하지 않습니다.** 모든 포상·보상 가능성은 공식 규정 확인이 필요합니다.
+- **공개자료만** 분석합니다. 비공개 페이지·로그인 우회·개인정보 수집은 금지됩니다.
+- AI 분석은 참고용이며, **최종 신고 여부는 사람이 판단**합니다.
+- 자세한 정책은 [`scope.md`](./scope.md), [`mvp_scope.md`](./mvp_scope.md), [`docs/agency_research.md`](./docs/agency_research.md)를 참고하세요.
 
 ## Claude Code 작업 방식
 

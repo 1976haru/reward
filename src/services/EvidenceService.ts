@@ -7,7 +7,7 @@ import { config } from "../utils/config.js";
 
 export class EvidenceService {
   async buildEvidence(caseId: string, doc: CollectedDocument): Promise<EvidenceBundle> {
-    const baseDir = path.join(config.dataDir, "evidence", caseId);
+    const baseDir = path.join(config.evidenceDir, caseId);
     await ensureDir(baseDir);
     const htmlPath = path.join(baseDir, "original.html");
     const textPath = path.join(baseDir, "extracted.txt");
