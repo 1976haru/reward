@@ -72,6 +72,36 @@ export interface ReviewRecord {
   notes?: string;
 }
 
+export type LlmOverallRisk = "LOW" | "MEDIUM" | "HIGH" | "VERY_HIGH" | "UNCERTAIN";
+export type LlmViolationLikelihood = "LOW" | "MEDIUM" | "HIGH" | "UNCERTAIN";
+
+export interface LlmAnalysisFinding {
+  issue: string;
+  evidence: string;
+  reason: string;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH" | "UNCERTAIN";
+  sourceSection?: string;
+}
+
+export interface CaseLlmAnalysis {
+  schemaVersion: "1.0.0";
+  moduleId: string;
+  notLegalConclusion: true;
+  rewardGuaranteed: false;
+  overallRisk: LlmOverallRisk;
+  violationLikelihood: LlmViolationLikelihood;
+  confidence: number;
+  summary: string;
+  findings: LlmAnalysisFinding[];
+  missingEvidence: string[];
+  recommendedAgency: string;
+  agencyCandidates: string[];
+  reportDraftSummary: string;
+  prohibitedPhrases: string[];
+  humanReviewChecklist: string[];
+  safetyWarnings: string[];
+}
+
 export interface CaseRuleMatch {
   ruleId: string;
   keyword: string;
@@ -132,4 +162,5 @@ export interface RewardCase {
   reviews: ReviewRecord[];
   extraction?: CaseExtractionSummary;
   ruleDetection?: CaseRuleDetection;
+  llmAnalysis?: CaseLlmAnalysis;
 }

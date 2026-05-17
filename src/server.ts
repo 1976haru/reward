@@ -10,6 +10,7 @@ import { casesRouter } from "./routes/cases.js";
 import { discoveryRouter } from "./routes/discovery.js";
 import { extractRouter } from "./routes/extract.js";
 import { rulesRouter, detectRouter } from "./routes/rules.js";
+import { analyzeRouter } from "./routes/analyze.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -121,6 +122,9 @@ app.use("/api/extract", extractRouter);
 // Rule Agent — 룰셋 조회 + 텍스트 탐지
 app.use("/api/rules", rulesRouter);
 app.use("/api/detect", detectRouter);
+
+// Analyzer Agent (LLM 또는 mock) — 신고 후보 검토 의견 생성
+app.use("/api/analyze", analyzeRouter);
 
 app.listen(config.port, () => {
   console.log(`Reward Agent MVP running at http://localhost:${config.port}`);

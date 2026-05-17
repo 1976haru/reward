@@ -5,7 +5,7 @@ import type {
   CaseStatus,
   RewardCase
 } from "../types/core.js";
-import { AnalyzerAgent } from "./AnalyzerAgent.js";
+import { AnalyzerAgent, analysisResultToAiFinding } from "./AnalyzerAgent.js";
 import { CollectorAgent } from "./CollectorAgent.js";
 import { PolicyAgent } from "./PolicyAgent.js";
 import { RuleAgent, type RuleDetectionResult } from "./RuleAgent.js";
@@ -55,8 +55,46 @@ export class OrchestratorAgent {
     );
 
     const score = detection.riskScore;
-    const aiFinding = await this.analyzer.analyze(doc, detection.ruleHits, score);
 
+    // 새 분석기 — 문맥 인지 분석 (LLM 또는 mock)
+    const llmAnalysis = await this.analyzer.analyzeWithContext({
+      moduleId: request.moduleId,
+      url: doc.url,
+      title: extraction?.title ?? doc.title,
+      memo: request.memo,
+      extractionResult: extraction
+        ? {
+            productName: extraction.productName,
+            claimCandidates: extraction.claimCandidates,
+            reviewCandidates: extraction.reviewCandidates,
+            mainText: extraction.mainText.slice(0, 6000)
+          }
+        : undefined,
+      ruleDetectionResult: {
+        riskScore: detection.riskScore,
+        riskLevel: detection.riskLevel,
+        counts: detection.counts,
+        matches: detection.matches.map((m) => ({
+          ruleId: m.ruleId,
+          keyword: m.keyword,
+          riskLevel: m.riskLevel,
+          sourceSection: m.sourceSection,
+          sentence: m.sentence,
+          reason: m.reason,
+          category: m.category
+        }))
+      },
+      evidenceSummary: {
+        productName: extraction?.productName,
+        priceCandidates: extraction?.priceCandidates,
+        hasHtml: true,
+        hasText: true,
+        hasScreenshot: false,
+        hasPdf: false
+      }
+    });
+
+    const aiFinding = analysisResultToAiFinding(llmAnalysis, score);
     if (policyWarnings.length > 0) {
       aiFinding.requiredHumanChecks = [...policyWarnings, ...aiFinding.requiredHumanChecks];
       aiFinding.confidence = Math.max(0, aiFinding.confidence - 10);
@@ -104,7 +142,8 @@ export class OrchestratorAgent {
       ],
       reviews: [],
       extraction: extraction ? summarizeExtractionForCase(extraction) : undefined,
-      ruleDetection: ruleDetectionForCase
+      ruleDetection: ruleDetectionForCase,
+      llmAnalysis
     };
 
     const reportPath = await this.reports.createReport(draft);

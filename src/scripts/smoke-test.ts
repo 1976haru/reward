@@ -28,6 +28,8 @@ import { CandidateRepository } from "../repositories/CandidateRepository.js";
 import { CandidateDiscoveryService, InvalidTopicError } from "../services/CandidateDiscoveryService.js";
 import { TextExtractor, maskPII, splitSentences, dedupe } from "../services/TextExtractor.js";
 import { RuleAgent } from "../agents/RuleAgent.js";
+import { AnalyzerAgent, validateAnalysisResult, loadAnalysisSchemaString } from "../agents/AnalyzerAgent.js";
+import { stat as fsStat } from "node:fs/promises";
 import {
   loadFalseAdKeywordsSync,
   validateKeywordConfig,
@@ -470,6 +472,70 @@ check("claimCandidates 우선 분석", dSection.matches.some((m) => m.sourceSect
 check("matches array exposed", Array.isArray(big.matches));
 check("highlightedSegments exposed", Array.isArray(big.highlightedSegments) && big.highlightedSegments.length > 0);
 
+// 13) Analyzer Agent — 11 tests
+const promptPath = path.join(process.cwd(), "src/modules/false-ad/analysis_prompt.md");
+try {
+  const st = await fsStat(promptPath);
+  check("analysis_prompt.md 존재", st.size > 0);
+} catch {
+  check("analysis_prompt.md 존재", false);
+}
+const schemaStr = loadAnalysisSchemaString();
+let schemaParsed: any = null;
+try { schemaParsed = JSON.parse(schemaStr); check("analysis_schema.json 유효 JSON", true); }
+catch { check("analysis_schema.json 유효 JSON", false); }
+check("schema required has notLegalConclusion", Array.isArray(schemaParsed?.required) && schemaParsed.required.includes("notLegalConclusion"));
+check("schema required has rewardGuaranteed", Array.isArray(schemaParsed?.required) && schemaParsed.required.includes("rewardGuaranteed"));
+
+const az = new AnalyzerAgent();
+check("MOCK 모드 동작 (OPENAI_API_KEY 없으면 mock)", az.isMockMode());
+
+const highRiskInput = {
+  moduleId: "false_ad" as const,
+  title: "혈당 케어",
+  url: "https://example.test/p",
+  extractionResult: { productName: "혈당 케어", claimCandidates: ["당뇨 완치"], mainText: "당뇨 완치에 도움" },
+  ruleDetectionResult: {
+    riskScore: 90,
+    riskLevel: "매우 높음",
+    counts: { HIGH: 2, MEDIUM: 1 },
+    matches: [
+      { ruleId: "H004", keyword: "당뇨 완치", riskLevel: "HIGH", sentence: "당뇨 완치에 도움", reason: "...", sourceSection: "claim" },
+      { ruleId: "H006", keyword: "혈압약 대체", riskLevel: "HIGH", sentence: "혈압약 대체", reason: "...", sourceSection: "main" }
+    ]
+  },
+  evidenceSummary: { hasScreenshot: false, hasPdf: false }
+};
+const llmHigh = await az.analyzeWithContext(highRiskInput);
+check("mock 결과: schema 핵심 필드", llmHigh.schemaVersion === "1.0.0" && llmHigh.moduleId === "false_ad");
+check("rewardGuaranteed === false", llmHigh.rewardGuaranteed === false);
+check("notLegalConclusion === true", llmHigh.notLegalConclusion === true);
+check("score 80+ → VERY_HIGH 또는 HIGH 계열", llmHigh.overallRisk === "VERY_HIGH" || llmHigh.overallRisk === "HIGH", `overallRisk=${llmHigh.overallRisk}`);
+check("missingEvidence가 evidenceSummary 따라 생성", llmHigh.missingEvidence.some((s) => /스크린샷|PDF/.test(s)));
+check("safetyWarnings 3개 필수 안내 포함", llmHigh.safetyWarnings.some((s) => s.includes("법 위반 확정")));
+
+// 금지 표현 sanitize
+const dirty = validateAnalysisResult({
+  summary: "이 광고는 불법 확정입니다. 포상금 무조건 지급 가능합니다.",
+  findings: [],
+  agencyCandidates: [],
+  humanReviewChecklist: [],
+  prohibitedPhrases: [],
+  missingEvidence: [],
+  safetyWarnings: [],
+  overallRisk: "HIGH",
+  violationLikelihood: "HIGH",
+  confidence: 0.5,
+  reportDraftSummary: "포상금 지급 확정"
+}, "false_ad");
+check("금지 표현 sanitize (불법 확정 → 치환)", !/불법\s*확정/.test(dirty.summary) && !/포상금\s*확정/.test(dirty.reportDraftSummary));
+check("sanitize 시 safetyWarnings에 경고 추가", dirty.safetyWarnings.some((w) => /금지 표현/.test(w)));
+
+// 결정성 (mock)
+const r1 = await az.analyzeWithContext(highRiskInput);
+const r2 = await az.analyzeWithContext(highRiskInput);
+check("동일 입력 mock 결과 enum 동일", r1.overallRisk === r2.overallRisk && r1.violationLikelihood === r2.violationLikelihood);
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);
@@ -499,5 +565,10 @@ console.log("SMOKE_TEST_OK", {
     counts: summary.counts,
     bigSampleScore: big.riskScore,
     bigSampleLevel: big.riskLevel
+  },
+  analyzer: {
+    mockMode: az.isMockMode(),
+    highInputRisk: llmHigh.overallRisk,
+    confidence: llmHigh.confidence
   }
 });

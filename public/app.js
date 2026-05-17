@@ -361,6 +361,8 @@ function renderResult(c) {
       <ul>${reasonsHtml}</ul>
     </div>
 
+    ${renderLlmAnalysisPanel(c.llmAnalysis)}
+
     ${renderRuleDetectionPanel(c.ruleDetection)}
 
     <div class="result-section">
@@ -398,6 +400,64 @@ function renderResult(c) {
 
     <div class="result-section">
       <a href="${reportUrl}" target="_blank" rel="noreferrer">신고서 초안/증거 요약 열기 →</a>
+    </div>
+  `;
+}
+
+function renderLlmAnalysisPanel(llm) {
+  if (!llm) return "";
+  const cls = llm.overallRisk === "VERY_HIGH" || llm.overallRisk === "HIGH" ? "danger"
+    : llm.overallRisk === "MEDIUM" ? "warn"
+    : llm.overallRisk === "LOW" ? "ok" : "muted";
+  const findings = Array.isArray(llm.findings) ? llm.findings.slice(0, 10) : [];
+  const checklistItems = (llm.humanReviewChecklist || []).slice(0, 12).map((x) => `<li>${escapeHtml(x)}</li>`).join("");
+  const missingItems = (llm.missingEvidence || []).slice(0, 10).map((x) => `<li>${escapeHtml(x)}</li>`).join("");
+  const prohibitedItems = (llm.prohibitedPhrases || []).slice(0, 10).map((x) => escapeHtml(x)).join(" · ");
+  const safetyItems = (llm.safetyWarnings || []).slice(0, 6).map((x) => `<li>${escapeHtml(x)}</li>`).join("");
+  const agencyChips = (llm.agencyCandidates || []).slice(0, 6).map((a) => `<span class="badge ok">${escapeHtml(a)}</span>`).join(" ");
+
+  const findingsHtml = findings.length
+    ? findings.map((f) => `
+      <div class="evi-item" style="border-left:4px solid ${f.riskLevel === "HIGH" ? "#b91c1c" : f.riskLevel === "MEDIUM" ? "#b45309" : "#6b7280"};">
+        <div class="label">
+          <span class="badge ${riskBadgeClass(f.riskLevel)}">${escapeHtml(f.riskLevel)}</span>
+          <span style="margin-left:6px;">${escapeHtml(f.issue)}</span>
+          ${f.sourceSection ? `<span class="muted" style="margin-left:6px;">(${escapeHtml(f.sourceSection)})</span>` : ""}
+        </div>
+        <div class="value">${escapeHtml(f.evidence)}</div>
+        <div class="muted" style="margin-top:4px;font-size:12px;">${escapeHtml(f.reason)}</div>
+      </div>
+    `).join("")
+    : '<p class="muted">제시된 finding이 없습니다.</p>';
+
+  return `
+    <div class="result-section">
+      <h4>AI 문맥 판단 (Analyzer Agent)</h4>
+      <p class="muted" style="margin:4px 0;">
+        <span class="badge ${cls}">위험도 ${escapeHtml(llm.overallRisk || "")}</span>
+        <span class="badge ${riskBadgeClass(llm.violationLikelihood)}">위반 가능성 ${escapeHtml(llm.violationLikelihood || "")}</span>
+        신뢰도 ${Math.round((llm.confidence || 0) * 100)}%
+      </p>
+      <p>${escapeHtml(llm.summary || "")}</p>
+
+      <h4 style="margin:10px 0 6px;">신고처 후보</h4>
+      <p>${agencyChips || escapeHtml(llm.recommendedAgency || "(없음)")}</p>
+
+      <h4 style="margin:10px 0 6px;">문제될 수 있는 표현 (findings)</h4>
+      <div class="evidence-grid">${findingsHtml}</div>
+
+      ${missingItems ? `<h4 style="margin:10px 0 6px;">보완 증거</h4><ul>${missingItems}</ul>` : ""}
+
+      <h4 style="margin:10px 0 6px;">신고서 초안용 중립 문구</h4>
+      <p class="muted" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:10px 12px;">${escapeHtml(llm.reportDraftSummary || "")}</p>
+
+      ${prohibitedItems ? `<h4 style="margin:10px 0 6px;">피해야 할 표현</h4><p class="muted">${prohibitedItems}</p>` : ""}
+
+      ${checklistItems ? `<h4 style="margin:10px 0 6px;">사람 검토 체크리스트</h4><ul>${checklistItems}</ul>` : ""}
+
+      ${safetyItems ? `<div class="next-actions" style="margin-top:10px;"><h4>안전 안내</h4><ul>${safetyItems}</ul></div>` : ""}
+
+      <p class="muted" style="margin-top:8px;">⚠ AI 분석 결과는 법 위반 확정이 아니며, 신고 전 사람이 공식 기준과 증거를 검토해야 합니다.</p>
     </div>
   `;
 }

@@ -70,6 +70,18 @@ The first module is intentionally limited to health functional food advertising 
 
 See [`mvp_scope.md`](./mvp_scope.md) for the detailed MVP scope and keyword set.
 
+## Analyzer Agent (LLM 판정)
+
+RuleAgent가 탐지한 의심 표현과 TextExtractor 결과를 LLM이 문맥상 재검토해 **신고 후보 검토 의견**(`AnalysisResult`)을 만듭니다. **법 위반 확정·포상금 보장·신고처 확정은 하지 않습니다.**
+
+- 프롬프트: [`src/modules/false-ad/analysis_prompt.md`](./src/modules/false-ad/analysis_prompt.md)
+- 스키마: [`src/modules/false-ad/analysis_schema.json`](./src/modules/false-ad/analysis_schema.json)
+- API: `POST /api/analyze/llm` (mock 가능, MOCK_AI=true가 기본)
+- `OPENAI_MODEL` / `LLM_TEMPERATURE` env로 모델·온도 조정
+- 출력은 항상 `notLegalConclusion:true`, `rewardGuaranteed:false`로 강제 (`validateAnalysisResult`가 금지 표현 sanitize)
+
+자세한 설계·검증 정책은 [`docs/analyzer_agent.md`](./docs/analyzer_agent.md) 참고.
+
 ## Rule Agent
 
 `src/modules/false-ad/keywords.json`을 기반으로 건강기능식품 허위·과대광고 의심 문구를 탐지합니다. 결과는 **검토 필요한 후보**이며, **법 위반 여부를 확정하지 않습니다.**

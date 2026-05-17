@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://reward-agent-mvp.local/schemas/analysis_result.json",
+  "title": "AnalysisResult",
+  "description": "AnalyzerAgent가 반환하는 신고 후보 검토 의견 구조. 법 위반·포상금 지급·신고처 확정을 포함하지 않는다.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "moduleId",
+    "notLegalConclusion",
+    "rewardGuaranteed",
+    "overallRisk",
+    "violationLikelihood",
+    "confidence",
+    "summary",
+    "findings",
+    "missingEvidence",
+    "recommendedAgency",
+    "agencyCandidates",
+    "reportDraftSummary",
+    "prohibitedPhrases",
+    "humanReviewChecklist",
+    "safetyWarnings"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "moduleId": { "type": "string" },
+    "notLegalConclusion": { "type": "boolean", "const": true },
+    "rewardGuaranteed": { "type": "boolean", "const": false },
+    "overallRisk": {
+      "type": "string",
+      "enum": ["LOW", "MEDIUM", "HIGH", "VERY_HIGH", "UNCERTAIN"]
+    },
+    "violationLikelihood": {
+      "type": "string",
+      "enum": ["LOW", "MEDIUM", "HIGH", "UNCERTAIN"]
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "summary": { "type": "string", "maxLength": 2000 },
+    "findings": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["issue", "evidence", "reason", "riskLevel"],
+        "properties": {
+          "issue": { "type": "string", "maxLength": 200 },
+          "evidence": { "type": "string", "maxLength": 800 },
+          "reason": { "type": "string", "maxLength": 600 },
+          "riskLevel": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH", "UNCERTAIN"]
+          },
+          "sourceSection": {
+            "type": "string",
+            "enum": ["claim", "review", "ingredient", "usage", "warning", "seller", "main"]
+          }
+        }
+      }
+    },
+    "missingEvidence": {
+      "type": "array",
+      "maxItems": 30,
+      "items": { "type": "string", "maxLength": 200 }
+    },
+    "recommendedAgency": { "type": "string", "maxLength": 200 },
+    "agencyCandidates": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string", "maxLength": 200 }
+    },
+    "reportDraftSummary": { "type": "string", "maxLength": 2000 },
+    "prohibitedPhrases": {
+      "type": "array",
+      "maxItems": 30,
+      "items": { "type": "string", "maxLength": 100 }
+    },
+    "humanReviewChecklist": {
+      "type": "array",
+      "maxItems": 30,
+      "items": { "type": "string", "maxLength": 300 }
+    },
+    "safetyWarnings": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 30,
+      "items": { "type": "string", "maxLength": 300 }
+    }
+  }
+}
