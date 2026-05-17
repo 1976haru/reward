@@ -366,6 +366,8 @@ function renderResult(c) {
       <ul>${hitsHtml}</ul>
     </div>
 
+    ${renderExtractionPanel(c.extraction)}
+
     <div class="result-section">
       <h4>신고기관 후보</h4>
       <p>${escapeHtml(ai.recommendedAgency || "별도 추천 기관이 제시되지 않았습니다.")}</p>
@@ -394,6 +396,48 @@ function renderResult(c) {
 
     <div class="result-section">
       <a href="${reportUrl}" target="_blank" rel="noreferrer">신고서 초안/증거 요약 열기 →</a>
+    </div>
+  `;
+}
+
+function renderExtractionPanel(extraction) {
+  if (!extraction) return "";
+  const top = (arr, n = 5) => (Array.isArray(arr) ? arr.slice(0, n) : []);
+  const bullet = (arr) =>
+    top(arr).length
+      ? `<ul>${top(arr).map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ul>`
+      : '<p class="muted">없음</p>';
+  const inline = (arr) =>
+    top(arr).length ? top(arr).map(escapeHtml).join(" · ") : "—";
+  const warns = top(extraction.extractionWarnings, 10);
+  const hints = top(extraction.removedBoilerplateHints, 10);
+  return `
+    <div class="result-section">
+      <h4>본문 추출 결과 (사람 검토용)</h4>
+      <p class="muted">${escapeHtml(extraction.productName || "상품명 미식별")} · 본문 ${extraction.textLength || 0}자 · 의심 문구 ${(extraction.claimCandidates || []).length}건 · 후기 ${(extraction.reviewCandidates || []).length}건 · 성분 ${(extraction.ingredientCandidates || []).length}건 · 주의 ${(extraction.warningCandidates || []).length}건</p>
+      <details style="margin-top:6px;">
+        <summary style="cursor:pointer;font-weight:700;font-size:13px;">상세 펼치기 (각 카테고리 상위 5개)</summary>
+        <div style="margin-top:8px;">
+          <h4 style="margin:6px 0;">상품명</h4>
+          <p>${escapeHtml(extraction.productName || "—")}</p>
+          <h4 style="margin:6px 0;">가격 후보</h4>
+          <p>${inline(extraction.priceCandidates)}</p>
+          <h4 style="margin:6px 0;">의심 광고 문구 후보</h4>
+          ${bullet(extraction.claimCandidates)}
+          <h4 style="margin:6px 0;">후기/리뷰 문구</h4>
+          ${bullet(extraction.reviewCandidates)}
+          <h4 style="margin:6px 0;">성분/원료</h4>
+          ${bullet(extraction.ingredientCandidates)}
+          <h4 style="margin:6px 0;">섭취 방법</h4>
+          ${bullet(extraction.usageCandidates)}
+          <h4 style="margin:6px 0;">주의사항</h4>
+          ${bullet(extraction.warningCandidates)}
+          <h4 style="margin:6px 0;">판매자 정보</h4>
+          ${bullet(extraction.sellerCandidates)}
+          ${warns.length ? `<h4 style="margin:6px 0;">추출 경고</h4><p class="muted">${warns.map(escapeHtml).join(" · ")}</p>` : ""}
+          ${hints.length ? `<h4 style="margin:6px 0;">제거된 boilerplate 힌트</h4><p class="muted">${hints.map(escapeHtml).join(" · ")}</p>` : ""}
+        </div>
+      </details>
     </div>
   `;
 }

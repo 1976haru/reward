@@ -70,6 +70,17 @@ The first module is intentionally limited to health functional food advertising 
 
 See [`mvp_scope.md`](./mvp_scope.md) for the detailed MVP scope and keyword set.
 
+## Text Extractor
+
+수집된 HTML에서 광고 문구, 후기, 성분, 섭취방법, 주의사항, 판매자 정보를 분리해 구조화합니다. 본 모듈은 법 위반 여부를 단독으로 판단하지 않으며, RuleAgent·AnalyzerAgent·증거 검토·사람 검토의 입력 자료를 만듭니다.
+
+- 끝점: `POST /api/extract` (`{html, url?, title?, moduleId?}`)
+- 동작: cheerio 기반 boilerplate 제거 → claim/review/ingredient/usage/warning/seller 후보 분리 → PII 마스킹
+- 분석 파이프라인 연결: `OrchestratorAgent`가 추출 결과를 우선 활용, 실패 시 기존 `doc.text`로 폴백
+- 증거 metadata.json에 추출 요약(productName, priceCandidates, 카테고리 카운트, textLength, warnings) 자동 기록
+
+자세한 명세는 [`docs/text_extractor.md`](./docs/text_extractor.md)를 참고하세요.
+
 ## Candidate Discovery
 
 사용자가 URL을 직접 찾지 않아도 **모듈 + 탐색 주제**를 고르면 시스템이 공개 자료 기반으로 신고 후보 URL을 발굴합니다. 이후 사용자가 후보를 선택하면 본문 수집·분석·Case 생성이 진행됩니다.

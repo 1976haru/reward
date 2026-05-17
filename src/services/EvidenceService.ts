@@ -193,8 +193,13 @@ export class EvidenceService {
    * 분석 파이프라인에서 호출되는 표준 진입점.
    * HTML/TXT는 항상 저장, 스크린샷/PDF는 env 토글에 따라 시도.
    * 실패해도 manifest에 사유를 기록하고 가용한 파일만 반환한다.
+   * options.extractionSummary가 들어오면 metadata.json에 함께 기록한다.
    */
-  async buildEvidence(caseId: string, doc: CollectedDocument): Promise<EvidenceBundle> {
+  async buildEvidence(
+    caseId: string,
+    doc: CollectedDocument,
+    options: { extractionSummary?: Record<string, unknown> } = {}
+  ): Promise<EvidenceBundle> {
     if (!isSafeCaseId(caseId)) {
       throw new Error(`Invalid caseId: ${caseId}`);
     }
@@ -226,6 +231,7 @@ export class EvidenceService {
       sourceType: doc.sourceType,
       capturedAt: startedAt,
       collector: "RewardAgentMVP/0.1",
+      extraction: options.extractionSummary ?? null,
       safety: {
         automaticReportSubmission: false,
         publicSourceOnly: true,

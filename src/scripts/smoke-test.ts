@@ -26,6 +26,7 @@ import { SeedMockDiscovery } from "../services/discovery/SeedMockDiscovery.js";
 import { scoreCandidate } from "../services/discovery/CandidateScorer.js";
 import { CandidateRepository } from "../repositories/CandidateRepository.js";
 import { CandidateDiscoveryService, InvalidTopicError } from "../services/CandidateDiscoveryService.js";
+import { TextExtractor, maskPII, splitSentences, dedupe } from "../services/TextExtractor.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -342,6 +343,81 @@ try {
 }
 check("service throws InvalidTopicError on unknown topic only", invalidTopicCaught);
 
+// 11) TextExtractor — sample HTML
+const extractor = new TextExtractor();
+const sampleHtml = `
+<!doctype html>
+<html><head>
+  <title>혈당 관리 건강기능식품 - 베스트 헬스 몰</title>
+  <style>.x{color:red}</style>
+  <script>alert("xss-should-be-stripped")</script>
+  <meta property="og:title" content="프리미엄 혈당 케어">
+</head>
+<body>
+  <header class="nav">메뉴 홈 상품 장바구니</header>
+  <main>
+    <h1>프리미엄 혈당 케어</h1>
+    <div class="price">39,800원 · ₩39,800 · 1+1 59,900원</div>
+    <div class="desc">
+      당뇨 개선에 도움을 줄 수 있다고 광고됩니다. 약 대신 먹는 혈당 관리 영양제입니다.
+      복용 후 혈당이 즉시 좋아진다는 후기가 있습니다. 처방 없이 누구나 섭취 가능합니다.
+    </div>
+    <div class="review">
+      후기: 먹어보니 혈당이 좋아졌어요. 재구매 의사 있습니다. 별점 5점.
+    </div>
+    <div class="ingredient">
+      주요 성분: 바나바잎 추출물, 여주분말. 함량 600mg.
+    </div>
+    <div class="usage">
+      섭취 방법: 1일 1회 2캡슐, 식후 권장량 준수.
+    </div>
+    <div class="warning">
+      섭취 시 주의사항: 임산부 및 수유부, 의약품 복용 중인 분은 전문가와 상담하세요.
+    </div>
+    <div class="seller">
+      판매자: 베스트헬스(주) · 상호: BestHealth · 대표자: 홍길동
+      문의: support@example.com, 010-1234-5678
+    </div>
+  </main>
+  <footer class="footer">회사소개 배송 반품 환불 안내</footer>
+</body></html>`;
+
+const extracted = extractor.extract(sampleHtml, { url: "https://example.test/p" });
+check("extract title", Boolean(extracted.title && extracted.title.includes("혈당")));
+check("extract productName from h1", extracted.productName?.includes("프리미엄 혈당 케어") === true);
+check("script tag removed (no xss alert text)", !extracted.mainText.includes("xss-should-be-stripped"));
+check("style block removed", !extracted.mainText.includes(".x{color:red}"));
+check("price candidates extracted", extracted.priceCandidates.length >= 2, `prices=${JSON.stringify(extracted.priceCandidates)}`);
+check("claim contains disease+treatment context", extracted.claimCandidates.some((s) => /당뇨/.test(s) && /(개선|치료|즉시)/.test(s)), `claims=${extracted.claimCandidates.slice(0,3).join(" | ")}`);
+check("review contains '먹어보니'", extracted.reviewCandidates.some((s) => /먹어보니/.test(s)));
+check("ingredient contains '바나바'", extracted.ingredientCandidates.some((s) => /바나바|성분/.test(s)));
+check("usage contains '1일'", extracted.usageCandidates.some((s) => /1일/.test(s)));
+check("warning contains '주의사항'", extracted.warningCandidates.some((s) => /주의사항|전문가/.test(s)));
+check("seller contains '판매자'", extracted.sellerCandidates.some((s) => /판매자|대표자/.test(s)));
+check("PII email masked in mainText", extracted.mainText.includes("[email-masked]"));
+check("PII phone masked in mainText", extracted.mainText.includes("[phone-masked]"));
+check("textLength > 0", extracted.textLength > 0);
+check("removedBoilerplateHints includes script", extracted.removedBoilerplateHints.some((h) => h.startsWith("tag:script")));
+check("removedBoilerplateHints includes nav/footer", extracted.removedBoilerplateHints.some((h) => h.startsWith("tag:nav") || h.startsWith("tag:footer")));
+
+// dedupe + splitSentences direct
+check("dedupe removes duplicates", dedupe(["a", "a", "b"]).length === 2);
+check("splitSentences yields sentences", splitSentences("첫 번째 문장입니다. 두 번째 문장입니다.").length === 2);
+check("maskPII masks email", maskPII("contact me at foo@example.com please").includes("[email-masked]"));
+
+// Empty/too-large guard
+let emptyThrown = false;
+try { extractor.extract("", {}); } catch { emptyThrown = true; }
+check("extract throws on empty html", emptyThrown);
+
+let tooLargeThrown = false;
+try {
+  extractor.extract("a".repeat(2_500_000), {});
+} catch (e) {
+  tooLargeThrown = /maximum size/i.test((e as Error).message);
+}
+check("extract throws on oversized html", tooLargeThrown);
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);
@@ -357,5 +433,13 @@ console.log("SMOKE_TEST_OK", {
   caseRepo: "ok",
   validators: "ok",
   evidence: "ok",
-  discovery: { topics: falseAdTopics.length, mockCandidates: generated.length }
+  discovery: { topics: falseAdTopics.length, mockCandidates: generated.length },
+  extractor: {
+    productName: extracted.productName,
+    prices: extracted.priceCandidates.length,
+    claims: extracted.claimCandidates.length,
+    reviews: extracted.reviewCandidates.length,
+    ingredients: extracted.ingredientCandidates.length,
+    warnings: extracted.warningCandidates.length
+  }
 });

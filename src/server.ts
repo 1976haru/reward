@@ -8,6 +8,7 @@ import { ensureDir } from "./utils/fs.js";
 import { moduleRegistry } from "./modules/index.js";
 import { casesRouter } from "./routes/cases.js";
 import { discoveryRouter } from "./routes/discovery.js";
+import { extractRouter } from "./routes/extract.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -112,6 +113,9 @@ app.use("/api/cases", casesRouter);
 
 // Candidate Discovery
 app.use("/api/discovery", discoveryRouter);
+
+// HTML → 구조화 텍스트 추출 (광고 문구 후보 분리)
+app.use("/api/extract", extractRouter);
 
 app.listen(config.port, () => {
   console.log(`Reward Agent MVP running at http://localhost:${config.port}`);

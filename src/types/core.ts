@@ -72,6 +72,20 @@ export interface ReviewRecord {
   notes?: string;
 }
 
+export interface CaseExtractionSummary {
+  productName?: string;
+  priceCandidates: string[];
+  claimCandidates: string[];
+  reviewCandidates: string[];
+  ingredientCandidates: string[];
+  usageCandidates: string[];
+  warningCandidates: string[];
+  sellerCandidates: string[];
+  textLength: number;
+  extractionWarnings: string[];
+  removedBoilerplateHints: string[];
+}
+
 export interface RewardCase {
   id: string;
   moduleId: ModuleId;
@@ -93,4 +107,5 @@ export interface RewardCase {
   reportPath: string;
   statusHistory: StatusHistoryEntry[];
   reviews: ReviewRecord[];
+  extraction?: CaseExtractionSummary;
 }
