@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>공익신고 후보 탐지·증거정리 에이전트 (MVP)</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <!-- 1. Hero -->
+    <section class="hero">
+      <h1>모듈형 공익신고 후보 탐지·증거정리 에이전트</h1>
+      <p class="lead">공개자료를 수집·분석해 의심 문구와 증거를 정리하고 신고서 초안을 만듭니다. 자동 신고는 수행하지 않으며, 최종 신고 여부는 반드시 사람이 검토한 뒤 직접 외부 신고기관에 제출합니다.</p>
+      <div class="safety-banner">
+        ⚠ 자동 신고가 아니라, 공개자료 기반 신고 후보 탐지·증거정리·신고서 초안 생성 도구입니다.
+        <strong>현재 사용 가능 모듈: 건강기능식품 온라인 허위·과대광고 탐지 (1차 MVP)</strong>.
+        포상금 수령을 보장하지 않으며, AI 분석은 참고용입니다. 자세한 정책은 <code>scope.md</code>·<code>mvp_scope.md</code>를 참고하세요.
+      </div>
+    </section>
+
+    <div class="layout">
+      <!-- ===== Sidebar (모듈 선택 + 가이드) ===== -->
+      <aside class="col-side">
+        <!-- 2. 모듈 선택 -->
+        <section class="card">
+          <h2>신고 분야 선택</h2>
+          <p class="section-hint">1차 MVP 사용 가능 모듈은 <strong>건강기능식품 온라인 허위·과대광고 탐지</strong>입니다. 일반 식품·화장품·의료기기·기타 분야는 같은 패턴으로 순차 확장 예정입니다.</p>
+          <div id="moduleList" class="module-list"></div>
+        </section>
+
+        <!-- 3. 선택된 모듈 가이드 -->
+        <section class="card guide" id="guidePanel">
+          <p class="muted">모듈을 선택하면 가이드가 표시됩니다.</p>
+        </section>
+      </aside>
+
+      <!-- ===== Main (프로세스 + 분석 + 결과 + 증거 + 케이스) ===== -->
+      <section class="col-main">
+        <!-- 4. 원스톱 프로세스 -->
+        <section class="card">
+          <h2>원스톱 프로세스</h2>
+          <p class="section-hint">URL을 분석하면 아래 7단계가 순서대로 수행됩니다. 마지막 단계인 <strong>사람 검토</strong>는 도구가 아닌 사용자가 수행해야 합니다.</p>
+          <div id="processBar" class="process"></div>
+        </section>
+
+        <!-- 5. URL 분석 입력 -->
+        <section class="card">
+          <h2>공개 URL 분석</h2>
+          <form id="analyzeForm">
+            <label for="url">분석할 공개 URL (건강기능식품 광고 페이지)</label>
+            <input id="url" name="url" type="url" placeholder="https://example.com/health-supplement" required />
+            <br /><br />
+            <label for="memo">메모 (선택)</label>
+            <textarea id="memo" name="memo" placeholder="왜 의심되는지 간단히 적어도 됩니다."></textarea>
+            <div class="input-notice">
+              <strong>입력 전 확인하세요</strong>
+              <ul>
+                <li>공개 URL만 입력하세요. 로그인 필요 페이지, 비공개 자료, 개인정보가 포함된 페이지는 입력하지 마세요.</li>
+                <li>대상 사이트의 이용약관과 robots.txt를 존중해 주세요.</li>
+                <li>분석 결과는 신고 후보 참고자료이며, 최종 판단·신고는 사람이 직접 합니다.</li>
+              </ul>
+            </div>
+            <br />
+            <button id="submitBtn" class="primary" type="submit">수집·탐지·증거화 시작</button>
+          </form>
+        </section>
+
+        <!-- 6. 분석 결과 -->
+        <section class="card">
+          <h2>분석 결과</h2>
+          <div id="result">
+            <p class="muted">아직 분석 결과가 없습니다. 위에서 공개 URL을 입력해 분석을 시작하세요.</p>
+          </div>
+        </section>
+
+        <!-- 7. 증거 패키지 -->
+        <section class="card">
+          <h2>증거 패키지</h2>
+          <div id="evidence">
+            <p class="muted">분석이 끝나면 원본 URL, 수집일시, 캡처, PDF, 텍스트, 신고서 초안 정보가 표시됩니다.</p>
+          </div>
+        </section>
+
+        <!-- 8. 최근 케이스 -->
+        <section class="card">
+          <h2>최근 케이스</h2>
+          <div id="caseList" class="muted">불러오는 중...</div>
+        </section>
+      </section>
+    </div>
+
+    <footer style="margin:24px 0 8px;color:#6b7280;font-size:12.5px;line-height:1.6;">
+      이 도구는 자동 신고를 수행하지 않습니다. 외부 신고기관 자동 제출, 자동 민원 제출, 자동 로그인 신고 기능은 제공되지 않으며,
+      모든 신고 행위는 사람이 직접 검토한 뒤 수행해야 합니다. 자세한 사용 정책은 프로젝트 루트의 <code>scope.md</code>를 참고하세요.
+    </footer>
+  </main>
+
+  <!-- Modal: 준비 중 모듈 안내 -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal">
+      <h3>안내</h3>
+      <p></p>
+      <div class="actions">
+        <button class="ghost" data-close="1">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

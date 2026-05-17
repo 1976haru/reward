@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+data/cases/*.json
+data/evidence/*
+data/reports/*
+data/raw/*
+!data/cases/.gitkeep
+!data/evidence/.gitkeep
+!data/reports/.gitkeep
+!data/raw/.gitkeep

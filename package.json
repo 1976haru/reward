@@ -1,0 +1,32 @@
+{
+  "name": "reward-agent-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agentic public-report evidence builder MVP for online false advertising analysis.",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx src/scripts/smoke-test.ts",
+    "playwright:install": "playwright install chromium"
+  },
+  "dependencies": {
+    "@openai/agents": "latest",
+    "cheerio": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "nanoid": "latest",
+    "openai": "latest",
+    "playwright": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/cors": "latest",
+    "@types/express": "latest",
+    "@types/node": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}
