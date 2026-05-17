@@ -94,16 +94,29 @@ const PROCESS_STEPS = [
   { key: "review", label: "사람검토" }
 ];
 
+// 신 enum (DRAFT/REVIEW/...)과 레거시 enum 모두 처리한다.
 const STATUS_LABEL = {
+  DRAFT: "Draft",
+  REVIEW: "Review",
+  APPROVED: "Approved",
+  SUBMITTED: "Submitted",
+  REJECTED: "Rejected",
+  // 레거시
   draft: "Draft",
   needs_review: "Review",
   ready_to_report: "Approved",
   reported: "Submitted",
   rejected: "Rejected",
-  archived: "Archived"
+  archived: "Rejected"
 };
 
 const STATUS_BADGE = {
+  DRAFT: "muted",
+  REVIEW: "warn",
+  APPROVED: "ok",
+  SUBMITTED: "ok",
+  REJECTED: "danger",
+  // 레거시
   draft: "muted",
   needs_review: "warn",
   ready_to_report: "ok",
@@ -308,10 +321,11 @@ function gradeFromScore(score) {
 
 function renderResult(c) {
   const result = document.getElementById("result");
-  const grade = gradeFromScore(c.score);
+  const score = c.riskScore ?? c.score ?? 0;
+  const grade = gradeFromScore(score);
   const ai = c.aiFinding || {};
   const hits = c.ruleHits || [];
-  const statusKey = c.status || "draft";
+  const statusKey = c.status || "DRAFT";
   const statusBadge = STATUS_BADGE[statusKey] || "muted";
 
   const reasonsHtml = (ai.reasons || []).map((r) => `<li>${escapeHtml(r)}</li>`).join("") || "<li>제시된 근거가 없습니다.</li>";
@@ -324,7 +338,7 @@ function renderResult(c) {
 
   result.innerHTML = `
     <div class="score-row">
-      <span class="score-pill ${grade.cls}"><span class="num">${c.score}</span>/100</span>
+      <span class="score-pill ${grade.cls}"><span class="num">${score}</span>/100</span>
       <span class="badge ${grade.cls.replace("grade-", "")}">${escapeHtml(grade.label)}</span>
       <span class="badge ${statusBadge}">상태: ${escapeHtml(STATUS_LABEL[statusKey] || statusKey)}</span>
     </div>
@@ -415,7 +429,9 @@ async function loadCases() {
   const root = document.getElementById("caseList");
   try {
     const res = await fetch("/api/cases");
-    const cases = await res.json();
+    const payload = await res.json();
+    // 신 API는 {ok, cases, page}, 레거시는 RewardCase[] — 둘 다 처리
+    const cases = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.cases) ? payload.cases : []);
     state.cases = cases;
     if (!cases.length) {
       root.innerHTML = '<p class="muted">저장된 케이스가 없습니다. 위에서 URL을 입력해 첫 분석을 실행해 보세요.</p>';
@@ -423,8 +439,8 @@ async function loadCases() {
     }
     root.innerHTML = cases.slice(0, 10).map((c) => {
       const mod = MODULES.find((m) => m.id === c.moduleId);
-      const grade = gradeFromScore(c.score);
-      const statusKey = c.status || "draft";
+      const grade = gradeFromScore(c.riskScore ?? c.score);
+      const statusKey = c.status || "DRAFT";
       return `
         <div class="case">
           <div>
@@ -436,7 +452,7 @@ async function loadCases() {
             </div>
           </div>
           <div class="badges">
-            <span class="badge ${grade.cls.replace("grade-", "")}">위험도 ${c.score}</span>
+            <span class="badge ${grade.cls.replace("grade-", "")}">위험도 ${c.riskScore ?? c.score ?? 0}</span>
             <span class="badge ${STATUS_BADGE[statusKey] || "muted"}">${escapeHtml(STATUS_LABEL[statusKey] || statusKey)}</span>
             <button class="ghost" data-id="${escapeAttr(c.id)}">상세보기</button>
           </div>

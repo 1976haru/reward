@@ -70,6 +70,16 @@ The first module is intentionally limited to health functional food advertising 
 
 See [`mvp_scope.md`](./mvp_scope.md) for the detailed MVP scope and keyword set.
 
+## Case API
+
+분석 결과를 **사건 Case** 단위로 관리합니다. 자동 신고가 아니라 사람 검토용 흐름입니다.
+
+- 라이프사이클: `DRAFT → REVIEW → APPROVED → SUBMITTED` (`SUBMITTED`는 사용자가 외부 신고기관에 **직접 제출 후 수동 기록**)
+- 끝점: `GET/POST /api/cases`, `GET/PATCH /api/cases/:id`, `PATCH /api/cases/:id/status`, `POST /api/cases/:id/reviews`
+- 저장소: 파일 기반 `JsonCaseRepository` (기본). `USE_DB=true` 도입은 다음 단계 (현재는 JSON 폴백)
+
+자세한 API 명세·예시·전이 규칙은 [`docs/case_api.md`](./docs/case_api.md)를 참고하세요.
+
 ## Module Registry
 
 Modules are registered through a central registry. Runtime dynamic loading is intentionally not supported — modules are added by editing `src/modules/index.ts`.

@@ -20,6 +20,8 @@ export const config = {
   evidenceDir: process.env.EVIDENCE_DIR ?? path.join(dataDir, "evidence"),
   reportsDir: process.env.REPORTS_DIR ?? path.join(dataDir, "reports"),
   mockAi: parseBool(process.env.MOCK_AI, true),
+  useDb: parseBool(process.env.USE_DB, false),
+  databaseUrl: process.env.DATABASE_URL ?? "file:./dev.db",
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   aiModel: process.env.AI_MODEL ?? "gpt-4.1-mini"
 };
