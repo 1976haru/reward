@@ -127,7 +127,10 @@ const STATUS_BADGE = {
 
 const state = {
   selectedModuleId: "false_ad",
-  cases: []
+  cases: [],
+  topics: [],
+  selectedTopicIds: new Set(),
+  candidates: []
 };
 
 // ---------- Boot ----------
@@ -138,6 +141,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderProcess("pending");
   bindForm();
   bindModal();
+  bindDiscovery();
+  await loadTopics();
+  await loadCandidates();
   loadCases();
 });
 
@@ -482,6 +488,154 @@ function showCaseDetail(id) {
   renderEvidence(c);
   renderProcess("done");
   document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ---------- Discovery ----------
+function bindDiscovery() {
+  const discoverBtn = document.getElementById("discoverBtn");
+  const refreshBtn = document.getElementById("refreshCandidatesBtn");
+  if (discoverBtn) discoverBtn.addEventListener("click", runDiscovery);
+  if (refreshBtn) refreshBtn.addEventListener("click", loadCandidates);
+}
+
+async function loadTopics() {
+  const statusEl = document.getElementById("discoveryStatus");
+  const chips = document.getElementById("topicChips");
+  try {
+    const res = await fetch(`/api/discovery/topics?moduleId=${encodeURIComponent(state.selectedModuleId)}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "topics fetch failed");
+    state.topics = data.topics || [];
+    if (statusEl) statusEl.textContent = `사용 가능한 주제: ${state.topics.length}건`;
+    if (chips) renderTopicChips();
+  } catch (err) {
+    if (statusEl) statusEl.textContent = "주제 목록을 불러오지 못했습니다: " + err.message;
+  }
+}
+
+function renderTopicChips() {
+  const chips = document.getElementById("topicChips");
+  if (!chips) return;
+  chips.innerHTML = state.topics.map((t) => {
+    const active = state.selectedTopicIds.has(t.id);
+    return `<button type="button" class="badge ${active ? "ok" : "muted"}" data-topic="${escapeAttr(t.id)}" style="padding:6px 10px;border:0;cursor:pointer;font-weight:700;">${escapeHtml(t.label)}</button>`;
+  }).join("");
+  chips.querySelectorAll("button[data-topic]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const id = el.getAttribute("data-topic");
+      if (state.selectedTopicIds.has(id)) state.selectedTopicIds.delete(id);
+      else state.selectedTopicIds.add(id);
+      renderTopicChips();
+    });
+  });
+}
+
+async function runDiscovery() {
+  const discoverBtn = document.getElementById("discoverBtn");
+  const candidateList = document.getElementById("candidateList");
+  const selected = [...state.selectedTopicIds];
+  if (selected.length === 0) {
+    openModal("주제를 1개 이상 선택하세요", "탐색할 주제를 골라야 후보를 발굴할 수 있습니다.");
+    return;
+  }
+  const mode = document.getElementById("discoveryMode").value || "quick";
+  discoverBtn.disabled = true;
+  candidateList.innerHTML = '<p class="muted">후보를 찾는 중입니다...</p>';
+  try {
+    const res = await fetch("/api/discovery/candidates", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ moduleId: state.selectedModuleId, topics: selected, mode })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "discovery failed");
+    await loadCandidates();
+    const banner = document.createElement("p");
+    banner.className = "muted";
+    banner.style.marginTop = "8px";
+    banner.textContent = `발굴 모드: ${data.discoveryMode} · 신규 추가 ${data.added}건 (기존 후보와 중복 제외). 본문 분석과 사람 검토가 필요합니다.`;
+    candidateList.prepend(banner);
+  } catch (err) {
+    candidateList.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;
+  } finally {
+    discoverBtn.disabled = false;
+  }
+}
+
+async function loadCandidates() {
+  const root = document.getElementById("candidateList");
+  try {
+    const res = await fetch(`/api/discovery/candidates?moduleId=${encodeURIComponent(state.selectedModuleId)}&limit=50`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "candidate list failed");
+    state.candidates = data.candidates || [];
+    if (state.candidates.length === 0) {
+      root.innerHTML = '<p class="muted">아직 후보가 없습니다. 위에서 "후보 자동 찾기"를 실행하세요.</p>';
+      return;
+    }
+    root.innerHTML = state.candidates.map((c) => {
+      const grade = gradeFromScore(c.firstScore);
+      const isAnalyzed = c.status === "ANALYZED";
+      return `
+        <div class="case">
+          <div>
+            <div class="title">${escapeHtml(c.title || c.url)}</div>
+            <div class="meta">
+              <a href="${escapeAttr(c.url)}" target="_blank" rel="noreferrer">${escapeHtml(c.url)}</a><br/>
+              주제: ${escapeHtml(c.topic)} · 키워드: ${escapeHtml(c.keyword)} · ${escapeHtml(c.source)} (${escapeHtml(c.discoveryMethod)})
+              ${c.snippet ? `<br/><span class="muted">${escapeHtml(c.snippet)}</span>` : ""}
+              ${c.reasons && c.reasons.length ? `<br/><span class="muted">근거: ${c.reasons.map(escapeHtml).join(" · ")}</span>` : ""}
+            </div>
+          </div>
+          <div class="badges">
+            <span class="badge ${grade.cls.replace("grade-", "")}">1차점수 ${c.firstScore}</span>
+            <span class="badge ${isAnalyzed ? "ok" : "muted"}">${escapeHtml(c.status)}</span>
+            <button class="primary" data-analyze="${escapeAttr(c.id)}" type="button" ${isAnalyzed ? "disabled" : ""} style="padding:8px 12px;font-size:13px;">${isAnalyzed ? "분석 완료" : "분석하기"}</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+    root.querySelectorAll("button[data-analyze]").forEach((btn) => {
+      btn.addEventListener("click", () => analyzeCandidate(btn.getAttribute("data-analyze"), btn));
+    });
+  } catch (err) {
+    root.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function analyzeCandidate(candidateId, btn) {
+  const result = document.getElementById("result");
+  const evidenceBox = document.getElementById("evidence");
+  btn.disabled = true;
+  btn.textContent = "분석 중...";
+  result.innerHTML = '<p class="muted">후보 본문을 수집하고 분석 중입니다. 시간이 걸릴 수 있습니다.</p>';
+  evidenceBox.innerHTML = '<p class="muted">분석이 끝나면 증거 패키지가 표시됩니다.</p>';
+  renderProcess("running", 0);
+  const stepTimers = [];
+  for (let i = 1; i < PROCESS_STEPS.length - 1; i++) {
+    stepTimers.push(setTimeout(() => renderProcess("running", i), i * 700));
+  }
+  try {
+    const res = await fetch(`/api/discovery/candidates/${encodeURIComponent(candidateId)}/analyze`, {
+      method: "POST",
+      headers: { "content-type": "application/json" }
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "analyze failed");
+    stepTimers.forEach(clearTimeout);
+    renderProcess("done");
+    renderResult(data.case);
+    renderEvidence(data.case);
+    await loadCandidates();
+    await loadCases();
+  } catch (err) {
+    stepTimers.forEach(clearTimeout);
+    renderProcess("pending");
+    result.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;
+    evidenceBox.innerHTML = '<p class="muted">분석이 실패해 증거 패키지를 만들지 못했습니다. mock 후보는 실제 네트워크 호출에 실패할 수 있습니다.</p>';
+    btn.disabled = false;
+    btn.textContent = "분석하기";
+  }
 }
 
 // ---------- Modal ----------

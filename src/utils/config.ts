@@ -28,5 +28,9 @@ export const config = {
     captureTimeoutMs: Number(process.env.EVIDENCE_CAPTURE_TIMEOUT_MS ?? 15000),
     enableScreenshot: parseBool(process.env.EVIDENCE_ENABLE_SCREENSHOT, true),
     enablePdf: parseBool(process.env.EVIDENCE_ENABLE_PDF, true)
+  },
+  discovery: {
+    mock: parseBool(process.env.MOCK_DISCOVERY, true),
+    maxCandidates: Number(process.env.DISCOVERY_MAX_CANDIDATES ?? 30)
   }
 };

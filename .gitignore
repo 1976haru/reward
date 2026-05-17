@@ -11,7 +11,9 @@ data/cases/*
 data/evidence/*
 data/reports/*
 data/raw/*
+data/candidates/*
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
 !data/raw/.gitkeep
+!data/candidates/.gitkeep

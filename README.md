@@ -70,6 +70,17 @@ The first module is intentionally limited to health functional food advertising 
 
 See [`mvp_scope.md`](./mvp_scope.md) for the detailed MVP scope and keyword set.
 
+## Candidate Discovery
+
+사용자가 URL을 직접 찾지 않아도 **모듈 + 탐색 주제**를 고르면 시스템이 공개 자료 기반으로 신고 후보 URL을 발굴합니다. 이후 사용자가 후보를 선택하면 본문 수집·분석·Case 생성이 진행됩니다.
+
+- 흐름: 모듈 → 주제 → `POST /api/discovery/candidates` → 1차 점수화 → `POST /api/discovery/candidates/:id/analyze` → 사람 검토
+- 어댑터: `MOCK_DISCOVERY=true`(기본, RFC 6761 예약 도메인 mock) / SearchApiDiscovery placeholder
+- 수동 URL: `POST /api/discovery/manual` 또는 기존 `POST /api/cases/analyze` 그대로 사용 가능
+- 안전 정책: 대량 크롤링·로그인 우회·CAPTCHA 우회·HTML 스크래핑 금지
+
+자세한 명세는 [`docs/candidate_discovery.md`](./docs/candidate_discovery.md)를 참고하세요.
+
 ## Evidence Storage
 
 Evidence files are stored per case under:

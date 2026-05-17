@@ -21,6 +21,11 @@ import {
   isAllowedEvidenceFileName,
   isSafeCaseId
 } from "../services/EvidenceService.js";
+import { falseAdTopics, generateSeedKeywords, getTopicById } from "../modules/false-ad/topics.js";
+import { SeedMockDiscovery } from "../services/discovery/SeedMockDiscovery.js";
+import { scoreCandidate } from "../services/discovery/CandidateScorer.js";
+import { CandidateRepository } from "../repositories/CandidateRepository.js";
+import { CandidateDiscoveryService, InvalidTopicError } from "../services/CandidateDiscoveryService.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -258,6 +263,85 @@ try {
   await rm(tempEvidRoot, { recursive: true, force: true });
 }
 
+// 10) Discovery — topics / seed keywords / scorer / mock adapter / repo dedupe / planned-module guard / manual
+check("falseAdTopics has 12 items", falseAdTopics.length === 12);
+check("getTopicById by slug", getTopicById("blood-sugar")?.label === "혈당/당뇨");
+check("getTopicById by label", getTopicById("관절/연골")?.id === "joint-cartilage");
+const seeds = generateSeedKeywords(["blood-sugar", "joint-cartilage", "nope"]);
+check("generateSeedKeywords merges and skips unknown", seeds.length >= 5 && !seeds.includes(""));
+check("generateSeedKeywords dedupes (no obvious dupes)", new Set(seeds).size === seeds.length);
+
+// Scorer
+const high = scoreCandidate({
+  title: "[광고] 당뇨 완치 영양제 - 100% 효과",
+  snippet: "처방 없이 누구나 구매 가능, 후기 다수",
+  url: "https://best-shop.example/product/diabetes-1"
+});
+check("scorer high score for treatment claim + commerce", high.score >= 60, `score=${high.score}`);
+check("scorer reasons non-empty", high.reasons.length > 0);
+const low = scoreCandidate({
+  title: "건강기능식품 광고 가이드라인",
+  snippet: "정부 안내",
+  url: "https://www.mfds.go.kr/wpge/m_660/x.do"
+});
+check("scorer penalizes official .go.kr domain", low.score < high.score, `low=${low.score} high=${high.score}`);
+check("scorer 0..100 bound (low)", low.score >= 0 && low.score <= 100);
+check("scorer 0..100 bound (high)", high.score >= 0 && high.score <= 100);
+
+// SeedMockDiscovery
+const mock = new SeedMockDiscovery();
+const generated = mock.generate({
+  moduleId: "false_ad",
+  topics: [falseAdTopics[0], falseAdTopics[1]],
+  maxCandidates: 6
+});
+check("mock generates up to maxCandidates", generated.length > 0 && generated.length <= 6);
+check("mock candidates have firstScore", generated.every((c) => typeof c.firstScore === "number" && c.firstScore >= 0 && c.firstScore <= 100));
+check("mock candidates use reserved domain (.test/.example/.invalid)",
+  generated.every((c) => /(\.test|\.example|\.invalid)(\/|$)/i.test(c.url)),
+  generated[0]?.url
+);
+check("mock candidates status NEW", generated.every((c) => c.status === "NEW"));
+check("mock candidates discoveryMethod seed", generated.every((c) => c.discoveryMethod === "seed"));
+
+// Repository — temp file, dedupe + manual
+const tempRepoDir = await mkdtemp(path.join(tmpdir(), "reward-candidates-"));
+try {
+  const tempFile = path.join(tempRepoDir, "candidates.json");
+  const repo = new CandidateRepository(tempFile);
+  const added1 = await repo.createMany(generated);
+  check("repo.createMany added all initially", added1.length === generated.length);
+  // 같은 후보 다시 넣어도 dedupe
+  const added2 = await repo.createMany(generated);
+  check("repo.createMany dedupes by (moduleId,url)", added2.length === 0);
+
+  const listed = await repo.list({ moduleId: "false_ad" });
+  check("repo.list returns persisted candidates", listed.length === generated.length);
+
+  // 수동 후보 (분리된 repo 인스턴스는 사용하지 않고 서비스의 default repo는 별도 — 그래도 service.createManualCandidate는 default repo 사용. 여기서는 score만 검증)
+  const manualScore = scoreCandidate({
+    title: "위염 완치 보조제",
+    snippet: "약 없이 위염 완치",
+    url: "https://wellness-blog.example/post/x"
+  });
+  check("manual score > 0", manualScore.score > 0);
+
+  const status = await repo.updateStatus(generated[0].id, "ANALYZED", { caseId: "case_xyz" });
+  check("repo.updateStatus sets caseId", status.caseId === "case_xyz" && status.status === "ANALYZED");
+} finally {
+  await rm(tempRepoDir, { recursive: true, force: true });
+}
+
+// Service-level planned module guard + invalid topic
+const svc = new CandidateDiscoveryService();
+let invalidTopicCaught = false;
+try {
+  await svc.discover({ moduleId: "false_ad", topics: ["nonexistent-topic"], mode: "quick" });
+} catch (e) {
+  invalidTopicCaught = e instanceof InvalidTopicError;
+}
+check("service throws InvalidTopicError on unknown topic only", invalidTopicCaught);
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);
@@ -272,5 +356,6 @@ console.log("SMOKE_TEST_OK", {
   registry: { total: moduleList.length, active: moduleRegistry.getActive().length, default: defaultModule.id },
   caseRepo: "ok",
   validators: "ok",
-  evidence: "ok"
+  evidence: "ok",
+  discovery: { topics: falseAdTopics.length, mockCandidates: generated.length }
 });

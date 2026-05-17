@@ -7,6 +7,7 @@ import { config } from "./utils/config.js";
 import { ensureDir } from "./utils/fs.js";
 import { moduleRegistry } from "./modules/index.js";
 import { casesRouter } from "./routes/cases.js";
+import { discoveryRouter } from "./routes/discovery.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -108,6 +109,9 @@ app.post("/api/cases/analyze", async (req, res) => {
 
 // Case 관리 REST API (분석 라우트 뒤에 마운트 — /analyze 가 router의 /:id 와 충돌하지 않게)
 app.use("/api/cases", casesRouter);
+
+// Candidate Discovery
+app.use("/api/discovery", discoveryRouter);
 
 app.listen(config.port, () => {
   console.log(`Reward Agent MVP running at http://localhost:${config.port}`);
