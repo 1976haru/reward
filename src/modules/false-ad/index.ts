@@ -1,7 +1,8 @@
 import type { ModuleDefinition } from "../../core/moduleRegistry.js";
 import { falseAdModule } from "./config.js";
 
-export { falseAdModule, falseAdRules, detectFalseAdRules } from "./config.js";
+export { falseAdModule, detectFalseAdRules } from "./config.js";
+export { loadFalseAdKeywords, loadFalseAdKeywordsSync, type KeywordConfig } from "./keywordLoader.js";
 
 export const falseAdDefinition: ModuleDefinition = {
   id: "false_ad",

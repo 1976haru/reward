@@ -1,26 +1,25 @@
 import { nanoid } from "nanoid";
-import type { AnalyzeRequest, CaseStatus, RewardCase } from "../types/core.js";
+import type {
+  AnalyzeRequest,
+  CaseRuleDetection,
+  CaseStatus,
+  RewardCase
+} from "../types/core.js";
 import { AnalyzerAgent } from "./AnalyzerAgent.js";
 import { CollectorAgent } from "./CollectorAgent.js";
 import { PolicyAgent } from "./PolicyAgent.js";
-import { RuleAgent } from "./RuleAgent.js";
-import { ScoringAgent } from "./ScoringAgent.js";
+import { RuleAgent, type RuleDetectionResult } from "./RuleAgent.js";
 import { createCaseRepository, type ICaseRepository } from "../repositories/CaseRepository.js";
 import { EvidenceService } from "../services/EvidenceService.js";
 import { ReportService } from "../services/ReportService.js";
-import { clampRiskScore, riskLevelFromScore } from "../utils/validation.js";
-import {
-  EXTRACTION_LIMITS,
-  TextExtractor,
-  type ExtractionResult
-} from "../services/TextExtractor.js";
+import { riskLevelFromScore } from "../utils/validation.js";
+import { TextExtractor, type ExtractionResult } from "../services/TextExtractor.js";
 
-const ANALYSIS_TEXT_TAIL_MAX = 8000;
+const FALLBACK_TAIL_MAX = 8000;
 
 export class OrchestratorAgent {
   private collector = new CollectorAgent();
   private rules = new RuleAgent();
-  private scoring = new ScoringAgent();
   private analyzer = new AnalyzerAgent();
   private evidence = new EvidenceService();
   private reports = new ReportService();
@@ -34,23 +33,29 @@ export class OrchestratorAgent {
 
     // 1) 구조화 추출 — 실패해도 기존 doc.text로 폴백
     let extraction: ExtractionResult | null = null;
-    let analysisText = doc.text;
     try {
       extraction = this.extractor.extract(doc.html, {
         url: doc.url,
         title: doc.title,
         moduleId: request.moduleId
       });
-      analysisText = buildAnalysisText(extraction, doc.text);
     } catch (error) {
       console.warn("TextExtractor 실패. doc.text로 폴백합니다:", (error as Error).message);
     }
 
-    // 2) 규칙 탐지 — 추출된 광고 문구 후보 우선
-    const ruleHits = this.rules.detect(request.moduleId, analysisText);
-    const rawScore = this.scoring.score(ruleHits);
-    const score = clampRiskScore(rawScore);
-    const aiFinding = await this.analyzer.analyze(doc, ruleHits, score);
+    // 2) RuleAgent 섹션 인지 탐지 — claim/review 우선
+    const detection: RuleDetectionResult = this.rules.detectDetailed(
+      extraction
+        ? {
+            claimCandidates: extraction.claimCandidates,
+            reviewCandidates: extraction.reviewCandidates,
+            mainText: extraction.mainText.slice(0, FALLBACK_TAIL_MAX)
+          }
+        : { text: doc.text }
+    );
+
+    const score = detection.riskScore;
+    const aiFinding = await this.analyzer.analyze(doc, detection.ruleHits, score);
 
     if (policyWarnings.length > 0) {
       aiFinding.requiredHumanChecks = [...policyWarnings, ...aiFinding.requiredHumanChecks];
@@ -66,6 +71,16 @@ export class OrchestratorAgent {
     });
     const initialStatus: CaseStatus = score >= 50 ? "REVIEW" : "DRAFT";
 
+    const ruleDetectionForCase: CaseRuleDetection = {
+      schemaVersion: detection.schemaVersion,
+      matches: detection.matches.slice(0, 50),
+      riskScore: detection.riskScore,
+      riskLevel: detection.riskLevel,
+      counts: detection.counts,
+      highlightedSegments: detection.highlightedSegments.slice(0, 30),
+      safetyNotice: detection.safetyNotice
+    };
+
     const draft: RewardCase = {
       id,
       moduleId: request.moduleId,
@@ -79,7 +94,7 @@ export class OrchestratorAgent {
       riskLevel: riskLevelFromScore(score),
       agencyCandidate: aiFinding.recommendedAgency,
       summary: aiFinding.summary,
-      ruleHits,
+      ruleHits: detection.ruleHits,
       aiFinding,
       evidence,
       reportPath: "",
@@ -88,8 +103,9 @@ export class OrchestratorAgent {
         { at: now, from: null, to: initialStatus, note: "분석 파이프라인 생성" }
       ],
       reviews: [],
-      extraction: extraction ? summarizeExtractionForCase(extraction) : undefined
-    } as RewardCase;
+      extraction: extraction ? summarizeExtractionForCase(extraction) : undefined,
+      ruleDetection: ruleDetectionForCase
+    };
 
     const reportPath = await this.reports.createReport(draft);
     const completed: RewardCase = { ...draft, reportPath };
@@ -97,16 +113,7 @@ export class OrchestratorAgent {
   }
 }
 
-function buildAnalysisText(extraction: ExtractionResult, fallbackText: string): string {
-  const parts: string[] = [];
-  if (extraction.claimCandidates.length) parts.push(extraction.claimCandidates.join("\n"));
-  if (extraction.reviewCandidates.length) parts.push(extraction.reviewCandidates.join("\n"));
-  if (extraction.mainText) parts.push(extraction.mainText.slice(0, ANALYSIS_TEXT_TAIL_MAX));
-  const joined = parts.join("\n");
-  return joined.length > 200 ? joined : fallbackText;
-}
-
-export interface ExtractionSummary {
+interface ExtractionSummary {
   productName?: string;
   priceCandidates: string[];
   claimCandidatesCount: number;
@@ -145,6 +152,3 @@ function summarizeExtractionForCase(e: ExtractionResult) {
     removedBoilerplateHints: e.removedBoilerplateHints.slice(0, 10)
   };
 }
-
-// EXTRACTION_LIMITS는 외부에서 import할 수 있도록 re-export 안 함 — 책임 분리 유지
-export { EXTRACTION_LIMITS as ORCHESTRATOR_EXTRACTION_LIMITS };

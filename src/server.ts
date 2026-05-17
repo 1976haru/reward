@@ -9,6 +9,7 @@ import { moduleRegistry } from "./modules/index.js";
 import { casesRouter } from "./routes/cases.js";
 import { discoveryRouter } from "./routes/discovery.js";
 import { extractRouter } from "./routes/extract.js";
+import { rulesRouter, detectRouter } from "./routes/rules.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -116,6 +117,10 @@ app.use("/api/discovery", discoveryRouter);
 
 // HTML → 구조화 텍스트 추출 (광고 문구 후보 분리)
 app.use("/api/extract", extractRouter);
+
+// Rule Agent — 룰셋 조회 + 텍스트 탐지
+app.use("/api/rules", rulesRouter);
+app.use("/api/detect", detectRouter);
 
 app.listen(config.port, () => {
   console.log(`Reward Agent MVP running at http://localhost:${config.port}`);

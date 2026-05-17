@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "false_ad",
+  "category": "health_functional_food",
+  "lastReviewedAt": "2026-05-17",
+  "disclaimer": "이 룰셋은 건강기능식품 온라인 허위·과대광고 의심 문구 탐지를 위한 보조 자료이며, 법 위반 여부를 확정하지 않는다. 매칭은 검토가 필요한 후보 표현을 의미하며, 최종 판단은 사람이 한다.",
+  "riskWeights": {
+    "HIGH": 25,
+    "MEDIUM": 12,
+    "LOW": 5,
+    "diseaseAndTreatmentCombo": 25,
+    "productAndDiseaseCombo": 15,
+    "repeatedPhrase": 10,
+    "maxScore": 100
+  },
+  "diseaseTerms": [
+    "암", "당뇨", "혈당", "고혈압", "혈압", "콜레스테롤",
+    "관절염", "관절", "연골", "치매", "알츠하이머", "우울증",
+    "불면증", "아토피", "비염", "간염", "위염", "역류성 식도염",
+    "염증", "면역질환", "코로나", "종양", "갱년기", "전립선", "통풍"
+  ],
+  "actionTerms": [
+    "치료", "완치", "예방", "억제", "제거", "대체",
+    "약 대신", "병원 갈 필요", "재발 방지", "근본 치료", "자연 치료"
+  ],
+  "exaggerationTerms": [
+    "기적", "하루 만에", "1000%", "먹기만 하면",
+    "부작용 없는", "독소 배출", "혈관 청소",
+    "지방 분해", "체지방 제거", "해독", "즉시 효과", "100% 효과"
+  ],
+  "productTerms": [
+    "영양제", "건강기능식품", "건기식", "보조제",
+    "보충제", "캡슐", "정", "분말", "함량", "추출물"
+  ],
+  "rules": [
+    { "id": "H001", "keyword": "암 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "건강기능식품을 암 치료 수단처럼 오인시킬 수 있어 검토 필요", "examples": ["암 치료에 도움", "암 치료 효과"], "matchType": "keyword" },
+    { "id": "H002", "keyword": "암 예방", "riskLevel": "HIGH", "weight": 25, "category": "disease_prevention_claim", "reason": "질병 예방 단정 표현 의심", "examples": ["암 예방 효과", "암 예방에 좋은"], "matchType": "keyword" },
+    { "id": "H003", "keyword": "당뇨 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "만성질환 치료 단정 표현 의심", "examples": ["당뇨 치료에 효과"], "matchType": "keyword" },
+    { "id": "H004", "keyword": "당뇨 완치", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "만성질환 완치 단정 표현 의심", "examples": ["당뇨 완치 사례"], "matchType": "keyword" },
+    { "id": "H005", "keyword": "고혈압 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "의약품 영역 효능 단정 표현 의심", "examples": ["고혈압 치료 효과"], "matchType": "keyword" },
+    { "id": "H006", "keyword": "혈압약 대체", "riskLevel": "HIGH", "weight": 25, "category": "medicine_substitution", "reason": "처방약 대체를 권하는 표현 오인 가능성", "examples": ["혈압약 대체 가능", "혈압약 끊고"], "matchType": "keyword" },
+    { "id": "H007", "keyword": "콜레스테롤 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "질병 치료 단정 표현 의심", "examples": ["콜레스테롤 치료 효과"], "matchType": "keyword" },
+    { "id": "H008", "keyword": "관절염 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "만성 질환 치료 단정 표현 의심", "examples": ["관절염 치료에 도움"], "matchType": "keyword" },
+    { "id": "H009", "keyword": "치매 예방", "riskLevel": "HIGH", "weight": 25, "category": "disease_prevention_claim", "reason": "질병 예방 단정 표현 의심", "examples": ["치매 예방 효과"], "matchType": "keyword" },
+    { "id": "H010", "keyword": "우울증 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "정신과 영역 치료 단정 표현 의심", "examples": ["우울증 치료 보조"], "matchType": "keyword" },
+    { "id": "H011", "keyword": "불면증 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "수면장애 치료 단정 표현 의심", "examples": ["불면증 치료 효과"], "matchType": "keyword" },
+    { "id": "H012", "keyword": "아토피 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "만성 피부질환 치료 단정 표현 의심", "examples": ["아토피 치료 보조제"], "matchType": "keyword" },
+    { "id": "H013", "keyword": "비염 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "만성 호흡기 질환 치료 단정 표현 의심", "examples": ["비염 치료 효과"], "matchType": "keyword" },
+    { "id": "H014", "keyword": "간염 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "감염성 질환 치료 단정 표현 의심", "examples": ["간염 치료 효능"], "matchType": "keyword" },
+    { "id": "H015", "keyword": "위염 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "소화기 질환 치료 단정 표현 의심", "examples": ["위염 치료에 좋은"], "matchType": "keyword" },
+    { "id": "H016", "keyword": "역류성 식도염 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "소화기 질환 치료 단정 표현 의심", "examples": ["역류성 식도염 치료에 도움"], "matchType": "keyword" },
+    { "id": "H017", "keyword": "면역질환 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "자가면역 질환 치료 단정 표현 의심", "examples": ["면역질환 치료 효과"], "matchType": "keyword" },
+    { "id": "H018", "keyword": "코로나 예방", "riskLevel": "HIGH", "weight": 25, "category": "disease_prevention_claim", "reason": "감염병 예방 단정 표현 의심", "examples": ["코로나 예방 효과"], "matchType": "keyword" },
+    { "id": "H019", "keyword": "염증 제거", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "병태 제거 단정 표현 의심", "examples": ["염증 완전 제거"], "matchType": "keyword" },
+    { "id": "H020", "keyword": "종양 억제", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "의약품 수준 효능 단정 표현 의심", "examples": ["종양 억제 효과"], "matchType": "keyword" },
+
+    { "id": "M001", "keyword": "약 없이 개선", "riskLevel": "MEDIUM", "weight": 12, "category": "medicine_substitution", "reason": "의약품 불필요 단정 표현 의심", "examples": ["약 없이 개선됩니다"], "matchType": "keyword" },
+    { "id": "M002", "keyword": "병원 갈 필요 없", "riskLevel": "MEDIUM", "weight": 12, "category": "medicine_substitution", "reason": "의료 행위 회피 권유 표현 오인 가능성", "examples": ["병원 갈 필요 없이"], "matchType": "keyword" },
+    { "id": "M003", "keyword": "부작용 없는 치료", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "부작용 전무 단정 표현 의심", "examples": ["부작용 없는 치료"], "matchType": "keyword" },
+    { "id": "M004", "keyword": "독소 배출", "riskLevel": "MEDIUM", "weight": 12, "category": "detox_claim", "reason": "객관적 근거 없는 해독 단정 표현 의심", "examples": ["체내 독소 배출"], "matchType": "keyword" },
+    { "id": "M005", "keyword": "혈관 청소", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "비의학적 효능 단정 표현 의심", "examples": ["혈관 청소 효과"], "matchType": "keyword" },
+    { "id": "M006", "keyword": "지방 분해", "riskLevel": "MEDIUM", "weight": 12, "category": "weight_loss_claim", "reason": "절대적 효능 단정 표현 의심", "examples": ["지방 분해 효과"], "matchType": "keyword" },
+    { "id": "M007", "keyword": "체지방 제거", "riskLevel": "MEDIUM", "weight": 12, "category": "weight_loss_claim", "reason": "체지방 제거 단정 표현 의심", "examples": ["체지방 제거 효과"], "matchType": "keyword" },
+    { "id": "M008", "keyword": "간 해독", "riskLevel": "MEDIUM", "weight": 12, "category": "detox_claim", "reason": "장기 해독 효능 단정 표현 의심", "examples": ["간 해독에 좋은"], "matchType": "keyword" },
+    { "id": "M009", "keyword": "장 해독", "riskLevel": "MEDIUM", "weight": 12, "category": "detox_claim", "reason": "장 해독 효능 단정 표현 의심", "examples": ["장 해독 효과"], "matchType": "keyword" },
+    { "id": "M010", "keyword": "면역력 1000%", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "정량적 과장 표현 의심", "examples": ["면역력 1000% 상승"], "matchType": "keyword" },
+    { "id": "M011", "keyword": "기적의 효과", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "비현실적 효능 단정 표현 의심", "examples": ["기적의 효과 입증"], "matchType": "keyword" },
+    { "id": "M012", "keyword": "하루 만에 효과", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "즉시 효과 단정 표현 의심", "examples": ["하루 만에 효과"], "matchType": "keyword" },
+    { "id": "M013", "keyword": "먹기만 하면 해결", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "사용만으로 해결 단정 표현 의심", "examples": ["먹기만 하면 해결"], "matchType": "keyword" },
+    { "id": "M014", "keyword": "근본 치료", "riskLevel": "MEDIUM", "weight": 12, "category": "disease_cure_claim", "reason": "근본 치유 단정 표현 의심", "examples": ["질환의 근본 치료"], "matchType": "keyword" },
+    { "id": "M015", "keyword": "재발 방지", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "재발 방지 단정 표현 의심", "examples": ["재발 방지 효과"], "matchType": "keyword" },
+    { "id": "M016", "keyword": "혈당 낮추는", "riskLevel": "MEDIUM", "weight": 12, "category": "disease_cure_claim", "reason": "혈당 강하 단정 표현 의심", "examples": ["혈당 낮추는 영양제"], "matchType": "keyword" },
+    { "id": "M017", "keyword": "통증 사라짐", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "증상 소실 단정 표현 의심", "examples": ["통증이 사라집니다"], "matchType": "keyword" },
+    { "id": "M018", "keyword": "염증 완화", "riskLevel": "MEDIUM", "weight": 12, "category": "disease_cure_claim", "reason": "병태 완화 단정 표현 의심", "examples": ["염증 완화 효능"], "matchType": "keyword" },
+    { "id": "M019", "keyword": "약 대신", "riskLevel": "MEDIUM", "weight": 12, "category": "medicine_substitution", "reason": "의약품 대체 단정 표현 의심", "examples": ["약 대신 먹는"], "matchType": "keyword" },
+    { "id": "M020", "keyword": "자연 치료", "riskLevel": "MEDIUM", "weight": 12, "category": "disease_cure_claim", "reason": "자연 치유 단정 표현 의심", "examples": ["자연 치료 효과"], "matchType": "keyword" },
+
+    { "id": "L001", "keyword": "활력 개선", "riskLevel": "LOW", "weight": 5, "category": "vague_marketing", "reason": "마케팅성 모호 표현. 맥락에 따라 검토 필요", "examples": ["하루 한 알로 활력 개선"], "matchType": "keyword" },
+    { "id": "L002", "keyword": "피로 회복", "riskLevel": "LOW", "weight": 5, "category": "vague_marketing", "reason": "마케팅성 표현. 강조 정도에 따라 검토 필요", "examples": ["피로 회복에 좋은"], "matchType": "keyword" },
+    { "id": "L003", "keyword": "건강 회복", "riskLevel": "LOW", "weight": 5, "category": "vague_marketing", "reason": "마케팅성 모호 표현 검토 필요", "examples": ["건강 회복 케어"], "matchType": "keyword" },
+    { "id": "L004", "keyword": "체질 개선", "riskLevel": "LOW", "weight": 5, "category": "vague_marketing", "reason": "마케팅성 모호 표현 검토 필요", "examples": ["체질 개선 보조"], "matchType": "keyword" },
+    { "id": "L005", "keyword": "노폐물 배출", "riskLevel": "LOW", "weight": 5, "category": "detox_claim", "reason": "추상적 배출 표현 검토 필요", "examples": ["노폐물 배출"], "matchType": "keyword" },
+    { "id": "L006", "keyword": "속 편한", "riskLevel": "LOW", "weight": 5, "category": "vague_marketing", "reason": "마케팅성 체감 표현", "examples": ["속 편한 아침"], "matchType": "keyword" },
+    { "id": "L007", "keyword": "붓기 제거", "riskLevel": "LOW", "weight": 5, "category": "vague_marketing", "reason": "체감 효과 단정 표현 검토 필요", "examples": ["얼굴 붓기 제거"], "matchType": "keyword" },
+    { "id": "L008", "keyword": "가벼운 몸", "riskLevel": "LOW", "weight": 5, "category": "vague_marketing", "reason": "추상적 효능 표현 검토 필요", "examples": ["가벼운 몸"], "matchType": "keyword" },
+    { "id": "L009", "keyword": "몸속 정화", "riskLevel": "LOW", "weight": 5, "category": "detox_claim", "reason": "추상적 정화 표현 검토 필요", "examples": ["몸속 정화"], "matchType": "keyword" },
+    { "id": "L010", "keyword": "밸런스 회복", "riskLevel": "LOW", "weight": 5, "category": "vague_marketing", "reason": "비특이적 마케팅 표현", "examples": ["면역 밸런스 회복"], "matchType": "keyword" },
+
+    { "id": "C001", "keyword": "질병+치료/완치/예방/억제/제거 동시 등장", "riskLevel": "HIGH", "weight": 25, "category": "disease_action_combo", "reason": "동일 문장에 질병명과 치료·완치·예방·억제·제거가 함께 등장. 의약품 영역 효능 단정으로 오인될 가능성 검토 필요", "examples": ["당뇨 치료에 효과", "관절염을 완치"], "matchType": "regex", "pattern": "(암|당뇨|혈당|고혈압|혈압|콜레스테롤|관절염|관절|연골|치매|우울증|불면증|아토피|비염|간염|위염|역류성 식도염|염증|면역질환|코로나|종양|갱년기|전립선|통풍)[\\s\\S]{0,20}(치료|완치|예방|억제|제거)" },
+    { "id": "C002", "keyword": "치료/완치/예방/억제/제거+질병 역순 등장", "riskLevel": "HIGH", "weight": 25, "category": "disease_action_combo", "reason": "치료/완치/예방/억제/제거 표현과 질병명이 함께 등장. 검토 필요", "examples": ["완치 사례 당뇨", "치료에 도움 고혈압"], "matchType": "regex", "pattern": "(치료|완치|예방|억제|제거)[\\s\\S]{0,20}(암|당뇨|혈당|고혈압|혈압|콜레스테롤|관절염|관절|연골|치매|우울증|불면증|아토피|비염|간염|위염|역류성 식도염|염증|면역질환|코로나|종양|갱년기|전립선|통풍)" },
+    { "id": "C003", "keyword": "약 대신/혈압약 대체/병원 갈 필요 없", "riskLevel": "HIGH", "weight": 25, "category": "medicine_substitution", "reason": "처방·의료 행위 대체 단정 표현. 의약품 오인 가능성 검토 필요", "examples": ["혈압약 대체 가능", "병원 갈 필요 없습니다"], "matchType": "regex", "pattern": "(약\\s*대신|혈압약\\s*대체|병원\\s*갈\\s*필요\\s*없)" },
+    { "id": "C004", "keyword": "하루 만에/기적의 효과/먹기만 하면", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "즉시 효과·기적·사용만으로 해결 단정 표현. 과장 광고 검토 필요", "examples": ["하루 만에 효과", "먹기만 하면 해결"], "matchType": "regex", "pattern": "(하루\\s*만에|기적의\\s*효과|먹기만\\s*하면)" }
+  ]
+}

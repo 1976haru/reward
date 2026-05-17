@@ -361,8 +361,10 @@ function renderResult(c) {
       <ul>${reasonsHtml}</ul>
     </div>
 
+    ${renderRuleDetectionPanel(c.ruleDetection)}
+
     <div class="result-section">
-      <h4>탐지된 의심 문구</h4>
+      <h4>레거시 룰 히트</h4>
       <ul>${hitsHtml}</ul>
     </div>
 
@@ -396,6 +398,55 @@ function renderResult(c) {
 
     <div class="result-section">
       <a href="${reportUrl}" target="_blank" rel="noreferrer">신고서 초안/증거 요약 열기 →</a>
+    </div>
+  `;
+}
+
+function riskBadgeClass(riskLevel) {
+  if (riskLevel === "HIGH" || riskLevel === "매우 높음" || riskLevel === "높음") return "danger";
+  if (riskLevel === "MEDIUM" || riskLevel === "검토 필요") return "warn";
+  return "muted";
+}
+
+function renderRuleDetectionPanel(rd) {
+  if (!rd) return "";
+  const counts = rd.counts || { HIGH: 0, MEDIUM: 0, LOW: 0, combo: 0, total: 0 };
+  const matches = Array.isArray(rd.matches) ? rd.matches : [];
+  const segments = Array.isArray(rd.highlightedSegments) ? rd.highlightedSegments : [];
+  const top = matches.slice(0, 15);
+  const matchCards = top.length
+    ? top.map((m) => `
+      <div class="evi-item" style="border-left:4px solid ${m.riskLevel === "HIGH" ? "#b91c1c" : m.riskLevel === "MEDIUM" ? "#b45309" : "#6b7280"};">
+        <div class="label">
+          <span class="badge ${riskBadgeClass(m.riskLevel)}">${escapeHtml(m.riskLevel)}</span>
+          <span style="margin-left:6px;">${escapeHtml(m.keyword)}</span>
+          <span class="muted" style="margin-left:6px;">(${escapeHtml(m.category)} · ${escapeHtml(m.sourceSection || "main")})</span>
+        </div>
+        <div class="value" style="font-weight:500;">${escapeHtml(m.sentence)}</div>
+        <div class="muted" style="margin-top:4px;font-size:12px;">${escapeHtml(m.reason)}</div>
+      </div>
+    `).join("")
+    : '<p class="muted">매치된 룰이 없습니다.</p>';
+
+  const highlightChips = segments.slice(0, 10).map((s) => `
+    <div class="evi-item" style="background:#fff7ed;border-color:#fed7aa;">
+      <div class="label"><span class="badge ${riskBadgeClass(s.riskLevel)}">${escapeHtml(s.riskLevel)}</span> <span class="muted">${escapeHtml(s.sourceSection || "main")}</span></div>
+      <div class="value">${escapeHtml(s.sentence)}</div>
+      <div class="muted" style="margin-top:4px;font-size:12px;">키워드: ${(s.keywords || []).map(escapeHtml).join(" · ")}</div>
+    </div>
+  `).join("");
+
+  return `
+    <div class="result-section">
+      <h4>위반 의심 문구 탐지 (Rule Agent)</h4>
+      <p class="muted">위험도 점수 ${rd.riskScore || 0}/100 · 등급 ${escapeHtml(rd.riskLevel || "")} · HIGH ${counts.HIGH} / MEDIUM ${counts.MEDIUM} / LOW ${counts.LOW} / 조합 ${counts.combo} (총 ${counts.total}건)</p>
+      <p class="muted" style="margin:4px 0 8px;">${escapeHtml(rd.safetyNotice || "이 결과는 법 위반 확정이 아니라 신고 후보 검토용입니다.")}</p>
+      <h4 style="margin:10px 0 6px;">매치된 룰</h4>
+      <div class="evidence-grid">${matchCards}</div>
+      ${segments.length ? `
+        <h4 style="margin:14px 0 6px;">하이라이트 문장</h4>
+        <div class="evidence-grid">${highlightChips}</div>
+      ` : ""}
     </div>
   `;
 }

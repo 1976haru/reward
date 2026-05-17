@@ -72,6 +72,29 @@ export interface ReviewRecord {
   notes?: string;
 }
 
+export interface CaseRuleMatch {
+  ruleId: string;
+  keyword: string;
+  riskLevel: "HIGH" | "MEDIUM" | "LOW";
+  weight: number;
+  category: string;
+  reason: string;
+  matchType: "keyword" | "regex" | "combo";
+  sentence: string;
+  excerpt: string;
+  sourceSection: "claim" | "review" | "ingredient" | "usage" | "warning" | "seller" | "main";
+}
+
+export interface CaseRuleDetection {
+  schemaVersion: string;
+  matches: CaseRuleMatch[];
+  riskScore: number;
+  riskLevel: "낮음" | "검토 필요" | "높음" | "매우 높음";
+  counts: { HIGH: number; MEDIUM: number; LOW: number; combo: number; total: number };
+  highlightedSegments: { sentence: string; riskLevel: "HIGH" | "MEDIUM" | "LOW"; keywords: string[]; sourceSection: string }[];
+  safetyNotice: string;
+}
+
 export interface CaseExtractionSummary {
   productName?: string;
   priceCandidates: string[];
@@ -108,4 +131,5 @@ export interface RewardCase {
   statusHistory: StatusHistoryEntry[];
   reviews: ReviewRecord[];
   extraction?: CaseExtractionSummary;
+  ruleDetection?: CaseRuleDetection;
 }

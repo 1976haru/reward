@@ -27,6 +27,12 @@ import { scoreCandidate } from "../services/discovery/CandidateScorer.js";
 import { CandidateRepository } from "../repositories/CandidateRepository.js";
 import { CandidateDiscoveryService, InvalidTopicError } from "../services/CandidateDiscoveryService.js";
 import { TextExtractor, maskPII, splitSentences, dedupe } from "../services/TextExtractor.js";
+import { RuleAgent } from "../agents/RuleAgent.js";
+import {
+  loadFalseAdKeywordsSync,
+  validateKeywordConfig,
+  getKeywordConfigSummary
+} from "../modules/false-ad/keywordLoader.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -418,6 +424,52 @@ try {
 }
 check("extract throws on oversized html", tooLargeThrown);
 
+// 12) Rule Agent (keywords.json) — 14건
+const keywordCfg = loadFalseAdKeywordsSync();
+const summary = getKeywordConfigSummary(keywordCfg);
+check("keywords.json schemaVersion present", typeof keywordCfg.schemaVersion === "string");
+check("keywords.json rules >= 50", keywordCfg.rules.length >= 50, `len=${keywordCfg.rules.length}`);
+check("HIGH = 20 keyword rules", summary.counts.HIGH === 20, `H=${summary.counts.HIGH}`);
+check("MEDIUM = 20 keyword rules", summary.counts.MEDIUM === 20, `M=${summary.counts.MEDIUM}`);
+check("LOW = 10 keyword rules", summary.counts.LOW === 10, `L=${summary.counts.LOW}`);
+check("combo/regex >= 4", summary.counts.combo >= 4, `C=${summary.counts.combo}`);
+check("validateKeywordConfig accepts loaded config", validateKeywordConfig(keywordCfg) === keywordCfg);
+
+const ra = new RuleAgent();
+const dDiabetes = ra.detectDetailed({ text: "이 영양제는 당뇨 완치에 도움이 됩니다." });
+check("당뇨 완치 → HIGH 매치", dDiabetes.matches.some((m) => m.keyword === "당뇨 완치" && m.riskLevel === "HIGH"), `matches=${dDiabetes.matches.map((m) => m.keyword).join(",")}`);
+
+const dSubst = ra.detectDetailed({ text: "혈압약 대체 효과를 기대할 수 있습니다." });
+check("혈압약 대체 → HIGH 또는 MEDIUM", dSubst.matches.some((m) => m.keyword === "혈압약 대체"));
+
+const dMiracle = ra.detectDetailed({ text: "기적의 효과를 약속드립니다." });
+check("기적의 효과 → MEDIUM 매치", dMiracle.matches.some((m) => m.keyword === "기적의 효과" && m.riskLevel === "MEDIUM"));
+
+const dVitality = ra.detectDetailed({ text: "활력 개선을 도와드립니다." });
+check("활력 개선 → LOW 매치", dVitality.matches.some((m) => m.keyword === "활력 개선" && m.riskLevel === "LOW"));
+
+const dCombo = ra.detectDetailed({ text: "암을 예방하는 효과가 있다고 광고됩니다." });
+check("disease+action combo regex 동작", dCombo.matches.some((m) => m.matchType === "regex"));
+
+const big = ra.detectDetailed({
+  text: "당뇨 완치에 도움. 혈압약 대체 가능. 기적의 효과. 약 대신 먹는 영양제. 부작용 없는 치료."
+});
+check("score <= 100 (cap)", big.riskScore <= 100, `score=${big.riskScore}`);
+check("riskLevel computed", ["낮음", "검토 필요", "높음", "매우 높음"].includes(big.riskLevel));
+
+const dEmpty = ra.detectDetailed({ text: "" });
+check("empty text → score 0", dEmpty.riskScore === 0);
+check("empty text → matches empty", dEmpty.matches.length === 0);
+
+const dSection = ra.detectDetailed({
+  claimCandidates: ["당뇨 완치에 도움을 줄 수 있습니다."],
+  mainText: "일반 설명. 추가 문맥."
+});
+check("claimCandidates 우선 분석", dSection.matches.some((m) => m.sourceSection === "claim" && m.keyword === "당뇨 완치"));
+
+check("matches array exposed", Array.isArray(big.matches));
+check("highlightedSegments exposed", Array.isArray(big.highlightedSegments) && big.highlightedSegments.length > 0);
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);
@@ -441,5 +493,11 @@ console.log("SMOKE_TEST_OK", {
     reviews: extracted.reviewCandidates.length,
     ingredients: extracted.ingredientCandidates.length,
     warnings: extracted.warningCandidates.length
+  },
+  ruleAgent: {
+    totalRules: keywordCfg.rules.length,
+    counts: summary.counts,
+    bigSampleScore: big.riskScore,
+    bigSampleLevel: big.riskLevel
   }
 });

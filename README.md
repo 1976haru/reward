@@ -70,6 +70,26 @@ The first module is intentionally limited to health functional food advertising 
 
 See [`mvp_scope.md`](./mvp_scope.md) for the detailed MVP scope and keyword set.
 
+## Rule Agent
+
+`src/modules/false-ad/keywords.json`을 기반으로 건강기능식품 허위·과대광고 의심 문구를 탐지합니다. 결과는 **검토 필요한 후보**이며, **법 위반 여부를 확정하지 않습니다.**
+
+탐지 카테고리:
+
+- 질병 치료·완치·예방 단정 표현 (HIGH × 20)
+- 의약품 대체·과장 효능 단정 표현 (MEDIUM × 20)
+- 마케팅성 모호 표현 (LOW × 10)
+- 질병+치료 조합, 의약품 대체, 즉시 효과 등 combo/regex (4)
+
+API:
+
+- `GET /api/rules/false_ad`
+- `POST /api/detect/rules`
+
+OrchestratorAgent는 `TextExtractor`의 `claimCandidates → reviewCandidates → mainText` 순으로 RuleAgent에 입력합니다 — 광고 문구가 우선 분석됩니다.
+
+자세한 설계·점수 정책은 [`docs/rule_agent.md`](./docs/rule_agent.md), 룰셋은 [`src/modules/false-ad/keywords.json`](./src/modules/false-ad/keywords.json) 참고.
+
 ## Text Extractor
 
 수집된 HTML에서 광고 문구, 후기, 성분, 섭취방법, 주의사항, 판매자 정보를 분리해 구조화합니다. 본 모듈은 법 위반 여부를 단독으로 판단하지 않으며, RuleAgent·AnalyzerAgent·증거 검토·사람 검토의 입력 자료를 만듭니다.
