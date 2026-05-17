@@ -23,5 +23,10 @@ export const config = {
   useDb: parseBool(process.env.USE_DB, false),
   databaseUrl: process.env.DATABASE_URL ?? "file:./dev.db",
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
-  aiModel: process.env.AI_MODEL ?? "gpt-4.1-mini"
+  aiModel: process.env.AI_MODEL ?? "gpt-4.1-mini",
+  evidence: {
+    captureTimeoutMs: Number(process.env.EVIDENCE_CAPTURE_TIMEOUT_MS ?? 15000),
+    enableScreenshot: parseBool(process.env.EVIDENCE_ENABLE_SCREENSHOT, true),
+    enablePdf: parseBool(process.env.EVIDENCE_ENABLE_PDF, true)
+  }
 };

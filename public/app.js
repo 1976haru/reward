@@ -411,8 +411,14 @@ function renderEvidence(c) {
     { label: "텍스트 추출", value: ev.textPath ? "저장됨" : "없음", ok: !!ev.textPath },
     { label: "신고서 초안", value: c.reportPath ? "생성됨" : "없음", ok: !!c.reportPath }
   ];
+  const evidenceListLink = c.id
+    ? `<p class="muted" style="margin-top:8px;">
+         증거 파일 목록(JSON): <a href="/api/cases/${escapeAttr(c.id)}/evidence" target="_blank" rel="noreferrer">/api/cases/${escapeHtml(c.id)}/evidence</a>
+         · manifest: <a href="/api/cases/${escapeAttr(c.id)}/evidence/manifest.json" target="_blank" rel="noreferrer">manifest.json</a>
+       </p>`
+    : "";
   root.innerHTML = `
-    <p class="section-hint">아래 증거는 사람이 외부 신고기관에 직접 제출할 때 참고·첨부할 수 있도록 정리됩니다.</p>
+    <p class="section-hint">아래 증거는 사람이 외부 신고기관에 직접 제출할 때 참고·첨부할 수 있도록 정리됩니다. 자동 신고 기능은 제공되지 않습니다.</p>
     <div class="evidence-grid">
       ${items.map((i) => `
         <div class="evi-item ${i.ok ? "ok" : "miss"}">
@@ -421,6 +427,7 @@ function renderEvidence(c) {
         </div>
       `).join("")}
     </div>
+    ${evidenceListLink}
   `;
 }
 

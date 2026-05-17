@@ -70,6 +70,32 @@ The first module is intentionally limited to health functional food advertising 
 
 See [`mvp_scope.md`](./mvp_scope.md) for the detailed MVP scope and keyword set.
 
+## Evidence Storage
+
+Evidence files are stored per case under:
+
+`data/evidence/{caseId}/`
+
+Standard files:
+
+- `page.html` — 수집된 원본 HTML
+- `page.txt` — 본문 텍스트 추출본
+- `screenshot.png` — Playwright 전체 페이지 캡처
+- `page.pdf` — Playwright PDF 저장본
+- `metadata.json` — Case 연결 정보, 원본 URL, 수집·캡처 시각
+- `manifest.json` — 파일 목록 + SHA-256 해시 + 캡처 성공/실패 상태
+
+각 파일은 SHA-256 해시가 manifest에 기록됩니다.
+실제 증거 파일은 로컬 산출물이며 **Git에 커밋되지 않습니다** (`.gitkeep`만 추적).
+
+API:
+
+- `GET /api/cases/:id/evidence` — manifest 조회
+- `GET /api/cases/:id/evidence/:fileName` — 개별 파일 다운로드 (파일명 allowlist 강제)
+- `POST /api/cases/:id/evidence/capture` — 공개 URL을 수집해 evidence 저장 (자동 신고 아님)
+
+자세한 정책·트러블슈팅은 [`docs/evidence_storage.md`](./docs/evidence_storage.md)를 참고하세요.
+
 ## Case API
 
 분석 결과를 **사건 Case** 단위로 관리합니다. 자동 신고가 아니라 사람 검토용 흐름입니다.

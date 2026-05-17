@@ -14,6 +14,13 @@ import {
   riskLevelFromScore
 } from "../utils/validation.js";
 import { JsonCaseRepository, CaseTransitionError, CaseNotFoundError } from "../repositories/CaseRepository.js";
+import {
+  ALLOWED_EVIDENCE_FILENAMES,
+  EVIDENCE_FILES,
+  EvidenceService,
+  isAllowedEvidenceFileName,
+  isSafeCaseId
+} from "../services/EvidenceService.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -168,6 +175,89 @@ try {
   await rm(tempCasesDir, { recursive: true, force: true });
 }
 
+// 9) Evidence — sanitize / allowlist / hash / manifest
+check("isSafeCaseId allows alnum-dash", isSafeCaseId("abc-123_XYZ"));
+check("isSafeCaseId rejects path traversal", !isSafeCaseId("../../etc/passwd"));
+check("isSafeCaseId rejects slash", !isSafeCaseId("a/b"));
+check("isSafeCaseId rejects empty", !isSafeCaseId(""));
+check("isSafeCaseId rejects korean", !isSafeCaseId("케이스01"));
+check("isAllowedEvidenceFileName ok page.html", isAllowedEvidenceFileName("page.html"));
+check("isAllowedEvidenceFileName ok manifest.json", isAllowedEvidenceFileName("manifest.json"));
+check("isAllowedEvidenceFileName rejects ../.env", !isAllowedEvidenceFileName("../.env"));
+check("isAllowedEvidenceFileName rejects unknown.xyz", !isAllowedEvidenceFileName("unknown.xyz"));
+check("ALLOWED_EVIDENCE_FILENAMES size 6", ALLOWED_EVIDENCE_FILENAMES.size === 6);
+
+// Hash / save / read in temp evidence dir
+const tempEvidRoot = await mkdtemp(path.join(tmpdir(), "reward-evidence-"));
+try {
+  // override config.evidenceDir via reading evidence service with custom dir
+  // EvidenceService reads config at runtime — for an isolated test we override env then re-import? Simpler: instantiate with custom dir by monkey-patching path.
+  // We'll use the real service against process.cwd evidence dir, but in a unique caseId folder we control.
+  const ev = new EvidenceService();
+  const cid = "smoke-" + Math.random().toString(36).slice(2, 10);
+
+  // saveHtml + saveText
+  const htmlEntry = await ev.saveHtml(cid, "<html><body>hello</body></html>");
+  const textEntry = await ev.saveText(cid, "hello world");
+  check("saveHtml writes page.html", htmlEntry.name === EVIDENCE_FILES.html && htmlEntry.size > 0);
+  check("saveText writes page.txt", textEntry.name === EVIDENCE_FILES.text && textEntry.size > 0);
+  check("hash is hex sha256 (64 chars)", /^[0-9a-f]{64}$/.test(htmlEntry.sha256));
+
+  // computeSha256 deterministic
+  const h1 = await ev.computeSha256(htmlEntry.path);
+  const h2 = await ev.computeSha256(htmlEntry.path);
+  check("computeSha256 deterministic", h1 === h2 && h1 === htmlEntry.sha256);
+
+  // Write + read manifest
+  const sampleManifest = {
+    schemaVersion: "1.0.0" as const,
+    caseId: cid,
+    sourceUrl: "https://example.com/p",
+    pageTitle: "demo",
+    fetchedAt: new Date().toISOString(),
+    capturedAt: new Date().toISOString(),
+    captureStatus: { html: "ok" as const, text: "ok" as const, screenshot: "skipped" as const, pdf: "skipped" as const },
+    files: [htmlEntry, textEntry],
+    safety: {
+      automaticReportSubmission: false as const,
+      publicSourceOnly: true as const,
+      humanReviewRequired: true as const,
+      note: "smoke test"
+    }
+  };
+  await ev.writeManifest(cid, sampleManifest);
+  const roundtrip = await ev.readManifest(cid);
+  check("manifest round-trip preserves caseId", roundtrip.caseId === cid);
+  check("manifest files length matches", roundtrip.files.length === 2);
+
+  // listEvidence returns manifest
+  const listed = await ev.listEvidence(cid);
+  check("listEvidence returns manifest", listed?.caseId === cid);
+
+  // Path traversal blocked
+  let traversalCaught = false;
+  try {
+    ev.getFilePath(cid, "../../etc/passwd");
+  } catch {
+    traversalCaught = true;
+  }
+  check("getFilePath rejects bad fileName", traversalCaught);
+
+  let badCidCaught = false;
+  try {
+    ev.getCaseDir("../etc");
+  } catch {
+    badCidCaught = true;
+  }
+  check("getCaseDir rejects bad caseId", badCidCaught);
+
+  // Cleanup
+  const { rm: rmFn } = await import("node:fs/promises");
+  await rmFn(ev.getCaseDir(cid), { recursive: true, force: true });
+} finally {
+  await rm(tempEvidRoot, { recursive: true, force: true });
+}
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);
@@ -181,5 +271,6 @@ console.log("SMOKE_TEST_OK", {
   agencyConfig: "ok",
   registry: { total: moduleList.length, active: moduleRegistry.getActive().length, default: defaultModule.id },
   caseRepo: "ok",
-  validators: "ok"
+  validators: "ok",
+  evidence: "ok"
 });
