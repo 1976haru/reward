@@ -10,7 +10,7 @@ const MODULES = [
     agency: "식품의약품안전처, 국민신문고, 관할 보건소",
     target: "건강기능식품 온라인 상품·광고 페이지 (1차 MVP 시작 카테고리)",
     difficulty: "쉬움",
-    rewardLikelihood: "사안·처분 결과에 따라 다름 (보장 없음)",
+    rewardLikelihood: "공식 기준 확인 필요 (수령 보장 없음)",
     guide: {
       detect: "질병 치료·예방·완치 표현, 의약품 오인 표현, 100% 효과·기적의 등 과장 효능 표현 (건강기능식품 광고 문구 중심)",
       report: "식품의약품안전처, 국민신문고, 관할 보건소",
@@ -26,7 +26,7 @@ const MODULES = [
     agency: "식품의약품안전처, 국민신문고",
     target: "일반 식품 온라인 광고 (건강기능식품 외)",
     difficulty: "쉬움",
-    rewardLikelihood: "사안에 따라 가능"
+    rewardLikelihood: "공식 기준 확인 필요"
   },
   {
     id: "cosmetic_ad",
@@ -35,7 +35,7 @@ const MODULES = [
     agency: "식품의약품안전처",
     target: "화장품 온라인 광고",
     difficulty: "쉬움",
-    rewardLikelihood: "사안에 따라 가능"
+    rewardLikelihood: "공식 기준 확인 필요"
   },
   {
     id: "medical_device_ad",
@@ -44,7 +44,7 @@ const MODULES = [
     agency: "식품의약품안전처",
     target: "의료기기 온라인 광고",
     difficulty: "보통",
-    rewardLikelihood: "사안에 따라 가능"
+    rewardLikelihood: "공식 기준 확인 필요"
   },
   {
     id: "fake_goods",
@@ -53,7 +53,7 @@ const MODULES = [
     agency: "특허청, 관세청",
     target: "오픈마켓·SNS·해외직구 위조 브랜드 상품",
     difficulty: "보통",
-    rewardLikelihood: "권리자 협조 시 가능"
+    rewardLikelihood: "공식 기준 확인 필요"
   },
   {
     id: "origin_label",
@@ -62,7 +62,7 @@ const MODULES = [
     agency: "국립농산물품질관리원, 관세청",
     target: "식품·농수산물·가공식품 원산지 표기",
     difficulty: "보통",
-    rewardLikelihood: "사안별 가능"
+    rewardLikelihood: "공식 기준 확인 필요"
   },
   {
     id: "subsidy_fraud",
@@ -71,7 +71,7 @@ const MODULES = [
     agency: "국민권익위원회, 소관 부처",
     target: "정부·지자체 보조금 공시·실집행 자료",
     difficulty: "어려움",
-    rewardLikelihood: "환수액 비례 가능"
+    rewardLikelihood: "공식 기준 확인 필요"
   },
   {
     id: "bid_rigging",
@@ -80,7 +80,7 @@ const MODULES = [
     agency: "공정거래위원회",
     target: "공공조달 입찰 공고·낙찰 결과 공시",
     difficulty: "어려움",
-    rewardLikelihood: "사안별 가능"
+    rewardLikelihood: "공식 기준 확인 필요"
   }
 ];
 
@@ -318,8 +318,8 @@ function renderResult(c) {
     </div>
 
     <div class="result-section">
-      <h4>포상금 가능성</h4>
-      <p class="muted">사안·처분 결과·관련 기관의 공식 기준에 따라 달라지며 수령을 보장하지 않습니다. 본 도구는 포상금 자동 수령 도구가 아닙니다.</p>
+      <h4>포상금 가능성 확인 필요</h4>
+      <p class="muted">포상금은 사안, 처분 결과, 공식 규정, 기관 판단에 따라 달라지며 이 프로그램은 수령을 보장하지 않습니다. "예상 포상금" 같은 확정 표현은 사용하지 않습니다. 공식 자료(법령·기관 안내)는 사람이 직접 재확인해야 합니다. 자세한 근거는 <code>src/modules/false-ad/agency_config.json</code> 참고.</p>
     </div>
 
     <div class="result-section">

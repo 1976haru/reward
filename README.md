@@ -29,6 +29,18 @@ The first module is intentionally limited to health functional food advertising 
 
 See [`mvp_scope.md`](./mvp_scope.md) for the detailed MVP scope and keyword set.
 
+## Agency and Reward Basis
+
+The first MVP uses a module-level agency configuration file for reporting guidance.
+
+- Module agency config: [`src/modules/false-ad/agency_config.json`](./src/modules/false-ad/agency_config.json)
+- Research note: [`docs/agency_research.md`](./docs/agency_research.md)
+- Config schema: [`docs/agency_config_schema.md`](./docs/agency_config_schema.md)
+
+The system only provides candidate agency guidance and evidence organization.
+It does not guarantee that a report will be accepted or that a reward will be paid.
+Official laws, agency guidance, and reward rules must be reviewed before any external report is submitted.
+
 ## Product Scope & Safety Policy
 
 이 도구의 사용 범위, 금지 범위, 사람 검토 원칙, 증거 패키지 기준, AI 한계, 모듈 확장 정책은 [`scope.md`](./scope.md) 문서에 정의되어 있습니다.
