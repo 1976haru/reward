@@ -16,6 +16,7 @@
     "@openai/agents": "latest",
     "cheerio": "latest",
     "cors": "latest",
+    "docx": "^9.6.1",
     "dotenv": "latest",
     "express": "latest",
     "nanoid": "latest",

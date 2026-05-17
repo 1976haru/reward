@@ -140,6 +140,21 @@ OrchestratorAgent는 `TextExtractor`의 `claimCandidates → reviewCandidates �
 
 자세한 명세는 [`docs/candidate_discovery.md`](./docs/candidate_discovery.md)를 참고하세요.
 
+## Report Draft
+
+사람이 검토·수정해 공식 신고 창구에 직접 제출할 수 있는 **신고서 초안**을 생성합니다. **자동 신고는 수행하지 않습니다.**
+
+- 저장 위치: `data/reports/{caseId}/`
+- 표준 파일: `report.md`, `report.txt`, `report.docx`, `report_metadata.json`
+- 포함 내용: 신고 후보 요약, 육하원칙, 위반 의심 문구 표(RuleAgent), AI 문맥 검토 요약(AnalyzerAgent), 우선순위 점수(ScoringAgent), 증거 자료 목록(Evidence Package), 신고처 후보(agency_config), 사람 검토 체크리스트, 중립 신고 문구 예시, 피해야 할 표현
+- 금지 표현 자동 sanitize ("불법 확정"/"포상금 보장"/"사기" 등 → 중립 표현)
+- API: `POST /api/cases/:id/report/draft`, `GET /api/cases/:id/report`, `GET /api/cases/:id/report/:fileName`
+- `GET /api/cases/:id` 응답에 `reportSummary` 자동 포함
+
+신고서 파일은 **로컬 산출물이며 Git에 커밋되지 않습니다.** 사용자가 검토·수정 후 외부 신고기관에 **직접 제출**해야 합니다.
+
+자세한 명세는 [`docs/report_draft.md`](./docs/report_draft.md) 참고.
+
 ## Evidence Package
 
 분석된 신고 후보 Case에 대해 원본 페이지가 삭제·수정되더라도 사람이 검토할 수 있도록 **증거 패키지**를 저장합니다.

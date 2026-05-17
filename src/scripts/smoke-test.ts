@@ -37,6 +37,8 @@ import {
   PRIORITY_LEVELS,
   recommendedActionsFor
 } from "../agents/scoring_rules.js";
+import { ReportService, sanitizeReportText, isAllowedReportFileName, isSafeCaseId as isSafeCaseIdReport } from "../services/ReportService.js";
+import { ALLOWED_REPORT_FILENAMES } from "../types/report.js";
 import {
   loadFalseAdKeywordsSync,
   validateKeywordConfig,
@@ -695,6 +697,112 @@ try {
 // 미존재 case는 exists=false
 const missing = await pkgService.summarizePackage("nope_does_not_exist_" + Math.random().toString(36).slice(2, 6));
 check("missing package → exists=false, score 0", missing.exists === false && missing.completenessScore === 0);
+
+// 16) Report Draft — 17 tests
+check("ALLOWED_REPORT_FILENAMES size 4", ALLOWED_REPORT_FILENAMES.size === 4);
+check("report.md / report.txt / report.docx / report_metadata.json 통과", ["report.md","report.txt","report.docx","report_metadata.json"].every((n) => isAllowedReportFileName(n)));
+check("../.env 차단", !isAllowedReportFileName("../.env"));
+check("report.html 차단", !isAllowedReportFileName("report.html"));
+check("isSafeCaseId('..') 차단", !isSafeCaseIdReport(".."));
+
+// sanitize
+const warnings1: string[] = [];
+const cleaned = sanitizeReportText("이 광고는 불법 확정이며 사기입니다. 포상금 보장.", warnings1);
+check("sanitize 불법 확정 치환", !/불법\s*확정/.test(cleaned), `out=${cleaned}`);
+check("sanitize 사기 치환", !/\b사기\b/.test(cleaned));
+check("sanitize 포상금 보장 치환", !/포상금\s*보장/.test(cleaned));
+check("sanitize warnings 기록", warnings1.length >= 2);
+
+// 임시 디렉터리에 generateDraft
+const tempReportDir = await mkdtemp(path.join(tmpdir(), "reward-reports-"));
+// config.reportsDir override — process.env로 설정
+const originalReportsDir = process.env.REPORTS_DIR;
+process.env.REPORTS_DIR = tempReportDir;
+// config 모듈은 dotenv load 시점에 evaluated되어 있어 process.env 변경이 영향을 주지 않음.
+// 따라서 ReportService를 임시 reportsDir로 지시할 수 없으니, 실제 config.reportsDir 안에 임시 caseId 폴더만 쓰고 끝나면 정리.
+process.env.REPORTS_DIR = originalReportsDir ?? "./data/reports";
+
+const reportSvc = new ReportService();
+const rptCaseId = "rpt_smoke_" + Math.random().toString(36).slice(2, 8);
+try {
+  const result = await reportSvc.generateDraft({
+    caseId: rptCaseId,
+    moduleId: "false_ad",
+    title: "혈당 케어 광고 검토 요청",
+    url: "https://example.test/p",
+    productName: "프리미엄 혈당 케어",
+    status: "REVIEW",
+    agencyCandidate: "식품의약품안전처 (후보)",
+    priorityScore: 75,
+    priorityLabel: "우선 검토",
+    capturedAt: new Date().toISOString(),
+    ruleMatches: [
+      { ruleId: "H004", keyword: "당뇨 완치", riskLevel: "HIGH", weight: 25, category: "disease_cure_claim", reason: "질병 완치 오인 가능성", matchType: "keyword", sentence: "당뇨 완치에 도움", excerpt: "당뇨 완치에 도움", sourceSection: "claim" }
+    ],
+    llmAnalysis: {
+      schemaVersion: "1.0.0", moduleId: "false_ad", notLegalConclusion: true, rewardGuaranteed: false,
+      overallRisk: "HIGH", violationLikelihood: "HIGH", confidence: 0.75,
+      summary: "혈당 케어 광고에서 의심 표현이 다수 탐지되었습니다.",
+      findings: [], missingEvidence: ["스크린샷 재캡처 필요"],
+      recommendedAgency: "식품의약품안전처 (후보)", agencyCandidates: ["식약처 (후보)"],
+      reportDraftSummary: "검토 요청드립니다.", prohibitedPhrases: [],
+      humanReviewChecklist: ["URL 접속 확인"],
+      safetyWarnings: ["본 결과는 법 위반 확정이 아닙니다."]
+    },
+    scoringResult: {
+      schemaVersion: "1.0.0", moduleId: "false_ad",
+      priorityScore: 75, priorityLabel: "우선 검토", priorityLevel: "HIGH_PRIORITY",
+      components: [{ key: "ruleSignal", label: "Rule", maxPoints: 40, score: 30, reasons: ["..."] }],
+      recommendedNextActions: ["사람 검토 권장"],
+      notLegalConclusion: true, rewardGuaranteed: false,
+      disclaimer: "참고 점수입니다.", safetyWarnings: ["법 위반 확정 아님"]
+    },
+    evidence: {
+      hasHtml: true, hasText: true, hasScreenshot: true, hasPdf: true,
+      hasMetadata: true, hasManifest: true,
+      capturedAt: new Date().toISOString(),
+      files: [
+        { name: "page.html", size: 1234, sha256: "a".repeat(64), mimeType: "text/html; charset=utf-8" }
+      ]
+    },
+    sellerCandidates: ["판매자 ABC"]
+  });
+  check("generateDraft returns markdown", typeof result.markdown === "string" && result.markdown.length > 200);
+  check("markdown contains URL", result.markdown.includes("https://example.test/p"));
+  check("markdown contains 육하원칙", result.markdown.includes("## 3. 육하원칙"));
+  check("markdown contains 위반 의심 문구", result.markdown.includes("## 4. 위반 의심 문구"));
+  check("markdown contains 증거 자료 목록", result.markdown.includes("## 6. 증거 자료 목록"));
+  check("markdown contains 자동 신고서가 아닙니다", result.markdown.includes("자동 신고서가 아닙니다"));
+  check("markdown does NOT contain 불법 확정", !/불법\s*확정/.test(result.markdown));
+  check("markdown does NOT contain 포상금 보장", !/포상금\s*보장/.test(result.markdown));
+  check("markdown does NOT contain 사기꾼", !/사기꾼/.test(result.markdown));
+  check("text is non-empty", typeof result.text === "string" && result.text.length > 100);
+  check("files.markdownPath ends with report.md", result.files.markdownPath.endsWith("report.md"));
+  check("files.textPath ends with report.txt", result.files.textPath.endsWith("report.txt"));
+  check("files.metadataPath ends with report_metadata.json", result.files.metadataPath.endsWith("report_metadata.json"));
+  check("docxPath may exist or undefined", result.files.docxPath === undefined || result.files.docxPath.endsWith("report.docx"));
+  check("notSubmittedAutomatically=true", result.notSubmittedAutomatically === true);
+  check("humanReviewRequired=true", result.humanReviewRequired === true);
+
+  // summarize
+  const sum = await reportSvc.summarizeReport(rptCaseId);
+  check("summarizeReport exists", sum.exists);
+  check("hasMarkdown / hasText / hasMetadata", sum.hasMarkdown && sum.hasText && sum.hasMetadata);
+  check("autoReport=false, humanReviewRequired=true", sum.autoReport === false && sum.humanReviewRequired === true);
+
+  // path traversal via getReportFilePath
+  let thrown = false;
+  try { reportSvc.getReportFilePath(rptCaseId, "../.env"); } catch { thrown = true; }
+  check("getReportFilePath rejects ../.env", thrown);
+
+  let badCaseId = false;
+  try { reportSvc.getReportDir("../etc"); } catch { badCaseId = true; }
+  check("getReportDir rejects bad caseId", badCaseId);
+} finally {
+  // 임시 산출물 정리
+  const { rm: rmFn } = await import("node:fs/promises");
+  try { await rmFn(reportSvc.getReportDir(rptCaseId), { recursive: true, force: true }); } catch { /* ignore */ }
+}
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

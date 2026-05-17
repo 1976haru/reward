@@ -340,7 +340,7 @@ function renderResult(c) {
     : "<li>키워드 규칙 매치가 없습니다.</li>";
   const checksHtml = (ai.requiredHumanChecks || []).map((r) => `<li>${escapeHtml(r)}</li>`).join("") || "<li>특별한 추가 확인 사항이 제시되지 않았습니다.</li>";
 
-  const reportUrl = c.reportPath ? `/data/reports/${c.id}.md` : "#";
+  const reportUrl = c.reportPath ? `/api/cases/${encodeURIComponent(c.id)}/report/report.md` : "#";
 
   result.innerHTML = `
     <div class="score-row">
@@ -401,10 +401,90 @@ function renderResult(c) {
     </div>
 
     <div class="result-section">
-      <a href="${reportUrl}" target="_blank" rel="noreferrer">신고서 초안/증거 요약 열기 →</a>
+      <a href="${reportUrl}" target="_blank" rel="noreferrer">신고서 초안 열기 (Markdown) →</a>
+    </div>
+
+    ${renderReportDraftPanel(c)}
+  `;
+}
+
+function renderReportDraftPanel(c) {
+  if (!c || !c.id) return "";
+  return `
+    <div class="result-section" id="reportDraftSection" data-case-id="${escapeAttr(c.id)}">
+      <h4>신고서 초안 (Report Draft)</h4>
+      <p class="muted">이 문서는 자동 신고서가 아닙니다. 사람이 공식 기준과 증거를 검토한 뒤 직접 제출해야 합니다.</p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0;">
+        <button class="primary" type="button" id="generateReportBtn">신고서 초안 생성</button>
+        <a id="reportMdLink" class="ghost" href="/api/cases/${escapeAttr(c.id)}/report/report.md" target="_blank" rel="noreferrer" style="text-decoration:none;padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;font-weight:600;">MD 열기</a>
+        <a id="reportTxtLink" class="ghost" href="/api/cases/${escapeAttr(c.id)}/report/report.txt" target="_blank" rel="noreferrer" style="text-decoration:none;padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;font-weight:600;">TXT 열기</a>
+        <a id="reportDocxLink" class="ghost" href="/api/cases/${escapeAttr(c.id)}/report/report.docx" target="_blank" rel="noreferrer" style="text-decoration:none;padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;font-weight:600;">DOCX 다운로드</a>
+        <button class="ghost" type="button" id="copyReportTextBtn">Text 복사</button>
+      </div>
+      <div id="reportDraftStatus" class="muted" style="font-size:13px;"></div>
+      <pre id="reportDraftPreview" class="code" style="max-height:280px;overflow:auto;display:none;"></pre>
     </div>
   `;
 }
+
+async function generateReportDraft() {
+  const section = document.getElementById("reportDraftSection");
+  if (!section) return;
+  const caseId = section.getAttribute("data-case-id");
+  const status = document.getElementById("reportDraftStatus");
+  const preview = document.getElementById("reportDraftPreview");
+  const btn = document.getElementById("generateReportBtn");
+  if (!caseId) return;
+  btn.disabled = true;
+  status.textContent = "초안 생성 중...";
+  try {
+    const res = await fetch(`/api/cases/${encodeURIComponent(caseId)}/report/draft`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    status.textContent = `생성 완료 · ${data.report.generatedAt}${data.warnings && data.warnings.length ? ` · 경고 ${data.warnings.length}` : ""}`;
+    if (preview && typeof data.report.markdown === "string") {
+      preview.style.display = "block";
+      preview.textContent = data.report.markdown;
+    }
+    window.__lastReportText = String(data.report.text || "");
+  } catch (err) {
+    status.textContent = "초안 생성 실패: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function copyReportText() {
+  const status = document.getElementById("reportDraftStatus");
+  const text = window.__lastReportText;
+  if (!text) {
+    if (status) status.textContent = "먼저 '신고서 초안 생성'을 실행하세요.";
+    return;
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    if (status) status.textContent = "Text 본문이 클립보드에 복사되었습니다.";
+  } catch (err) {
+    if (status) status.textContent = "복사 실패: " + err.message;
+  }
+}
+
+// renderResult 이후 버튼 바인딩 (이벤트 위임)
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  if (!(t instanceof Element)) return;
+  if (t.id === "generateReportBtn") { e.preventDefault(); generateReportDraft(); }
+  if (t.id === "copyReportTextBtn") { e.preventDefault(); copyReportText(); }
+});
 
 function renderScoringPanel(s) {
   if (!s) return "";

@@ -26,10 +26,17 @@ import {
   isSafeCaseId
 } from "../services/EvidenceService.js";
 import { CollectorAgent } from "../agents/CollectorAgent.js";
+import {
+  ReportService,
+  isAllowedReportFileName as isAllowedReportFileNameFn,
+  isSafeCaseId as isSafeCaseIdReport
+} from "../services/ReportService.js";
+import { ALLOWED_REPORT_FILENAMES } from "../types/report.js";
 
 const repo: ICaseRepository = createCaseRepository();
 const evidence = new EvidenceService();
 const collector = new CollectorAgent();
+const reportService = new ReportService();
 export const casesRouter = Router();
 
 function zodErrorMessage(err: ZodError): string {
@@ -113,22 +120,21 @@ casesRouter.post("/", async (req, res) => {
   }
 });
 
-// GET /api/cases/:id — 상세 (+ evidence package summary)
+// GET /api/cases/:id — 상세 (+ evidence package summary + report summary)
 casesRouter.get("/:id", async (req, res) => {
   try {
     const found = await repo.get(req.params.id);
     let evidencePackage = null as Awaited<ReturnType<typeof evidence.summarizePackage>> | null;
+    let reportSummary = null as Awaited<ReturnType<typeof reportService.summarizeReport>> | null;
     if (isSafeCaseId(found.id)) {
-      try {
-        evidencePackage = await evidence.summarizePackage(found.id);
-      } catch {
-        evidencePackage = null;
-      }
+      try { evidencePackage = await evidence.summarizePackage(found.id); } catch { evidencePackage = null; }
+      try { reportSummary = await reportService.summarizeReport(found.id); } catch { reportSummary = null; }
     }
     res.json({
       ok: true,
       case: found,
       evidencePackage,
+      reportSummary,
       safetyNotice:
         "본 정보는 사람 검토용 자료이며, 외부 신고는 사용자가 공식 기준을 확인한 뒤 직접 진행해야 합니다."
     });
@@ -408,6 +414,132 @@ casesRouter.post("/:id/evidence/capture", async (req, res) => {
       return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
     }
     res.status(500).json(errorBody("CAPTURE_FAILED", (error as Error).message));
+  }
+});
+
+// ============================================================
+// Report sub-routes — /api/cases/:id/report/*
+// ============================================================
+
+// POST /api/cases/:id/report/draft — 신고서 초안 생성 (md/txt/docx/metadata)
+casesRouter.post("/:id/report/draft", async (req, res) => {
+  const caseId = req.params.id;
+  if (!isSafeCaseIdReport(caseId)) {
+    return res.status(400).json(errorBody("VALIDATION_ERROR", `Invalid caseId: ${caseId}`));
+  }
+  try {
+    const found = await repo.get(caseId);
+    const ev = await evidence.summarizePackage(caseId).catch(() => null);
+    const result = await reportService.generateDraft({
+      caseId: found.id,
+      moduleId: found.moduleId,
+      title: found.title,
+      url: found.url,
+      productName: found.extraction?.productName,
+      status: found.status,
+      agencyCandidate: found.agencyCandidate,
+      priorityScore: found.scoringResult?.priorityScore ?? found.riskScore,
+      priorityLabel: found.scoringResult?.priorityLabel ?? found.riskLevel,
+      capturedAt: ev?.capturedAt ?? found.createdAt,
+      memo: found.memo,
+      ruleMatches: found.ruleDetection?.matches ?? [],
+      ruleSafetyNotice: found.ruleDetection?.safetyNotice,
+      llmAnalysis: found.llmAnalysis ?? null,
+      scoringResult: found.scoringResult ?? null,
+      evidence: ev
+        ? {
+            hasHtml: ev.hasHtml, hasText: ev.hasText, hasScreenshot: ev.hasScreenshot,
+            hasPdf: ev.hasPdf, hasMetadata: ev.hasMetadata, hasManifest: ev.hasManifest,
+            capturedAt: ev.capturedAt,
+            files: ev.files.map((f) => ({ name: f.name, size: f.size, sha256: f.sha256, mimeType: f.mimeType }))
+          }
+        : undefined,
+      sellerCandidates: found.extraction?.sellerCandidates
+    });
+    res.status(201).json({
+      ok: true,
+      caseId,
+      report: {
+        title: result.title,
+        markdown: result.markdown,
+        text: result.text,
+        files: {
+          markdownPath: result.files.markdownPath,
+          textPath: result.files.textPath,
+          docxPath: result.files.docxPath,
+          metadataPath: result.files.metadataPath
+        },
+        generatedAt: result.generatedAt
+      },
+      warnings: result.warnings,
+      safetyNotice: "이 초안은 자동 신고서가 아니며 사람이 검토·수정 후 직접 제출해야 합니다.",
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    if (error instanceof CaseNotFoundError) {
+      return res.status(404).json(errorBody("CASE_NOT_FOUND", `Case not found: ${caseId}`));
+    }
+    res.status(500).json(errorBody("REPORT_DRAFT_FAILED", (error as Error).message));
+  }
+});
+
+// GET /api/cases/:id/report — 파일 목록 + metadata 요약
+casesRouter.get("/:id/report", async (req, res) => {
+  const caseId = req.params.id;
+  if (!isSafeCaseIdReport(caseId)) {
+    return res.status(400).json(errorBody("VALIDATION_ERROR", `Invalid caseId: ${caseId}`));
+  }
+  try {
+    const summary = await reportService.summarizeReport(caseId);
+    res.json({
+      ok: true,
+      caseId,
+      reportSummary: summary,
+      safetyNotice: summary.safetyNotice,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// GET /api/cases/:id/report/:fileName — 개별 파일 다운로드 (allowlist만)
+casesRouter.get("/:id/report/:fileName", async (req, res) => {
+  const { id: caseId, fileName } = req.params;
+  if (!isSafeCaseIdReport(caseId)) {
+    return res.status(400).json(errorBody("VALIDATION_ERROR", `Invalid caseId: ${caseId}`));
+  }
+  if (!isAllowedReportFileNameFn(fileName)) {
+    return res.status(400).json(errorBody(
+      "INVALID_FILE_NAME",
+      `Allowed report file names: ${[...ALLOWED_REPORT_FILENAMES].join(", ")}`
+    ));
+  }
+  try {
+    const filePath = reportService.getReportFilePath(caseId, fileName);
+    const s = await stat(filePath);
+    const mime =
+      fileName === "report.md" ? "text/markdown; charset=utf-8" :
+      fileName === "report.txt" ? "text/plain; charset=utf-8" :
+      fileName === "report.docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" :
+      "application/json; charset=utf-8";
+    res.setHeader("Content-Type", mime);
+    res.setHeader("Content-Length", String(s.size));
+    res.setHeader("Cache-Control", "no-store");
+    const stream = createReadStream(filePath);
+    stream.on("error", (err) => {
+      if (!res.headersSent) res.status(500).json(errorBody("INTERNAL_ERROR", err.message));
+      else res.destroy(err);
+    });
+    stream.pipe(res);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") {
+      return res.status(404).json(errorBody("REPORT_FILE_NOT_FOUND", `Not found: ${fileName}`));
+    }
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
   }
 });
 
