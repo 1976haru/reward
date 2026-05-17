@@ -140,6 +140,28 @@ OrchestratorAgent는 `TextExtractor`의 `claimCandidates → reviewCandidates �
 
 자세한 명세는 [`docs/candidate_discovery.md`](./docs/candidate_discovery.md)를 참고하세요.
 
+## Dedupe Engine
+
+같은 URL/상품을 반복 분석하지 않도록 중복을 제거합니다.
+
+- URL canonicalize + 트래킹 파라미터 제거 (`utm_*`, `fbclid`, `gclid` 등)
+- canonical URL SHA-256 hash
+- 한국어 친화 Jaccard+Dice 제목 유사도 (외부 라이브러리 없음)
+- 본문 SHA-256 hash
+- Scout discover 시 자동 dedupe 후 저장 + `data/dedupe/latest-report.json` 기록
+- Case 생성 시 같은 canonical URL의 기존 Case가 있으면 응답 `warnings[]`에 안내 (생성은 막지 않음)
+
+API:
+
+- `GET /api/dedupe/canonicalize?url=`
+- `POST /api/dedupe/check`
+- `POST /api/dedupe/batch`
+- `GET /api/dedupe/report`
+
+> 중복 제거는 분석 효율을 위한 보조 기능이며, 애매한 유사 후보는 사람이 확인해야 합니다. 기존 Case를 자동 삭제하지 않습니다.
+
+자세한 명세는 [`docs/dedupe_engine.md`](./docs/dedupe_engine.md).
+
 ## Scheduler
 
 `node-cron` 기반 정기 후보 수집 스케줄러입니다. 후보 발굴만 수행하며 **외부 신고기관에 자동 제출하지 않습니다.**

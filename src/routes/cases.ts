@@ -32,6 +32,7 @@ import {
 } from "../services/ReportService.js";
 import { ALLOWED_REPORT_FILENAMES } from "../types/report.js";
 import { requireManualSubmissionConfirmation, SUBMITTED_RESPONSE_MESSAGE } from "../policy/approvalGate.js";
+import { canonicalizeUrl } from "../services/dedupe/UrlCanonicalizer.js";
 
 const repo: ICaseRepository = createCaseRepository();
 const evidence = new EvidenceService();
@@ -94,6 +95,22 @@ casesRouter.post("/", async (req, res) => {
           moduleStatus: moduleDef.status
         }));
     }
+    // 중복 경고 점검 (생성을 막지는 않는다)
+    const warnings: string[] = [];
+    try {
+      const incoming = canonicalizeUrl(input.url);
+      if (incoming.ok) {
+        const { cases: existing } = await repo.list({ moduleId: input.moduleId, limit: 200 });
+        for (const ex of existing) {
+          const exCanon = canonicalizeUrl(ex.url);
+          if (exCanon.ok && exCanon.canonicalUrl === incoming.canonicalUrl) {
+            warnings.push(`유사한 URL의 기존 Case가 있습니다 (id=${ex.id}). 중복 분석 여부를 확인하세요.`);
+            break;
+          }
+        }
+      }
+    } catch { /* warning은 best-effort */ }
+
     const created = await repo.create({
       moduleId: input.moduleId,
       title: input.title,
@@ -108,6 +125,7 @@ casesRouter.post("/", async (req, res) => {
     res.status(201).json({
       ok: true,
       case: created,
+      warnings,
       humanReviewRequired: true,
       message: "Case가 생성되었습니다. 외부 신고 전 사람이 공식 기준을 검토해야 합니다.",
       autoReport: false

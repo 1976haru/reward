@@ -11,6 +11,7 @@ import {
   type DiscoveryTopic
 } from "../../types/candidate.js";
 import type { ScoutSourceType } from "./SearchSourceAdapter.js";
+import { dedupeEngine } from "../dedupe/DedupeEngine.js";
 
 const DEFAULT_TOPICS_BY_MODULE: Record<string, DiscoveryTopic[]> = {
   false_ad: falseAdTopics
@@ -39,6 +40,7 @@ export class ScoutAgent {
     usedSources: ScoutSourceType[];
     sourceFallbacks: ScoutSourceType[];
     dailyLimit: number;
+    dedupe?: { total: number; kept: number; duplicates: number; possibleDuplicates: number; duplicateRate: number };
   }> {
     const moduleTopics = this.listTopics(input.moduleId);
     if (moduleTopics.length === 0) return { candidates: [], added: [], usedSources: [], sourceFallbacks: [], dailyLimit: config.scout.dailyLimit };
@@ -121,13 +123,26 @@ export class ScoutAgent {
       }
     }
 
-    const added = await candidateRepository.createMany(all);
+    // Dedupe — 기존 저장된 후보와 비교해서 DUPLICATE는 저장에서 제외
+    const existing = (await candidateRepository.list({ moduleId: input.moduleId, limit: 500 }))
+      .map((c) => ({ id: c.id, url: c.url, title: c.title }));
+    const dedupeReport = dedupeEngine.dedupeBatch(
+      all.map((c) => ({ id: c.id, url: c.url, title: c.title, moduleId: c.moduleId })),
+      existing
+    );
+    const dropIds = new Set(
+      dedupeReport.results.filter((r) => r.status === "DUPLICATE").map((r) => r.inputId)
+    );
+    const uniqueOrPossible = all.filter((c) => !dropIds.has(c.id));
+    await dedupeEngine.writeReport(dedupeReport).catch(() => undefined);
+    const added = await candidateRepository.createMany(uniqueOrPossible);
     return {
       candidates: all,
       added,
       usedSources,
       sourceFallbacks: fallbacks,
-      dailyLimit: config.scout.dailyLimit
+      dailyLimit: config.scout.dailyLimit,
+      dedupe: dedupeReport.summary
     };
   }
 

@@ -86,6 +86,7 @@ scoutRouter.post("/discover", async (req, res) => {
       usedSources: result.usedSources,
       sourceFallbacks: result.sourceFallbacks,
       dailyLimit: result.dailyLimit,
+      dedupe: result.dedupe,
       safetyNotice: SAFETY_NOTICE,
       autoReport: false,
       humanReviewRequired: true

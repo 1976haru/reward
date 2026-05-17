@@ -52,6 +52,10 @@ import { MockSearchAdapter } from "../services/scout/MockSearchAdapter.js";
 import { NaverSearchAdapter } from "../services/scout/NaverSearchAdapter.js";
 import { scoutAgent } from "../services/scout/ScoutAgent.js";
 import { SchedulerService, loadSchedulerConfig } from "../services/scheduler/SchedulerService.js";
+import { canonicalizeUrl, removeTrackingParams, hostPathKey } from "../services/dedupe/UrlCanonicalizer.js";
+import { similarity, jaccardSimilarity, tokenize } from "../services/dedupe/TextSimilarity.js";
+import { hashText, hashHtml } from "../services/dedupe/ContentHasher.js";
+import { DedupeEngine } from "../services/dedupe/DedupeEngine.js";
 import {
   loadFalseAdKeywordsSync,
   validateKeywordConfig,
@@ -910,6 +914,62 @@ check("invalid cron detected", !badSched.isCronValid());
 // listRuns
 const schedRuns = await schedSvc.listRuns(5);
 check("listRuns returns array", Array.isArray(schedRuns));
+
+// 20) Dedupe Engine — 15 tests
+const c1 = canonicalizeUrl("https://Example.com:443/Product/?utm_source=naver&productNo=123#sec");
+check("canonicalize lowercases host", c1.canonicalUrl.includes("example.com"));
+check("canonicalize removes default port 443", !c1.canonicalUrl.includes(":443"));
+check("canonicalize removes utm_source", c1.removedTrackingParams.includes("utm_source"));
+check("canonicalize keeps productNo", c1.canonicalUrl.includes("productNo=123"));
+check("canonicalize strips fragment", !c1.canonicalUrl.includes("#sec"));
+
+const c2 = canonicalizeUrl("HTTPS://EXAMPLE.COM/product?productNo=123&utm_medium=email&fbclid=abc");
+check("canonical url hash matches across variants",
+  c1.urlHash === c2.urlHash || c1.canonicalUrl.toLowerCase() === c2.canonicalUrl.toLowerCase());
+
+// hostPathKey
+const hp = hostPathKey("https://example.com/p?x=1");
+check("hostPathKey ignores query", hp === "example.com/p");
+
+// Similarity
+const simA = similarity("프리미엄 혈당 케어 30정", "프리미엄 혈당 케어 60정");
+check("similarity high for same product", simA >= 0.6, `sim=${simA.toFixed(2)}`);
+const simB = similarity("프리미엄 혈당 케어", "관절 영양제 60정");
+check("similarity low for different products", simB < 0.4, `sim=${simB.toFixed(2)}`);
+const jac = jaccardSimilarity("apple banana cherry date", "apple banana cherry elder");
+check("jaccard 3/5 = 0.6", Math.abs(jac - 0.6) < 0.01);
+const toks = tokenize("프리미엄 혈당 케어 a 30정");
+check("tokenize drops length-1 token 'a'", toks.includes("프리미엄") && !toks.includes("a"));
+
+// Content hash
+const h1 = hashText("같은 본문입니다.\n공백 차이만 있음.");
+const h2 = hashText("같은 본문입니다. 공백 차이만 있음.");
+check("hashText normalizes whitespace", h1 === h2);
+const hh = hashHtml("<html><body><script>alert(1)</script>본문 텍스트</body></html>");
+const hh2 = hashHtml("<html><body>본문 텍스트</body></html>");
+check("hashHtml strips script", hh === hh2);
+
+// DedupeEngine
+const eng = new DedupeEngine();
+const result1 = eng.dedupeCandidate(
+  { url: "https://example.com/product?productNo=1&utm_source=naver", title: "혈당 케어 30정" },
+  [{ id: "existing-1", url: "https://example.com/product?productNo=1" }]
+);
+check("DUPLICATE when canonical matches", result1.status === "DUPLICATE", `status=${result1.status}`);
+
+const result2 = eng.dedupeCandidate(
+  { url: "https://other.test/p", title: "프리미엄 혈당 케어 영양제 30정 후기" },
+  [{ id: "e2", url: "https://different.test/q", title: "프리미엄 혈당 케어 영양제 60정 후기" }]
+);
+check("DUPLICATE/POSSIBLE when title similarity high", ["DUPLICATE", "POSSIBLE_DUPLICATE"].includes(result2.status), `status=${result2.status}`);
+
+const batch = eng.dedupeBatch([
+  { id: "a", url: "https://example.com/product?productNo=1", title: "혈당 케어" },
+  { id: "b", url: "https://example.com/product?productNo=1&utm_source=naver", title: "혈당 케어" }, // dup of a
+  { id: "c", url: "https://example.com/product/2?ref=mall", title: "관절 영양제" }
+]);
+check("batch dedupe rate > 0", batch.summary.duplicateRate > 0, `rate=${batch.summary.duplicateRate}`);
+check("batch kept < total", batch.summary.kept < batch.summary.total);
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

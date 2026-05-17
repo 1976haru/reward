@@ -1238,7 +1238,10 @@ async function runDiscovery() {
     const banner = document.createElement("p");
     banner.className = "muted";
     banner.style.marginTop = "8px";
-    banner.textContent = `발굴 모드: ${data.discoveryMode} · 신규 추가 ${data.added}건 (기존 후보와 중복 제외). 본문 분석과 사람 검토가 필요합니다.`;
+    const dedupeInfo = data.dedupe
+      ? ` · Dedupe: ${data.dedupe.kept}/${data.dedupe.total} 유지 (중복 ${data.dedupe.duplicates}, 유사 ${data.dedupe.possibleDuplicates}, 중복률 ${(data.dedupe.duplicateRate * 100).toFixed(1)}%)`
+      : "";
+    banner.textContent = `발굴 모드: ${data.discoveryMode || data.mode || ""} · 신규 추가 ${data.added}건${dedupeInfo}. 본문 분석과 사람 검토가 필요합니다.`;
     candidateList.prepend(banner);
   } catch (err) {
     candidateList.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;

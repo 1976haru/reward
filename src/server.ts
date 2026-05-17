@@ -17,6 +17,7 @@ import { policyRouter } from "./routes/policy.js";
 import { scoutRouter } from "./routes/scout.js";
 import { schedulerRouter } from "./routes/scheduler.js";
 import { schedulerService } from "./services/scheduler/SchedulerService.js";
+import { dedupeRouter } from "./routes/dedupe.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -143,6 +144,9 @@ app.use("/api/policy", policyRouter);
 
 // Scout Agent — 키워드 기반 후보 자동 발굴. 외부 자동 제출은 수행하지 않습니다.
 app.use("/api/scout", scoutRouter);
+
+// Dedup Engine — URL canonicalize / 후보 중복 제거 (확정 판단 아님)
+app.use("/api/dedupe", dedupeRouter);
 
 // Scheduler — 정기 후보 수집 (자동 신고 미수행). SCHEDULER_ENABLED=true + NODE_ENV != test 일 때만 cron 등록.
 app.use("/api/scheduler", schedulerRouter);
