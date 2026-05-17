@@ -21,6 +21,7 @@
     "dotenv": "latest",
     "express": "latest",
     "nanoid": "latest",
+    "node-cron": "^4.2.1",
     "openai": "latest",
     "playwright": "latest",
     "zod": "latest"
@@ -29,6 +30,7 @@
     "@types/cors": "latest",
     "@types/express": "latest",
     "@types/node": "latest",
+    "@types/node-cron": "^3.0.11",
     "tsx": "latest",
     "typescript": "latest"
   }

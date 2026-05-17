@@ -44,5 +44,19 @@ export const config = {
     naverClientSecret: process.env.NAVER_CLIENT_SECRET ?? "",
     openaiWebSearchEnabled: parseBool(process.env.OPENAI_WEB_SEARCH_ENABLED, false),
     rssEnabled: parseBool(process.env.RSS_SCOUT_ENABLED, false)
+  },
+  scheduler: {
+    enabled: parseBool(process.env.SCHEDULER_ENABLED, false),
+    cron: process.env.SCHEDULER_CRON ?? "0 9 * * *",
+    timezone: process.env.SCHEDULER_TIMEZONE ?? "Asia/Seoul",
+    mode: (process.env.SCHEDULER_MODE ?? "standard"),
+    topics: (process.env.SCHEDULER_TOPICS ?? "blood-sugar,joint-cartilage,diet-body-fat,liver-detox,immunity")
+      .split(",").map((s) => s.trim()).filter(Boolean),
+    sources: (process.env.SCHEDULER_SOURCES ?? "mock")
+      .split(",").map((s) => s.trim()).filter(Boolean),
+    maxCandidates: Number(process.env.SCHEDULER_MAX_CANDIDATES ?? 30),
+    retryAttempts: Number(process.env.SCHEDULER_RETRY_ATTEMPTS ?? 2),
+    retryDelayMs: Number(process.env.SCHEDULER_RETRY_DELAY_MS ?? 2000),
+    maxRunLog: Number(process.env.SCHEDULER_MAX_RUN_LOG ?? 200)
   }
 };

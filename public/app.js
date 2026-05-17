@@ -161,10 +161,90 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindQueue();
   state.queue.statusFilter = readLS(LS_KEYS.queueTab, "ALL") || "ALL";
   state.queue.sort = readLS(LS_KEYS.queueSort, "priority") || "priority";
+  bindScheduler();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
+  await loadSchedulerStatus();
 });
+
+function bindScheduler() {
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.id === "schedulerRunBtn") { e.preventDefault(); runSchedulerOnce(); }
+    if (t.id === "schedulerRefreshBtn") { e.preventDefault(); loadSchedulerStatus(); }
+  });
+}
+
+async function loadSchedulerStatus() {
+  const panel = document.getElementById("schedulerPanel");
+  if (!panel) return;
+  try {
+    const res = await fetch("/api/scheduler/status");
+    const data = await res.json();
+    if (!data.ok) throw new Error("scheduler status fetch failed");
+    const lr = data.latestRun;
+    panel.innerHTML = `
+      <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+        <div class="evi-item">
+          <div class="label">활성 여부</div>
+          <div class="value">${data.enabled ? '<span class="badge ok">enabled</span>' : '<span class="badge muted">disabled</span>'} ${data.running ? '<span class="badge warn">running</span>' : ''}</div>
+        </div>
+        <div class="evi-item">
+          <div class="label">cron / timezone</div>
+          <div class="value">${escapeHtml(data.cron)} · ${escapeHtml(data.timezone)}</div>
+        </div>
+        <div class="evi-item">
+          <div class="label">topics / sources</div>
+          <div class="value">${escapeHtml((data.topics || []).join(", "))}<br/><span class="muted">${escapeHtml((data.sources || []).join(", "))}</span></div>
+        </div>
+        <div class="evi-item">
+          <div class="label">mode · 최대 후보</div>
+          <div class="value">${escapeHtml(data.mode)} · ${data.maxCandidates}</div>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:6px;">${escapeHtml(data.nextRunNote || "")}</p>
+      <p class="muted" style="margin-top:4px;font-size:12px;">${escapeHtml(data.safetyNotice)}</p>
+      ${lr ? `
+        <h4 style="margin:10px 0 6px;">최근 실행</h4>
+        <div class="evi-item">
+          <div class="label">
+            <span class="badge ${lr.status === 'SUCCESS' ? 'ok' : lr.status === 'FAILED' ? 'danger' : 'muted'}">${escapeHtml(lr.status)}</span>
+            <span style="margin-left:6px;">${escapeHtml(lr.reason)}</span>
+          </div>
+          <div class="value">시작 ${escapeHtml(lr.startedAt)}${lr.finishedAt ? ` · 종료 ${escapeHtml(lr.finishedAt)}` : ""}</div>
+          ${lr.result ? `<div class="muted" style="font-size:12px;margin-top:4px;">발굴 ${lr.result.totalFound} · 저장 ${lr.result.totalSaved} · 중복 제거 ${lr.result.duplicatesRemoved} · usedSources=[${(lr.result.usedSources||[]).map(escapeHtml).join(",")}] · fallbacks=[${(lr.result.sourceFallbacks||[]).map(escapeHtml).join(",")}]</div>` : ""}
+          ${lr.error ? `<div class="muted" style="color:#b91c1c;font-size:12px;margin-top:4px;">오류: ${escapeHtml(lr.error)}</div>` : ""}
+          ${(lr.result?.warnings || []).length ? `<div class="muted" style="font-size:12px;margin-top:4px;">경고: ${(lr.result.warnings || []).map(escapeHtml).join(" · ")}</div>` : ""}
+        </div>
+      ` : '<p class="muted" style="margin-top:8px;">아직 실행 기록이 없습니다. "지금 한 번 후보 수집"을 눌러보세요.</p>'}
+    `;
+  } catch (err) {
+    panel.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function runSchedulerOnce() {
+  const btn = document.getElementById("schedulerRunBtn");
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch("/api/scheduler/run-once", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ reason: "ui_manual" })
+    });
+    const data = await res.json();
+    alert((data.message || `HTTP ${res.status}`) + (data.run?.result ? ` · 발굴 ${data.run.result.totalFound} · 저장 ${data.run.result.totalSaved}` : ""));
+    await loadSchedulerStatus();
+    await loadCandidates();
+    await loadQueue();
+  } catch (err) {
+    alert("실행 실패: " + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
 
 // /api/modules에서 받은 ModuleDefinition을 UI MODULES 형태로 변환
 function toUiModule(m) {

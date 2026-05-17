@@ -126,6 +126,17 @@
           <p class="section-hint">AI가 찾은 Case를 사람이 검토·승인·보류·신고초안·제출(내부 기록)·결과확인·폐기 단계로 관리합니다. 외부 신고기관에 자동 제출하지 않습니다.</p>
           <div id="caseList" class="muted">불러오는 중...</div>
         </section>
+
+        <!-- 9. Scheduler -->
+        <section class="card">
+          <h2>정기 수집 스케줄러</h2>
+          <p class="section-hint">매일 정해진 시간에 Scout Agent가 후보 URL을 자동 발굴합니다. 외부 신고기관에 자동 제출하지 않습니다.</p>
+          <div id="schedulerPanel" class="muted">불러오는 중...</div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+            <button class="primary" type="button" id="schedulerRunBtn">지금 한 번 후보 수집</button>
+            <button class="ghost" type="button" id="schedulerRefreshBtn">최근 실행 기록 새로고침</button>
+          </div>
+        </section>
       </section>
     </div>
 

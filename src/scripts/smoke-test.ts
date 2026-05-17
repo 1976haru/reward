@@ -51,6 +51,7 @@ import { searchSourceRegistry } from "../services/scout/SearchSourceRegistry.js"
 import { MockSearchAdapter } from "../services/scout/MockSearchAdapter.js";
 import { NaverSearchAdapter } from "../services/scout/NaverSearchAdapter.js";
 import { scoutAgent } from "../services/scout/ScoutAgent.js";
+import { SchedulerService, loadSchedulerConfig } from "../services/scheduler/SchedulerService.js";
 import {
   loadFalseAdKeywordsSync,
   validateKeywordConfig,
@@ -881,6 +882,34 @@ const naverAdapter = new NaverSearchAdapter();
 check("NaverSearchAdapter disabled without keys", !naverAdapter.isEnabled());
 
 check("scoutAgent.listTopics returns 12", scoutAgent.listTopics("false_ad").length === 12);
+
+// 19) Scheduler — 10 tests
+const cfg = loadSchedulerConfig();
+check("scheduler default disabled", cfg.enabled === false);
+check("scheduler cron has 5 fields", cfg.cron.split(/\s+/).length === 5);
+check("scheduler topics not empty", cfg.topics.length > 0);
+check("scheduler sources not empty", cfg.sources.length > 0);
+
+const schedSvc = new SchedulerService({ enabled: false, cron: "0 9 * * *", retryAttempts: 0, maxCandidates: 3, topics: ["blood-sugar"], sources: ["mock"] });
+check("isCronValid true", schedSvc.isCronValid());
+const schedStatus = await schedSvc.getStatus();
+check("status.enabled=false", schedStatus.enabled === false);
+check("safetyNotice mentions 자동 신고 아님", /외부\s*신고기관에\s*자동\s*제출하지\s*않/.test(schedStatus.safetyNotice));
+
+// runOnce mock 실행
+const schedRec = await schedSvc.runOnce("smoke", { topics: ["blood-sugar"], sources: ["mock"], maxCandidates: 3, mode: "quick" });
+check("runOnce status=SUCCESS", schedRec.status === "SUCCESS", `status=${schedRec.status}, err=${schedRec.error}`);
+check("runOnce result.totalFound >= 0", typeof schedRec.result?.totalFound === "number");
+check("runOnce attempts >= 1", schedRec.attempts.length >= 1);
+check("runOnce safetyNotice present", schedRec.safetyNotice.length > 0);
+
+// invalid cron 검출
+const badSched = new SchedulerService({ cron: "not a cron" });
+check("invalid cron detected", !badSched.isCronValid());
+
+// listRuns
+const schedRuns = await schedSvc.listRuns(5);
+check("listRuns returns array", Array.isArray(schedRuns));
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

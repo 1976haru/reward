@@ -15,6 +15,8 @@ import { scoreRouter } from "./routes/score.js";
 import { reviewRouter } from "./routes/review.js";
 import { policyRouter } from "./routes/policy.js";
 import { scoutRouter } from "./routes/scout.js";
+import { schedulerRouter } from "./routes/scheduler.js";
+import { schedulerService } from "./services/scheduler/SchedulerService.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -141,6 +143,14 @@ app.use("/api/policy", policyRouter);
 
 // Scout Agent — 키워드 기반 후보 자동 발굴. 외부 자동 제출은 수행하지 않습니다.
 app.use("/api/scout", scoutRouter);
+
+// Scheduler — 정기 후보 수집 (자동 신고 미수행). SCHEDULER_ENABLED=true + NODE_ENV != test 일 때만 cron 등록.
+app.use("/api/scheduler", schedulerRouter);
+if (process.env.NODE_ENV !== "test" && config.scheduler.enabled) {
+  const r = schedulerService.start();
+  if (r.started) console.log(`[Scheduler] started cron='${config.scheduler.cron}' tz='${config.scheduler.timezone}'`);
+  else console.warn(`[Scheduler] not started: ${r.reason}`);
+}
 
 app.listen(config.port, () => {
   console.log(`Reward Agent MVP running at http://localhost:${config.port}`);

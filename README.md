@@ -140,6 +140,24 @@ OrchestratorAgent는 `TextExtractor`의 `claimCandidates → reviewCandidates �
 
 자세한 명세는 [`docs/candidate_discovery.md`](./docs/candidate_discovery.md)를 참고하세요.
 
+## Scheduler
+
+`node-cron` 기반 정기 후보 수집 스케줄러입니다. 후보 발굴만 수행하며 **외부 신고기관에 자동 제출하지 않습니다.**
+
+- `SCHEDULER_ENABLED=true`일 때만 cron 등록 (기본 false, 안전한 opt-in)
+- 테스트 환경(`NODE_ENV=test`)에서는 자동 시작하지 않음
+- 재시도 + 중복 실행 방지 + 수동 트리거 (`POST /api/scheduler/run-once`)
+- 실행 기록은 `data/scheduler/runs.json` (gitignored)
+- 향후 BullMQ/Redis 전환은 옵션 — 현재 MVP는 단일 서버 in-process
+
+API:
+
+- `GET /api/scheduler/status`
+- `GET /api/scheduler/runs?limit=N`
+- `POST /api/scheduler/run-once`
+
+자세한 명세는 [`docs/scheduler.md`](./docs/scheduler.md).
+
 ## Search Collector / Scout Agent
 
 The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.
