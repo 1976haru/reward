@@ -11,6 +11,7 @@ import { discoveryRouter } from "./routes/discovery.js";
 import { extractRouter } from "./routes/extract.js";
 import { rulesRouter, detectRouter } from "./routes/rules.js";
 import { analyzeRouter } from "./routes/analyze.js";
+import { scoreRouter } from "./routes/score.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -125,6 +126,9 @@ app.use("/api/detect", detectRouter);
 
 // Analyzer Agent (LLM 또는 mock) — 신고 후보 검토 의견 생성
 app.use("/api/analyze", analyzeRouter);
+
+// Scoring Agent — 신고 후보 우선순위 점수 (0..100)
+app.use("/api/score", scoreRouter);
 
 app.listen(config.port, () => {
   console.log(`Reward Agent MVP running at http://localhost:${config.port}`);

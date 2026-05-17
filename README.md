@@ -70,6 +70,22 @@ The first module is intentionally limited to health functional food advertising 
 
 See [`mvp_scope.md`](./mvp_scope.md) for the detailed MVP scope and keyword set.
 
+## Scoring Agent (신고 후보 우선순위)
+
+RuleAgent · AnalyzerAgent · TextExtractor · Evidence · Discovery 결과를 종합해 **신고 후보 우선순위 점수**(0~100)를 계산합니다.
+
+> **이 점수는 법 위반 확정이나 포상금 지급 가능성을 의미하지 않습니다. 사람이 먼저 검토할 후보의 우선순위를 정하기 위한 참고 점수입니다.**
+
+구성요소(총 100점):
+
+- 금지표현/의심표현 강도 (40) · AI 문맥 판단 (20) · 증거 완성도 (15) · 판매 활성도/상업성 (10) · 반복성/패턴성 (10) · 수집·추출 품질 (5)
+
+등급: 0~29 낮음 · 30~59 검토 필요 · 60~79 우선 검토 · 80~100 최우선 검토
+
+API: `POST /api/score` (단독 호출), `RewardCase.scoringResult` (기존 `/api/cases/analyze` 응답에 자동 포함)
+
+자세한 설계는 [`docs/scoring_agent.md`](./docs/scoring_agent.md) 참고.
+
 ## Analyzer Agent (LLM 판정)
 
 RuleAgent가 탐지한 의심 표현과 TextExtractor 결과를 LLM이 문맥상 재검토해 **신고 후보 검토 의견**(`AnalysisResult`)을 만듭니다. **법 위반 확정·포상금 보장·신고처 확정은 하지 않습니다.**

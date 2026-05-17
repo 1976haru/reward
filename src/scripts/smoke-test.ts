@@ -30,6 +30,12 @@ import { TextExtractor, maskPII, splitSentences, dedupe } from "../services/Text
 import { RuleAgent } from "../agents/RuleAgent.js";
 import { AnalyzerAgent, validateAnalysisResult, loadAnalysisSchemaString } from "../agents/AnalyzerAgent.js";
 import { stat as fsStat } from "node:fs/promises";
+import { ScoringAgent as ScoringAgentNew } from "../agents/ScoringAgent.js";
+import {
+  COMPONENT_DEFS,
+  PRIORITY_LEVELS,
+  recommendedActionsFor
+} from "../agents/scoring_rules.js";
 import {
   loadFalseAdKeywordsSync,
   validateKeywordConfig,
@@ -536,6 +542,86 @@ const r1 = await az.analyzeWithContext(highRiskInput);
 const r2 = await az.analyzeWithContext(highRiskInput);
 check("동일 입력 mock 결과 enum 동일", r1.overallRisk === r2.overallRisk && r1.violationLikelihood === r2.violationLikelihood);
 
+// 14) Scoring Agent — 14 tests
+const sa = new ScoringAgentNew();
+
+// 4 등급 표 무결성
+check("PRIORITY_LEVELS has 4 tiers", PRIORITY_LEVELS.length === 4);
+check("components cover all 6 keys", Object.keys(COMPONENT_DEFS).length === 6);
+const maxTotal = Object.values(COMPONENT_DEFS).reduce((a, b) => a + b.maxPoints, 0);
+check("max points sum to 100", maxTotal === 100, `sum=${maxTotal}`);
+
+// 빈 입력: 점수 0, level LOW, notLegalConclusion true, rewardGuaranteed false
+const sEmpty = sa.computePriority({ moduleId: "false_ad" });
+check("empty input → 0", sEmpty.priorityScore === 0, `score=${sEmpty.priorityScore}`);
+check("empty input → LOW", sEmpty.priorityLevel === "LOW");
+check("notLegalConclusion always true", sEmpty.notLegalConclusion === true);
+check("rewardGuaranteed always false", sEmpty.rewardGuaranteed === false);
+check("safetyWarnings include law/reward/human review", sEmpty.safetyWarnings.length >= 3 && sEmpty.safetyWarnings.some((w) => w.includes("법 위반")));
+
+// 고위험 입력: 80+ → VERY_HIGH_PRIORITY 예상
+const sHigh = sa.computePriority({
+  moduleId: "false_ad",
+  url: "https://shop.example.test/product/p-1",
+  extractionResult: {
+    productName: "혈당 케어",
+    textLength: 1500,
+    priceCandidates: ["39,800원"],
+    claimCandidates: ["당뇨 완치", "혈압약 대체", "기적의 효과", "약 대신 먹는", "면역력 1000%"],
+    reviewCandidates: ["먹어보니 완치되었어요", "효과 봤어요", "좋아졌어요"],
+    sellerCandidates: ["판매자 ABC"],
+    extractionWarnings: []
+  },
+  ruleDetectionResult: {
+    riskScore: 100,
+    riskLevel: "매우 높음",
+    counts: { HIGH: 4, MEDIUM: 2, LOW: 0, combo: 2, total: 8 },
+    matches: [
+      { ruleId: "H004", keyword: "당뇨 완치", riskLevel: "HIGH", matchType: "keyword" },
+      { ruleId: "H004", keyword: "당뇨 완치", riskLevel: "HIGH", matchType: "keyword" },
+      { ruleId: "H006", keyword: "혈압약 대체", riskLevel: "HIGH", matchType: "keyword" },
+      { ruleId: "M011", keyword: "기적의 효과", riskLevel: "MEDIUM", matchType: "keyword" },
+      { ruleId: "C001", keyword: "...", riskLevel: "HIGH", matchType: "regex" }
+    ]
+  },
+  llmAnalysis: { overallRisk: "VERY_HIGH", violationLikelihood: "HIGH", confidence: 0.85 },
+  evidenceSummary: { hasUrl: true, hasHtml: true, hasText: true, hasScreenshot: true, hasPdf: true, hasMetadata: true, hasManifest: true, hasSha256: true }
+});
+check("high-risk → score >= 80", sHigh.priorityScore >= 80, `score=${sHigh.priorityScore}`);
+check("high-risk → VERY_HIGH_PRIORITY", sHigh.priorityLevel === "VERY_HIGH_PRIORITY");
+check("high-risk components covered", sHigh.components.length === 6);
+check("score cap ≤ 100", sHigh.priorityScore <= 100);
+
+// 컴포넌트별 검증
+const ruleComp = sHigh.components.find((c) => c.key === "ruleSignal")!;
+check("ruleSignal close to max for score=100", ruleComp.score >= 30, `ruleSignal=${ruleComp.score}`);
+const evComp = sHigh.components.find((c) => c.key === "evidenceCompleteness")!;
+check("evidenceCompleteness max with all true", evComp.score === 15, `ev=${evComp.score}`);
+const repComp = sHigh.components.find((c) => c.key === "repetitionSignal")!;
+check("repetitionSignal picks up repeated ruleId", repComp.score >= 3, `rep=${repComp.score}`);
+
+// extractionWarnings 많을 때 extractionQuality 감점
+const sBadExt = sa.computePriority({
+  moduleId: "false_ad",
+  extractionResult: { extractionWarnings: ["w1","w2","w3","w4","w5","w6"], textLength: 100, claimCandidates: [] }
+});
+const extQ = sBadExt.components.find((c) => c.key === "extractionQuality")!;
+check("extractionQuality penalized when warnings many", extQ.score <= 1, `extQ=${extQ.score}`);
+
+// 등급 매핑 일관성 — 중간 점수 입력
+const sMid = sa.computePriority({
+  moduleId: "false_ad",
+  ruleDetectionResult: { riskScore: 50, counts: { HIGH: 1, MEDIUM: 1, LOW: 0, total: 2 }, matches: [{ ruleId: "H001", riskLevel: "HIGH" }] },
+  llmAnalysis: { overallRisk: "MEDIUM", violationLikelihood: "MEDIUM", confidence: 0.4 },
+  evidenceSummary: { hasHtml: true, hasText: true, hasUrl: true }
+});
+check("mid score → REVIEW_NEEDED or HIGH_PRIORITY", ["REVIEW_NEEDED", "HIGH_PRIORITY"].includes(sMid.priorityLevel), `level=${sMid.priorityLevel}, score=${sMid.priorityScore}`);
+
+// recommendedNextActions 비공격적 표현 확인
+const actions = recommendedActionsFor("VERY_HIGH_PRIORITY").join(" ");
+check("recommended actions exclude '신고하세요'", !/신고하세요/.test(actions));
+check("recommended actions exclude '포상금 가능성 높음'", !/포상금 가능성 높음/.test(actions));
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);
@@ -570,5 +656,10 @@ console.log("SMOKE_TEST_OK", {
     mockMode: az.isMockMode(),
     highInputRisk: llmHigh.overallRisk,
     confidence: llmHigh.confidence
+  },
+  scoring: {
+    emptyScore: sEmpty.priorityScore,
+    highScore: sHigh.priorityScore,
+    highLevel: sHigh.priorityLevel
   }
 });

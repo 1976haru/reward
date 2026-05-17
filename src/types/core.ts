@@ -163,4 +163,5 @@ export interface RewardCase {
   extraction?: CaseExtractionSummary;
   ruleDetection?: CaseRuleDetection;
   llmAnalysis?: CaseLlmAnalysis;
+  scoringResult?: import("./scoring.js").ScoringResult;
 }

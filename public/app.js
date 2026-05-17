@@ -361,6 +361,8 @@ function renderResult(c) {
       <ul>${reasonsHtml}</ul>
     </div>
 
+    ${renderScoringPanel(c.scoringResult)}
+
     ${renderLlmAnalysisPanel(c.llmAnalysis)}
 
     ${renderRuleDetectionPanel(c.ruleDetection)}
@@ -400,6 +402,46 @@ function renderResult(c) {
 
     <div class="result-section">
       <a href="${reportUrl}" target="_blank" rel="noreferrer">신고서 초안/증거 요약 열기 →</a>
+    </div>
+  `;
+}
+
+function renderScoringPanel(s) {
+  if (!s) return "";
+  const levelBadge =
+    s.priorityLevel === "VERY_HIGH_PRIORITY" ? "danger" :
+    s.priorityLevel === "HIGH_PRIORITY" ? "warn" :
+    s.priorityLevel === "REVIEW_NEEDED" ? "warn" : "ok";
+  const components = Array.isArray(s.components) ? s.components : [];
+  const compsHtml = components.map((c) => {
+    const pct = c.maxPoints > 0 ? Math.round((c.score / c.maxPoints) * 100) : 0;
+    return `
+      <div class="evi-item">
+        <div class="label">${escapeHtml(c.label)} <span class="muted">(${c.score}/${c.maxPoints})</span></div>
+        <div style="background:#e5e7eb;border-radius:6px;height:8px;overflow:hidden;margin:6px 0;">
+          <div style="width:${pct}%;height:100%;background:${pct >= 80 ? '#b91c1c' : pct >= 50 ? '#b45309' : '#047857'};"></div>
+        </div>
+        <div class="muted" style="font-size:12px;">${(c.reasons || []).slice(0, 4).map(escapeHtml).join(" · ") || "—"}</div>
+      </div>
+    `;
+  }).join("");
+  const actions = (s.recommendedNextActions || []).map((a) => `<li>${escapeHtml(a)}</li>`).join("");
+  const safety = (s.safetyWarnings || []).map((a) => `<li>${escapeHtml(a)}</li>`).join("");
+
+  return `
+    <div class="result-section">
+      <h4>신고 후보 우선순위 점수</h4>
+      <div class="score-row">
+        <span class="score-pill ${levelBadge === 'danger' ? 'grade-high' : levelBadge === 'warn' ? 'grade-mid' : 'grade-low'}"><span class="num">${s.priorityScore}</span>/100</span>
+        <span class="badge ${levelBadge}">${escapeHtml(s.priorityLabel || "")}</span>
+      </div>
+      <p class="muted" style="margin:6px 0;">${escapeHtml(s.disclaimer || "")}</p>
+
+      <h4 style="margin:10px 0 6px;">구성요소</h4>
+      <div class="evidence-grid">${compsHtml}</div>
+
+      ${actions ? `<div class="next-actions" style="margin-top:10px;"><h4>다음 행동 추천</h4><ol>${actions}</ol></div>` : ""}
+      ${safety ? `<div class="next-actions" style="margin-top:8px;background:#fff7ed;border-color:#fed7aa;"><h4>안전 안내</h4><ul>${safety}</ul></div>` : ""}
     </div>
   `;
 }

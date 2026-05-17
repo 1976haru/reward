@@ -14,6 +14,7 @@ import { EvidenceService } from "../services/EvidenceService.js";
 import { ReportService } from "../services/ReportService.js";
 import { riskLevelFromScore } from "../utils/validation.js";
 import { TextExtractor, type ExtractionResult } from "../services/TextExtractor.js";
+import { ScoringAgent } from "./ScoringAgent.js";
 
 const FALLBACK_TAIL_MAX = 8000;
 
@@ -26,6 +27,7 @@ export class OrchestratorAgent {
   private repository: ICaseRepository = createCaseRepository();
   private policy = new PolicyAgent();
   private extractor = new TextExtractor();
+  private scoring = new ScoringAgent();
 
   async analyze(request: AnalyzeRequest): Promise<RewardCase> {
     const doc = await this.collector.collectUrl(request.url);
@@ -107,7 +109,64 @@ export class OrchestratorAgent {
         ? (summarizeExtraction(extraction) as unknown as Record<string, unknown>)
         : undefined
     });
-    const initialStatus: CaseStatus = score >= 50 ? "REVIEW" : "DRAFT";
+
+    // 우선순위 점수 계산 (rule + llm + evidence + commercial + repetition + extraction)
+    const scoringResult = this.scoring.computePriority({
+      moduleId: request.moduleId,
+      url: doc.url,
+      title: extraction?.title ?? doc.title,
+      extractionResult: extraction
+        ? {
+            productName: extraction.productName,
+            textLength: extraction.textLength,
+            priceCandidates: extraction.priceCandidates,
+            claimCandidates: extraction.claimCandidates,
+            reviewCandidates: extraction.reviewCandidates,
+            ingredientCandidates: extraction.ingredientCandidates,
+            warningCandidates: extraction.warningCandidates,
+            sellerCandidates: extraction.sellerCandidates,
+            extractionWarnings: extraction.extractionWarnings
+          }
+        : undefined,
+      ruleDetectionResult: {
+        riskScore: detection.riskScore,
+        riskLevel: detection.riskLevel,
+        counts: detection.counts,
+        matches: detection.matches.map((m) => ({
+          ruleId: m.ruleId,
+          keyword: m.keyword,
+          riskLevel: m.riskLevel,
+          matchType: m.matchType,
+          category: m.category,
+          sourceSection: m.sourceSection,
+          sentence: m.sentence
+        }))
+      },
+      llmAnalysis: {
+        overallRisk: llmAnalysis.overallRisk,
+        violationLikelihood: llmAnalysis.violationLikelihood,
+        confidence: llmAnalysis.confidence,
+        notLegalConclusion: llmAnalysis.notLegalConclusion,
+        rewardGuaranteed: llmAnalysis.rewardGuaranteed
+      },
+      evidenceSummary: {
+        hasUrl: Boolean(doc.url),
+        hasHtml: Boolean(evidence.htmlPath),
+        hasText: Boolean(evidence.textPath),
+        hasScreenshot: Boolean(evidence.screenshotPath),
+        hasPdf: Boolean(evidence.pdfPath),
+        hasMetadata: true,
+        hasManifest: true,
+        hasSha256: true,
+        capturedAt: evidence.capturedAt,
+        productName: extraction?.productName,
+        priceCandidates: extraction?.priceCandidates
+      }
+    });
+
+    // 최종 RewardCase.score 는 priorityScore (헤드라인 점수). RuleAgent 단독 점수는 ruleDetection.riskScore 로 별도 보관.
+    const priorityScore = scoringResult.priorityScore;
+    const initialStatus: CaseStatus = priorityScore >= 50 ? "REVIEW" : "DRAFT";
 
     const ruleDetectionForCase: CaseRuleDetection = {
       schemaVersion: detection.schemaVersion,
@@ -127,11 +186,12 @@ export class OrchestratorAgent {
       title: (extraction?.title ?? doc.title) || doc.url,
       createdAt: now,
       updatedAt: now,
-      score,
-      riskScore: score,
-      riskLevel: riskLevelFromScore(score),
+      score: priorityScore,
+      riskScore: priorityScore,
+      riskLevel: scoringResult.priorityLabel,
       agencyCandidate: aiFinding.recommendedAgency,
-      summary: aiFinding.summary,
+      summary: `${aiFinding.summary} · 신고 후보 우선순위 점수 ${priorityScore}/100 (${scoringResult.priorityLabel})`,
+      rewardCaution: "포상금 수령을 보장하지 않습니다.",
       ruleHits: detection.ruleHits,
       aiFinding,
       evidence,
@@ -143,7 +203,8 @@ export class OrchestratorAgent {
       reviews: [],
       extraction: extraction ? summarizeExtractionForCase(extraction) : undefined,
       ruleDetection: ruleDetectionForCase,
-      llmAnalysis
+      llmAnalysis,
+      scoringResult
     };
 
     const reportPath = await this.reports.createReport(draft);
