@@ -113,13 +113,22 @@ casesRouter.post("/", async (req, res) => {
   }
 });
 
-// GET /api/cases/:id — 상세
+// GET /api/cases/:id — 상세 (+ evidence package summary)
 casesRouter.get("/:id", async (req, res) => {
   try {
     const found = await repo.get(req.params.id);
+    let evidencePackage = null as Awaited<ReturnType<typeof evidence.summarizePackage>> | null;
+    if (isSafeCaseId(found.id)) {
+      try {
+        evidencePackage = await evidence.summarizePackage(found.id);
+      } catch {
+        evidencePackage = null;
+      }
+    }
     res.json({
       ok: true,
       case: found,
+      evidencePackage,
       safetyNotice:
         "본 정보는 사람 검토용 자료이며, 외부 신고는 사용자가 공식 기준을 확인한 뒤 직접 진행해야 합니다."
     });
@@ -216,6 +225,91 @@ const CaptureBodySchema = z.object({
     .string()
     .min(1)
     .refine(isHttpUrl, { message: "URL은 http 또는 https 만 허용됩니다." })
+});
+
+// GET /api/cases/:id/evidence/package — package summary (file flags + completeness score)
+casesRouter.get("/:id/evidence/package", async (req, res) => {
+  const caseId = req.params.id;
+  if (!isSafeCaseId(caseId)) {
+    return res.status(400).json(errorBody("VALIDATION_ERROR", `Invalid caseId: ${caseId}`));
+  }
+  try {
+    const summary = await evidence.summarizePackage(caseId);
+    res.json({
+      ok: true,
+      caseId,
+      evidencePackage: summary,
+      safetyNotice: summary.safetyNotice,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// POST /api/cases/:id/evidence/package — 명시적 패키지 생성 (URL 수집 + 선택 산출물 JSON 첨부)
+const PackageBodySchema = z
+  .object({
+    url: z.string().min(1).refine(isHttpUrl, { message: "URL은 http 또는 https 만 허용됩니다." }).optional(),
+    title: z.string().max(500).optional(),
+    moduleId: z.string().default("false_ad"),
+    extraction: z.unknown().optional(),
+    rules: z.unknown().optional(),
+    analysis: z.unknown().optional(),
+    scoring: z.unknown().optional()
+  })
+  .refine(
+    (v) => Boolean(v.url) || v.extraction !== undefined || v.rules !== undefined || v.analysis !== undefined || v.scoring !== undefined,
+    { message: "url 또는 extraction/rules/analysis/scoring 중 하나 이상 필요합니다." }
+  );
+
+casesRouter.post("/:id/evidence/package", async (req, res) => {
+  const caseId = req.params.id;
+  if (!isSafeCaseId(caseId)) {
+    return res.status(400).json(errorBody("VALIDATION_ERROR", `Invalid caseId: ${caseId}`));
+  }
+  try {
+    const input = PackageBodySchema.parse(req.body);
+    if (input.url) {
+      const doc = await collector.collectUrl(input.url);
+      const summary = await evidence.createPackage(caseId, doc, {
+        extraction: input.extraction,
+        rules: input.rules,
+        analysis: input.analysis,
+        scoring: input.scoring
+      });
+      return res.status(201).json({
+        ok: true,
+        caseId,
+        evidencePackage: summary,
+        message: "증거 패키지가 저장되었습니다. 자동 신고가 아니라 사람 검토용 로컬 자료입니다.",
+        autoReport: false,
+        humanReviewRequired: true
+      });
+    }
+    // URL 없이 산출물만 첨부 — buildEvidence를 호출하지 않고 JSON만 저장
+    const written: string[] = [];
+    if (input.extraction !== undefined) { await evidence.saveJsonFile(caseId, "extraction.json", input.extraction); written.push("extraction.json"); }
+    if (input.rules !== undefined)      { await evidence.saveJsonFile(caseId, "rules.json", input.rules);            written.push("rules.json"); }
+    if (input.analysis !== undefined)   { await evidence.saveJsonFile(caseId, "analysis.json", input.analysis);      written.push("analysis.json"); }
+    if (input.scoring !== undefined)    { await evidence.saveJsonFile(caseId, "scoring.json", input.scoring);        written.push("scoring.json"); }
+    const summary = await evidence.summarizePackage(caseId);
+    return res.status(201).json({
+      ok: true,
+      caseId,
+      written,
+      evidencePackage: summary,
+      message: "산출물 JSON이 패키지에 첨부되었습니다.",
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
+    }
+    res.status(500).json(errorBody("PACKAGE_FAILED", (error as Error).message));
+  }
 });
 
 // GET /api/cases/:id/evidence — manifest 또는 디렉터리 스캔 결과

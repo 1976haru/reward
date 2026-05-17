@@ -14,10 +14,25 @@ export const EVIDENCE_FILES = {
   screenshot: "screenshot.png",
   pdf: "page.pdf",
   metadata: "metadata.json",
-  manifest: "manifest.json"
+  manifest: "manifest.json",
+  // 선택 파일 (분석 산출물 사본)
+  extraction: "extraction.json",
+  rules: "rules.json",
+  analysis: "analysis.json",
+  scoring: "scoring.json"
 } as const;
 
 export const ALLOWED_EVIDENCE_FILENAMES: ReadonlySet<string> = new Set(Object.values(EVIDENCE_FILES));
+
+// 증거 완성도 점수 가중치 (0~100). 법 위반 점수가 아니라 패키지 완성도 표시 용도.
+export const EVIDENCE_COMPLETENESS_WEIGHTS = {
+  html: 15,
+  text: 15,
+  screenshot: 25,
+  pdf: 25,
+  metadata: 10,
+  manifest: 10
+} as const;
 
 const CASE_ID_PATTERN = /^[A-Za-z0-9_-]{1,80}$/;
 
@@ -313,6 +328,179 @@ export class EvidenceService {
       capturedAt: startedAt
     };
   }
+
+  // ============================================================
+  // Evidence Package — buildEvidence + 선택 산출물(JSON) 저장 + summarize
+  // ============================================================
+
+  async saveJsonFile(caseId: string, fileName: string, payload: unknown): Promise<EvidenceFileEntry> {
+    if (!isAllowedEvidenceFileName(fileName)) {
+      throw new Error(`Invalid evidence file name: ${fileName}`);
+    }
+    if (!fileName.endsWith(".json")) {
+      throw new Error(`saveJsonFile expects a .json filename: ${fileName}`);
+    }
+    await ensureDir(this.getCaseDir(caseId));
+    await writeJson(this.getFilePath(caseId, fileName), payload);
+    return this.describeFile(caseId, fileName);
+  }
+
+  /**
+   * 분석 산출물 사본(extraction/rules/analysis/scoring)을 함께 저장하는 패키지 작성기.
+   * buildEvidence를 호출한 뒤 extras JSON을 저장하고, manifest를 갱신한다.
+   */
+  async createPackage(
+    caseId: string,
+    doc: CollectedDocument,
+    options: {
+      extractionSummary?: Record<string, unknown>;
+      extraction?: unknown;
+      rules?: unknown;
+      analysis?: unknown;
+      scoring?: unknown;
+    } = {}
+  ): Promise<EvidencePackageSummary> {
+    await this.buildEvidence(caseId, doc, { extractionSummary: options.extractionSummary });
+
+    const extraEntries: EvidenceFileEntry[] = [];
+    if (options.extraction !== undefined) {
+      extraEntries.push(await this.saveJsonFile(caseId, EVIDENCE_FILES.extraction, options.extraction));
+    }
+    if (options.rules !== undefined) {
+      extraEntries.push(await this.saveJsonFile(caseId, EVIDENCE_FILES.rules, options.rules));
+    }
+    if (options.analysis !== undefined) {
+      extraEntries.push(await this.saveJsonFile(caseId, EVIDENCE_FILES.analysis, options.analysis));
+    }
+    if (options.scoring !== undefined) {
+      extraEntries.push(await this.saveJsonFile(caseId, EVIDENCE_FILES.scoring, options.scoring));
+    }
+
+    if (extraEntries.length > 0) {
+      try {
+        const manifest = await this.readManifest(caseId);
+        // 기존 같은 name의 항목은 교체, 그 외는 append
+        const seen = new Set(extraEntries.map((e) => e.name));
+        manifest.files = [...manifest.files.filter((f) => !seen.has(f.name)), ...extraEntries];
+        await this.writeManifest(caseId, manifest);
+      } catch {
+        // manifest가 없으면 무시 — listEvidence가 디렉터리 스캔으로 폴백 처리
+      }
+    }
+    return this.summarizePackage(caseId);
+  }
+
+  async summarizePackage(caseId: string): Promise<EvidencePackageSummary> {
+    const caseDir = this.getCaseDir(caseId);
+    const manifest = await this.listEvidence(caseId);
+    if (!manifest) {
+      return {
+        caseId,
+        exists: false,
+        hasHtml: false, hasText: false, hasScreenshot: false, hasPdf: false,
+        hasMetadata: false, hasManifest: false,
+        hasExtraction: false, hasRules: false, hasAnalysis: false, hasScoring: false,
+        capturedAt: null,
+        fileCount: 0,
+        totalBytes: 0,
+        completenessScore: 0,
+        files: [],
+        safetyNotice: "증거 패키지가 아직 생성되지 않았습니다. 자동 신고 기능 없음.",
+        autoReport: false,
+        humanReviewRequired: true
+      };
+    }
+    const hasFile = (name: string) => manifest.files.some((f) => f.name === name);
+    const totalBytes = manifest.files.reduce((s, f) => s + (Number.isFinite(f.size) ? f.size : 0), 0);
+
+    let score = 0;
+    if (hasFile(EVIDENCE_FILES.html))       score += EVIDENCE_COMPLETENESS_WEIGHTS.html;
+    if (hasFile(EVIDENCE_FILES.text))       score += EVIDENCE_COMPLETENESS_WEIGHTS.text;
+    if (hasFile(EVIDENCE_FILES.screenshot)) score += EVIDENCE_COMPLETENESS_WEIGHTS.screenshot;
+    if (hasFile(EVIDENCE_FILES.pdf))        score += EVIDENCE_COMPLETENESS_WEIGHTS.pdf;
+    if (hasFile(EVIDENCE_FILES.metadata))   score += EVIDENCE_COMPLETENESS_WEIGHTS.metadata;
+    // manifest 자체는 파일 목록에 포함되지 않을 수 있어 디스크로 확인
+    let hasManifest = false;
+    try {
+      await stat(this.manifestPath(caseId));
+      hasManifest = true;
+      score += EVIDENCE_COMPLETENESS_WEIGHTS.manifest;
+    } catch { /* ignore */ }
+    void caseDir; // referenced to keep variable
+    return {
+      caseId,
+      exists: true,
+      hasHtml: hasFile(EVIDENCE_FILES.html),
+      hasText: hasFile(EVIDENCE_FILES.text),
+      hasScreenshot: hasFile(EVIDENCE_FILES.screenshot),
+      hasPdf: hasFile(EVIDENCE_FILES.pdf),
+      hasMetadata: hasFile(EVIDENCE_FILES.metadata),
+      hasManifest,
+      hasExtraction: hasFile(EVIDENCE_FILES.extraction),
+      hasRules: hasFile(EVIDENCE_FILES.rules),
+      hasAnalysis: hasFile(EVIDENCE_FILES.analysis),
+      hasScoring: hasFile(EVIDENCE_FILES.scoring),
+      capturedAt: manifest.capturedAt ?? null,
+      fileCount: manifest.files.length,
+      totalBytes,
+      completenessScore: Math.max(0, Math.min(100, score)),
+      files: manifest.files.map((f) => ({
+        name: f.name,
+        size: f.size,
+        sha256: f.sha256,
+        mimeType: f.mimeType,
+        capturedAt: f.capturedAt
+      })),
+      safetyNotice: "증거 패키지는 자동 신고가 아니라 사람 검토를 위한 로컬 보관 자료입니다.",
+      autoReport: false,
+      humanReviewRequired: true
+    };
+  }
+
+  computeCompletenessScore(flags: {
+    hasHtml?: boolean; hasText?: boolean; hasScreenshot?: boolean;
+    hasPdf?: boolean; hasMetadata?: boolean; hasManifest?: boolean;
+  }): number {
+    let s = 0;
+    if (flags.hasHtml) s += EVIDENCE_COMPLETENESS_WEIGHTS.html;
+    if (flags.hasText) s += EVIDENCE_COMPLETENESS_WEIGHTS.text;
+    if (flags.hasScreenshot) s += EVIDENCE_COMPLETENESS_WEIGHTS.screenshot;
+    if (flags.hasPdf) s += EVIDENCE_COMPLETENESS_WEIGHTS.pdf;
+    if (flags.hasMetadata) s += EVIDENCE_COMPLETENESS_WEIGHTS.metadata;
+    if (flags.hasManifest) s += EVIDENCE_COMPLETENESS_WEIGHTS.manifest;
+    return Math.max(0, Math.min(100, s));
+  }
+}
+
+export interface EvidencePackageFileLite {
+  name: string;
+  size: number;
+  sha256: string;
+  mimeType: string;
+  capturedAt: string;
+}
+
+export interface EvidencePackageSummary {
+  caseId: string;
+  exists: boolean;
+  hasHtml: boolean;
+  hasText: boolean;
+  hasScreenshot: boolean;
+  hasPdf: boolean;
+  hasMetadata: boolean;
+  hasManifest: boolean;
+  hasExtraction: boolean;
+  hasRules: boolean;
+  hasAnalysis: boolean;
+  hasScoring: boolean;
+  capturedAt: string | null;
+  fileCount: number;
+  totalBytes: number;
+  completenessScore: number;     // 0..100 — 패키지 완성도. 법 위반 점수가 아님.
+  files: EvidencePackageFileLite[];
+  safetyNotice: string;
+  autoReport: false;
+  humanReviewRequired: true;
 }
 
 function mimeFor(fileName: string): string {
@@ -321,9 +509,15 @@ function mimeFor(fileName: string): string {
     case EVIDENCE_FILES.text: return MIME.text;
     case EVIDENCE_FILES.screenshot: return MIME.screenshot;
     case EVIDENCE_FILES.pdf: return MIME.pdf;
-    case EVIDENCE_FILES.metadata: return MIME.metadata;
-    case EVIDENCE_FILES.manifest: return MIME.manifest;
-    default: return "application/octet-stream";
+    case EVIDENCE_FILES.metadata:
+    case EVIDENCE_FILES.manifest:
+    case EVIDENCE_FILES.extraction:
+    case EVIDENCE_FILES.rules:
+    case EVIDENCE_FILES.analysis:
+    case EVIDENCE_FILES.scoring:
+      return "application/json; charset=utf-8";
+    default:
+      return "application/octet-stream";
   }
 }
 

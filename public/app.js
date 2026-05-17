@@ -614,12 +614,16 @@ function renderEvidence(c) {
     { label: "텍스트 추출", value: ev.textPath ? "저장됨" : "없음", ok: !!ev.textPath },
     { label: "신고서 초안", value: c.reportPath ? "생성됨" : "없음", ok: !!c.reportPath }
   ];
-  const evidenceListLink = c.id
-    ? `<p class="muted" style="margin-top:8px;">
-         증거 파일 목록(JSON): <a href="/api/cases/${escapeAttr(c.id)}/evidence" target="_blank" rel="noreferrer">/api/cases/${escapeHtml(c.id)}/evidence</a>
-         · manifest: <a href="/api/cases/${escapeAttr(c.id)}/evidence/manifest.json" target="_blank" rel="noreferrer">manifest.json</a>
-       </p>`
-    : "";
+  const fileLinkRow = c.id ? `
+    <p class="muted" style="margin-top:8px;">
+      파일 열람:
+      <a href="/api/cases/${escapeAttr(c.id)}/evidence/page.html" target="_blank" rel="noreferrer">HTML</a> ·
+      <a href="/api/cases/${escapeAttr(c.id)}/evidence/page.txt" target="_blank" rel="noreferrer">TEXT</a> ·
+      <a href="/api/cases/${escapeAttr(c.id)}/evidence/screenshot.png" target="_blank" rel="noreferrer">PNG</a> ·
+      <a href="/api/cases/${escapeAttr(c.id)}/evidence/page.pdf" target="_blank" rel="noreferrer">PDF</a> ·
+      <a href="/api/cases/${escapeAttr(c.id)}/evidence/manifest.json" target="_blank" rel="noreferrer">manifest</a> ·
+      <a href="/api/cases/${escapeAttr(c.id)}/evidence/package" target="_blank" rel="noreferrer">package summary</a>
+    </p>` : "";
   root.innerHTML = `
     <p class="section-hint">아래 증거는 사람이 외부 신고기관에 직접 제출할 때 참고·첨부할 수 있도록 정리됩니다. 자동 신고 기능은 제공되지 않습니다.</p>
     <div class="evidence-grid">
@@ -630,8 +634,34 @@ function renderEvidence(c) {
         </div>
       `).join("")}
     </div>
-    ${evidenceListLink}
+    <div id="evidencePackageSummary" class="muted" style="margin-top:8px;">증거 패키지 요약 로드 중...</div>
+    ${fileLinkRow}
   `;
+  if (c.id) loadEvidencePackageSummary(c.id);
+}
+
+async function loadEvidencePackageSummary(caseId) {
+  const root = document.getElementById("evidencePackageSummary");
+  if (!root) return;
+  try {
+    const res = await fetch(`/api/cases/${encodeURIComponent(caseId)}/evidence/package`);
+    if (!res.ok) { root.textContent = "패키지 요약을 가져오지 못했습니다."; return; }
+    const data = await res.json();
+    const s = data && data.evidencePackage;
+    if (!s || !s.exists) { root.textContent = "증거 패키지가 아직 없습니다."; return; }
+    const score = Number(s.completenessScore || 0);
+    const cls = score >= 80 ? "ok" : score >= 50 ? "warn" : "muted";
+    root.innerHTML = `
+      <span class="badge ${cls}">증거 완성도 ${score}/100</span>
+      <span style="margin-left:6px;">파일 ${s.fileCount}개 · ${Math.round((s.totalBytes || 0) / 1024)} KB</span>
+      <span class="muted" style="margin-left:6px;">
+        HTML ${s.hasHtml ? "✓" : "—"} · TEXT ${s.hasText ? "✓" : "—"} · PNG ${s.hasScreenshot ? "✓" : "—"} · PDF ${s.hasPdf ? "✓" : "—"} · metadata ${s.hasMetadata ? "✓" : "—"} · manifest ${s.hasManifest ? "✓" : "—"}
+      </span>
+      <div class="muted" style="margin-top:4px;font-size:12px;">${escapeHtml(s.safetyNotice || "")}</div>
+    `;
+  } catch (err) {
+    root.textContent = `패키지 요약 오류: ${err.message}`;
+  }
 }
 
 // ---------- Recent cases ----------

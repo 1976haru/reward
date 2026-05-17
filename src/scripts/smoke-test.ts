@@ -16,6 +16,7 @@ import {
 import { JsonCaseRepository, CaseTransitionError, CaseNotFoundError } from "../repositories/CaseRepository.js";
 import {
   ALLOWED_EVIDENCE_FILENAMES,
+  EVIDENCE_COMPLETENESS_WEIGHTS,
   EVIDENCE_FILES,
   EvidenceService,
   isAllowedEvidenceFileName,
@@ -205,7 +206,7 @@ check("isAllowedEvidenceFileName ok page.html", isAllowedEvidenceFileName("page.
 check("isAllowedEvidenceFileName ok manifest.json", isAllowedEvidenceFileName("manifest.json"));
 check("isAllowedEvidenceFileName rejects ../.env", !isAllowedEvidenceFileName("../.env"));
 check("isAllowedEvidenceFileName rejects unknown.xyz", !isAllowedEvidenceFileName("unknown.xyz"));
-check("ALLOWED_EVIDENCE_FILENAMES size 6", ALLOWED_EVIDENCE_FILENAMES.size === 6);
+check("ALLOWED_EVIDENCE_FILENAMES size 10 (6 표준 + 4 산출물 사본)", ALLOWED_EVIDENCE_FILENAMES.size === 10);
 
 // Hash / save / read in temp evidence dir
 const tempEvidRoot = await mkdtemp(path.join(tmpdir(), "reward-evidence-"));
@@ -621,6 +622,79 @@ check("mid score → REVIEW_NEEDED or HIGH_PRIORITY", ["REVIEW_NEEDED", "HIGH_PR
 const actions = recommendedActionsFor("VERY_HIGH_PRIORITY").join(" ");
 check("recommended actions exclude '신고하세요'", !/신고하세요/.test(actions));
 check("recommended actions exclude '포상금 가능성 높음'", !/포상금 가능성 높음/.test(actions));
+
+// 15) Evidence Package — saveJsonFile, summarizePackage, completeness score
+check("ALLOWED_EVIDENCE_FILENAMES includes new JSON files (10 total)", ALLOWED_EVIDENCE_FILENAMES.size === 10);
+check("extraction.json allowed", isAllowedEvidenceFileName("extraction.json"));
+check("rules.json allowed", isAllowedEvidenceFileName("rules.json"));
+check("analysis.json allowed", isAllowedEvidenceFileName("analysis.json"));
+check("scoring.json allowed", isAllowedEvidenceFileName("scoring.json"));
+check("package keyword NOT in allowlist", !isAllowedEvidenceFileName("package"));
+const weightSum =
+  EVIDENCE_COMPLETENESS_WEIGHTS.html +
+  EVIDENCE_COMPLETENESS_WEIGHTS.text +
+  EVIDENCE_COMPLETENESS_WEIGHTS.screenshot +
+  EVIDENCE_COMPLETENESS_WEIGHTS.pdf +
+  EVIDENCE_COMPLETENESS_WEIGHTS.metadata +
+  EVIDENCE_COMPLETENESS_WEIGHTS.manifest;
+check("completeness weights sum to 100", weightSum === 100, `sum=${weightSum}`);
+
+// 임시 디렉터리에 패키지 작성: HTML/TXT/metadata/manifest + extraction.json
+const pkgService = new EvidenceService();
+const pkgCaseId = "pkg_smoke_" + Math.random().toString(36).slice(2, 8);
+try {
+  // saveHtml/saveText/saveMetadata 직접 사용
+  await pkgService.saveHtml(pkgCaseId, "<html><body>hello</body></html>");
+  await pkgService.saveText(pkgCaseId, "hello");
+  await pkgService.saveMetadata(pkgCaseId, { caseId: pkgCaseId, sourceUrl: "https://example.test/" });
+  // manifest를 직접 한번 작성 (buildEvidence 없이 단순 테스트)
+  const htmlEntry = await pkgService["describeFile"](pkgCaseId, EVIDENCE_FILES.html);
+  const textEntry = await pkgService["describeFile"](pkgCaseId, EVIDENCE_FILES.text);
+  const metaEntry = await pkgService["describeFile"](pkgCaseId, EVIDENCE_FILES.metadata);
+  await pkgService.writeManifest(pkgCaseId, {
+    schemaVersion: "1.0.0",
+    caseId: pkgCaseId,
+    sourceUrl: "https://example.test/",
+    pageTitle: "smoke",
+    fetchedAt: new Date().toISOString(),
+    capturedAt: new Date().toISOString(),
+    captureStatus: { html: "ok", text: "ok", screenshot: "skipped", pdf: "skipped" },
+    files: [htmlEntry, textEntry, metaEntry],
+    safety: {
+      automaticReportSubmission: false,
+      publicSourceOnly: true,
+      humanReviewRequired: true,
+      note: "smoke"
+    }
+  });
+
+  // 산출물 JSON 첨부
+  const extractionFile = await pkgService.saveJsonFile(pkgCaseId, "extraction.json", { productName: "x" });
+  check("saveJsonFile writes extraction.json", extractionFile.name === "extraction.json" && extractionFile.size > 0);
+
+  // saveJsonFile은 .json 외 거부
+  let nonJsonCaught = false;
+  try { await pkgService.saveJsonFile(pkgCaseId, "page.html" as any, { x: 1 }); } catch { nonJsonCaught = true; }
+  check("saveJsonFile rejects non-json filename", nonJsonCaught);
+
+  const summary = await pkgService.summarizePackage(pkgCaseId);
+  check("summarizePackage exists=true", summary.exists);
+  check("hasHtml/hasText/hasMetadata", summary.hasHtml && summary.hasText && summary.hasMetadata);
+  check("hasManifest", summary.hasManifest);
+  check("hasScreenshot/hasPdf false", !summary.hasScreenshot && !summary.hasPdf);
+  // 점수: html 15 + text 15 + metadata 10 + manifest 10 = 50
+  check("completenessScore == 50", summary.completenessScore === 50, `score=${summary.completenessScore}`);
+  check("0 <= completenessScore <= 100", summary.completenessScore >= 0 && summary.completenessScore <= 100);
+  check("autoReport=false / humanReviewRequired=true", summary.autoReport === false && summary.humanReviewRequired === true);
+  check("safetyNotice includes 자동 신고", /자동\s*신고/.test(summary.safetyNotice));
+} finally {
+  const { rm: rmFn } = await import("node:fs/promises");
+  try { await rmFn(pkgService.getCaseDir(pkgCaseId), { recursive: true, force: true }); } catch { /* ignore */ }
+}
+
+// 미존재 case는 exists=false
+const missing = await pkgService.summarizePackage("nope_does_not_exist_" + Math.random().toString(36).slice(2, 6));
+check("missing package → exists=false, score 0", missing.exists === false && missing.completenessScore === 0);
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

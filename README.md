@@ -140,6 +140,22 @@ OrchestratorAgent는 `TextExtractor`의 `claimCandidates → reviewCandidates �
 
 자세한 명세는 [`docs/candidate_discovery.md`](./docs/candidate_discovery.md)를 참고하세요.
 
+## Evidence Package
+
+분석된 신고 후보 Case에 대해 원본 페이지가 삭제·수정되더라도 사람이 검토할 수 있도록 **증거 패키지**를 저장합니다.
+
+- 저장 위치: `data/evidence/{caseId}/`
+- 표준 파일: `page.html`, `page.txt`, `screenshot.png`, `page.pdf`, `metadata.json`, `manifest.json`
+- 선택 산출물: `extraction.json`, `rules.json`, `analysis.json`, `scoring.json`
+- 모든 파일에 SHA-256 해시 + manifest 기록
+- **증거 완성도 점수** (0~100): HTML(15) + TEXT(15) + Screenshot(25) + PDF(25) + Metadata(10) + Manifest(10) — 법 위반 점수가 아닌 패키지 충실도 표시
+- API: `GET /api/cases/:id/evidence/package`, `POST /api/cases/:id/evidence/package`, 그 외 기존 evidence 라우트
+- `GET /api/cases/:id` 응답에 `evidencePackage` 요약 자동 포함
+
+증거 파일은 **로컬 산출물이며 Git에 커밋되지 않습니다.** 자동 신고는 수행하지 않으며, 사람이 외부 신고기관에 직접 제출할 때 참고·첨부할 수 있도록 보존됩니다.
+
+자세한 명세는 [`docs/evidence_package.md`](./docs/evidence_package.md) 참고.
+
 ## Evidence Storage
 
 Evidence files are stored per case under:
