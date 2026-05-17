@@ -14,7 +14,6 @@ import {
   ListCasesQuerySchema,
   PatchCaseSchema,
   PatchStatusSchema,
-  requiresManualSubmissionConfirmation,
   ALLOWED_TRANSITIONS,
   isHttpUrl
 } from "../utils/validation.js";
@@ -32,6 +31,7 @@ import {
   isSafeCaseId as isSafeCaseIdReport
 } from "../services/ReportService.js";
 import { ALLOWED_REPORT_FILENAMES } from "../types/report.js";
+import { requireManualSubmissionConfirmation, SUBMITTED_RESPONSE_MESSAGE } from "../policy/approvalGate.js";
 
 const repo: ICaseRepository = createCaseRepository();
 const evidence = new EvidenceService();
@@ -168,10 +168,11 @@ casesRouter.patch("/:id/status", async (req, res) => {
   try {
     const input = PatchStatusSchema.parse(req.body);
 
-    if (requiresManualSubmissionConfirmation(input)) {
+    const gate = requireManualSubmissionConfirmation(input);
+    if (!gate.ok) {
       return res.status(400).json(errorBody(
-        "MANUAL_SUBMISSION_CONFIRMATION_REQUIRED",
-        "SUBMITTED 상태로 변경하려면 confirmManualSubmission=true 또는 사람이 직접 제출했다는 메모(note)가 필요합니다. 이 도구는 외부 신고를 자동 제출하지 않습니다."
+        gate.code === "REVIEWER_REQUIRED" ? "MANUAL_SUBMISSION_REVIEWER_REQUIRED" : "MANUAL_SUBMISSION_CONFIRMATION_REQUIRED",
+        gate.message
       ));
     }
 
@@ -183,7 +184,9 @@ casesRouter.patch("/:id/status", async (req, res) => {
     res.json({
       ok: true,
       case: updated,
-      message: "상태가 변경되었습니다. 이 변경은 내부 기록이며 자동 신고 제출이 아닙니다.",
+      message: input.status === "SUBMITTED"
+        ? SUBMITTED_RESPONSE_MESSAGE
+        : "상태가 변경되었습니다. 이 변경은 내부 기록이며 자동 신고 제출이 아닙니다.",
       humanReviewRequired: true,
       autoReport: false
     });

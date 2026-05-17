@@ -9,9 +9,9 @@ import {
 import { CASE_STATUSES, type CaseStatus } from "../types/core.js";
 import {
   ALLOWED_TRANSITIONS,
-  LIMITS,
-  requiresManualSubmissionConfirmation
+  LIMITS
 } from "../utils/validation.js";
+import { requireManualSubmissionConfirmation, SUBMITTED_RESPONSE_MESSAGE } from "../policy/approvalGate.js";
 import { EvidenceService, isSafeCaseId } from "../services/EvidenceService.js";
 import { ReportService } from "../services/ReportService.js";
 import {
@@ -215,10 +215,11 @@ reviewRouter.patch("/queue/:caseId/status", async (req, res) => {
   try {
     const input = PatchStatusSchema.parse(req.body);
 
-    if (requiresManualSubmissionConfirmation(input)) {
+    const gate = requireManualSubmissionConfirmation(input);
+    if (!gate.ok) {
       return res.status(400).json(errorBody(
-        "MANUAL_SUBMISSION_CONFIRMATION_REQUIRED",
-        "SUBMITTED 상태로 변경하려면 confirmManualSubmission=true 또는 사람이 직접 제출했다는 메모(note)가 필요합니다. 이 도구는 외부 신고를 자동 제출하지 않습니다."
+        gate.code === "REVIEWER_REQUIRED" ? "MANUAL_SUBMISSION_REVIEWER_REQUIRED" : "MANUAL_SUBMISSION_CONFIRMATION_REQUIRED",
+        gate.message
       ));
     }
 
@@ -243,7 +244,9 @@ reviewRouter.patch("/queue/:caseId/status", async (req, res) => {
       ok: true,
       case: updated,
       log,
-      message: "상태가 변경되었습니다. 외부 신고 자동 제출은 수행되지 않았습니다.",
+      message: input.status === "SUBMITTED"
+        ? SUBMITTED_RESPONSE_MESSAGE
+        : "상태가 변경되었습니다. 외부 신고 자동 제출은 수행되지 않았습니다.",
       safetyNotice: SAFETY_NOTICE,
       autoReport: false,
       humanReviewRequired: true

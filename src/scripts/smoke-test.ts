@@ -40,6 +40,14 @@ import {
 import { ReportService, sanitizeReportText, isAllowedReportFileName, isSafeCaseId as isSafeCaseIdReport } from "../services/ReportService.js";
 import { ALLOWED_REPORT_FILENAMES } from "../types/report.js";
 import {
+  approvalGatePolicy,
+  canAutoSubmit,
+  assertNoAutoSubmission,
+  AutomaticSubmissionBlockedError,
+  getOfficialReportingLinks,
+  requireManualSubmissionConfirmation
+} from "../policy/approvalGate.js";
+import {
   loadFalseAdKeywordsSync,
   validateKeywordConfig,
   getKeywordConfigSummary
@@ -811,6 +819,41 @@ try {
   const { rm: rmFn } = await import("node:fs/promises");
   try { await rmFn(reportSvc.getReportDir(rptCaseId), { recursive: true, force: true }); } catch { /* ignore */ }
 }
+
+// 17) Approval Gate — 13 tests
+check("policy.automaticSubmissionAllowed === false", approvalGatePolicy.automaticSubmissionAllowed === false);
+check("canAutoSubmit() === false", canAutoSubmit() === false);
+check("prohibitedActions includes auto_submit_report", approvalGatePolicy.prohibitedActions.includes("auto_submit_report"));
+check("allowedActions includes copy_report_draft", approvalGatePolicy.allowedActions.includes("copy_report_draft"));
+check("allowedActions includes open_official_reporting_link", approvalGatePolicy.allowedActions.includes("open_official_reporting_link"));
+check("requiredSubmittedConfirmation === true", approvalGatePolicy.requiredSubmittedConfirmation === true);
+
+const links = getOfficialReportingLinks("false_ad");
+check("officialLinks(false_ad) has 식약처", links.some((l) => l.agencyId === "mfds"));
+check("officialLinks(false_ad) has 국민신문고", links.some((l) => l.agencyId === "epeople"));
+
+// assertNoAutoSubmission은 항상 throw
+let blocked = false;
+try { assertNoAutoSubmission("test_attempt"); } catch (e) {
+  blocked = e instanceof AutomaticSubmissionBlockedError;
+}
+check("assertNoAutoSubmission always throws", blocked);
+
+// SUBMITTED 가드: confirm 없으면 실패
+const g1 = requireManualSubmissionConfirmation({ status: "SUBMITTED" });
+check("requireManualSubmissionConfirmation rejects without confirm", g1.ok === false && (g1 as any).code === "CONFIRMATION_REQUIRED");
+
+// confirm 있어도 reviewerName 없으면 실패
+const g2 = requireManualSubmissionConfirmation({ status: "SUBMITTED", confirmManualSubmission: true });
+check("requireManualSubmissionConfirmation rejects without reviewerName", g2.ok === false && (g2 as any).code === "REVIEWER_REQUIRED");
+
+// 정상 통과
+const g3 = requireManualSubmissionConfirmation({ status: "SUBMITTED", confirmManualSubmission: true, reviewerName: "tester" });
+check("requireManualSubmissionConfirmation accepts full input", g3.ok === true);
+
+// SUBMITTED 외 상태는 통과
+const g4 = requireManualSubmissionConfirmation({ status: "REVIEW" });
+check("requireManualSubmissionConfirmation passes non-SUBMITTED", g4.ok === true);
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

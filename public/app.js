@@ -978,6 +978,10 @@ function renderQueueDetail(d) {
       <a href="/api/cases/${escapeAttr(c.id)}/report/report.docx" target="_blank" rel="noreferrer">DOCX</a>
     </p>
 
+    <h4 style="margin:10px 0 4px;">공식 신고처 열기 (외부 링크)</h4>
+    <div id="queueOfficialLinks" class="muted">불러오는 중...</div>
+    <p class="muted" style="font-size:12px;margin:4px 0;">아래 링크는 단순 외부 링크입니다. 시스템은 자동 입력·자동 로그인·자동 제출을 수행하지 않습니다. 사용자가 공식 양식에 따라 직접 제출해야 합니다.</p>
+
     <h4 style="margin:10px 0 4px;">상태 변경</h4>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">${transitionBtns || '<span class="muted">전이 가능한 상태가 없습니다.</span>'}</div>
 
@@ -992,6 +996,35 @@ function renderQueueDetail(d) {
     <h4 style="margin:10px 0 4px;">최근 로그</h4>
     <ul style="font-size:12.5px;">${logs || "<li class='muted'>로그 없음</li>"}</ul>
   `;
+  loadApprovalGateLinks(c.moduleId);
+}
+
+async function loadApprovalGateLinks(moduleId) {
+  const root = document.getElementById("queueOfficialLinks");
+  if (!root) return;
+  try {
+    const res = await fetch(`/api/policy/approval-gate?moduleId=${encodeURIComponent(moduleId || "false_ad")}`);
+    const data = await res.json();
+    if (!data.ok || !Array.isArray(data.officialLinks)) {
+      root.textContent = "공식 링크를 불러오지 못했습니다.";
+      return;
+    }
+    if (data.officialLinks.length === 0) {
+      root.textContent = "공식 링크 데이터가 등록되어 있지 않습니다.";
+      return;
+    }
+    root.innerHTML = data.officialLinks.map((l) => `
+      <div class="evi-item" style="border-left:4px solid #2563eb;margin-bottom:4px;">
+        <div class="label">${escapeHtml(l.agencyName)}</div>
+        <div class="value">
+          <a href="${escapeAttr(l.url)}" target="_blank" rel="noreferrer noopener">${escapeHtml(l.label)} →</a>
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:4px;">${escapeHtml(l.caution)}</div>
+      </div>
+    `).join("");
+  } catch (err) {
+    root.textContent = "공식 링크 fetch 실패: " + err.message;
+  }
 }
 
 async function onQueueStatusButton(btn) {

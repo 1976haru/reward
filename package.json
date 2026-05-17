@@ -10,6 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "test": "tsx src/scripts/smoke-test.ts",
     "check": "npm run build && npm run test",
+    "check:policy": "node scripts/check-approval-gate.js",
     "playwright:install": "playwright install chromium"
   },
   "dependencies": {

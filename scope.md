@@ -101,7 +101,30 @@ AI 판단 한계
 - 새 모듈도 사람 검토 흐름(Draft → Review → Approved → Submitted/Rejected)을 따른다.
 - 새 모듈은 본 scope.md의 Allowed Use와 Prohibited Use를 동일하게 준수한다.
 
-## 9. Responsible Use
+## 9. Approval Gate (자동 제출 차단)
+
+시스템은 외부 신고기관에 신고를 **자동 제출하지 않는다.** 시스템이 제공하는 동작은 다음 5가지뿐이다.
+
+- 신고서 초안 복사 (`copy_report_draft`)
+- 신고서 초안 다운로드 (`download_report_draft`, Markdown/Text/DOCX)
+- 공식 신고처 링크 열기 (`open_official_reporting_link`, 단순 외부 링크)
+- 사용자가 외부 창구에 직접 제출한 사실을 내부 기록으로 표시 (`mark_as_submitted_manually`)
+- 사람 검토 메모 추가 (`add_review_note`)
+
+다음 동작은 어떤 경우에도 수행하지 않는다.
+
+- 외부 신고기관 자동 제출 (`auto_submit_report`)
+- 신고기관 자동 로그인 (`auto_login_agency`)
+- 공식 양식 자동 입력 (`agency_form_autofill`)
+- 포상금 자동 신청 (`reward_claim_automation`)
+- 사람 검토를 우회한 상태 변경 (`bypass_human_review`)
+- 접근권한 우회 (`circumvent_access_control`)
+
+`SUBMITTED` 상태는 시스템이 외부에 보낸 행위가 아니라, **사용자가 외부 공식 창구에 직접 제출한 사실을 내부 기록으로 표시**하는 상태다. 이 상태로의 전이는 `confirmManualSubmission=true`와 `reviewerName` 기록을 요구한다.
+
+자세한 정책은 [`docs/approval_gate.md`](./docs/approval_gate.md), 정책 데이터는 `src/policy/approvalGate.ts` 및 `GET /api/policy/approval-gate`에서 확인할 수 있다.
+
+## 10. Responsible Use
 
 이 도구를 사용하는 사람은 다음을 약속한다.
 

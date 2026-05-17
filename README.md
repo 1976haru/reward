@@ -140,6 +140,29 @@ OrchestratorAgent는 `TextExtractor`의 `claimCandidates → reviewCandidates �
 
 자세한 명세는 [`docs/candidate_discovery.md`](./docs/candidate_discovery.md)를 참고하세요.
 
+## Approval Gate
+
+This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:
+
+- copy report draft
+- download report draft (Markdown / Plain Text / DOCX)
+- open official reporting links (simple external links, no autofill / no auto-login)
+- manually mark a Case as `SUBMITTED` after the user has submitted outside the system
+- add review notes
+
+Not allowed (blocked by code, UI, and policy):
+
+- automatic submission to external agencies
+- automatic login / form autofill
+- reward claim automation
+- bypassing human review
+
+`SUBMITTED` is **only an internal record** of manual external submission by the user. Transition requires `confirmManualSubmission: true` and `reviewerName`.
+
+API: `GET /api/policy/approval-gate` exposes the policy + official reporting links. Static safety check: `npm run check:policy`.
+
+See [`docs/approval_gate.md`](./docs/approval_gate.md) and [`scope.md` §9](./scope.md) for the full policy.
+
 ## Human Review Queue
 
 AI가 찾은 신고 후보 Case를 사람이 검토·승인·보류·신고초안·제출(내부 기록)·결과확인·폐기 단계로 관리하는 대기열입니다.
