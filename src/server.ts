@@ -12,6 +12,7 @@ import { extractRouter } from "./routes/extract.js";
 import { rulesRouter, detectRouter } from "./routes/rules.js";
 import { analyzeRouter } from "./routes/analyze.js";
 import { scoreRouter } from "./routes/score.js";
+import { reviewRouter } from "./routes/review.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -129,6 +130,9 @@ app.use("/api/analyze", analyzeRouter);
 
 // Scoring Agent — 신고 후보 우선순위 점수 (0..100)
 app.use("/api/score", scoreRouter);
+
+// Human Review Queue — 사람 검토 대기열 (자동 신고 아님)
+app.use("/api/review", reviewRouter);
 
 app.listen(config.port, () => {
   console.log(`Reward Agent MVP running at http://localhost:${config.port}`);

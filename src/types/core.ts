@@ -1,7 +1,12 @@
 export type ModuleId = string;
 
-// 새 Case 상태 (체크리스트 7 표준)
-export const CASE_STATUSES = ["DRAFT", "REVIEW", "APPROVED", "SUBMITTED", "REJECTED"] as const;
+// Case 상태 (체크리스트 16 확장: 8단계 사람 검토 흐름)
+// DRAFT(신규) → REVIEW(검토중) → APPROVED(승인) → REPORT_DRAFT(신고초안) → SUBMITTED(제출=내부 기록) → OUTCOME_CHECK(결과확인) → REJECTED(폐기)
+// 보류: REVIEW ↔ HOLD
+// SUBMITTED는 사용자가 외부 공식 창구에 직접 제출한 사실을 기록하는 내부 상태이며, 시스템이 자동 제출하지 않는다.
+export const CASE_STATUSES = [
+  "DRAFT", "REVIEW", "HOLD", "APPROVED", "REPORT_DRAFT", "SUBMITTED", "OUTCOME_CHECK", "REJECTED"
+] as const;
 export type CaseStatus = typeof CASE_STATUSES[number];
 
 // 사람 검토 결정 코드

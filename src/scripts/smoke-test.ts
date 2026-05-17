@@ -112,7 +112,15 @@ check("transition REVIEW→SUBMITTED denied", !isAllowedTransition("REVIEW", "SU
 check("transition APPROVED→SUBMITTED allowed", isAllowedTransition("APPROVED", "SUBMITTED"));
 check("transition SUBMITTED→REVIEW allowed", isAllowedTransition("SUBMITTED", "REVIEW"));
 check("transition SUBMITTED→DRAFT denied", !isAllowedTransition("SUBMITTED", "DRAFT"));
-check("ALLOWED_TRANSITIONS map size 5", Object.keys(ALLOWED_TRANSITIONS).length === 5);
+check("ALLOWED_TRANSITIONS map size 8 (체크리스트 16 확장)", Object.keys(ALLOWED_TRANSITIONS).length === 8);
+check("transition REVIEW→HOLD allowed", isAllowedTransition("REVIEW", "HOLD"));
+check("transition HOLD→REVIEW allowed", isAllowedTransition("HOLD", "REVIEW"));
+check("transition APPROVED→REPORT_DRAFT allowed", isAllowedTransition("APPROVED", "REPORT_DRAFT"));
+check("transition REPORT_DRAFT→SUBMITTED allowed", isAllowedTransition("REPORT_DRAFT", "SUBMITTED"));
+check("transition SUBMITTED→OUTCOME_CHECK allowed", isAllowedTransition("SUBMITTED", "OUTCOME_CHECK"));
+check("transition OUTCOME_CHECK→REJECTED allowed", isAllowedTransition("OUTCOME_CHECK", "REJECTED"));
+check("transition DRAFT→OUTCOME_CHECK denied", !isAllowedTransition("DRAFT", "OUTCOME_CHECK"));
+check("transition REVIEW→SUBMITTED still denied", !isAllowedTransition("REVIEW", "SUBMITTED"));
 
 // 7) zod schema
 const validCreate = CreateCaseSchema.safeParse({

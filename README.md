@@ -140,6 +140,27 @@ OrchestratorAgent는 `TextExtractor`의 `claimCandidates → reviewCandidates �
 
 자세한 명세는 [`docs/candidate_discovery.md`](./docs/candidate_discovery.md)를 참고하세요.
 
+## Human Review Queue
+
+AI가 찾은 신고 후보 Case를 사람이 검토·승인·보류·신고초안·제출(내부 기록)·결과확인·폐기 단계로 관리하는 대기열입니다.
+
+Statuses:
+
+- `DRAFT` 신규 / `REVIEW` 검토중 / `HOLD` 보류 / `APPROVED` 승인
+- `REPORT_DRAFT` 신고초안 / `SUBMITTED` 제출(내부 기록) / `OUTCOME_CHECK` 결과확인 / `REJECTED` 폐기
+
+> `SUBMITTED`는 사용자가 외부 공식 창구에 **직접 제출한 사실을 내부 기록**으로 표시할 뿐입니다. **시스템은 외부 신고기관에 자동 제출하지 않습니다.**
+
+API:
+
+- `GET /api/review/queue` (필터/카운트/정렬/페이지)
+- `GET /api/review/queue/:caseId` (상세 + evidence + report 요약 + 로그)
+- `PATCH /api/review/queue/:caseId/status` (상태 변경 — SUBMITTED는 `confirmManualSubmission` 필수)
+- `POST /api/review/queue/:caseId/note` (검토 메모)
+- `GET /api/review/queue/:caseId/logs` (상태/메모 통합 로그)
+
+자세한 명세는 [`docs/human_review_queue.md`](./docs/human_review_queue.md) 참고.
+
 ## Report Draft
 
 사람이 검토·수정해 공식 신고 창구에 직접 제출할 수 있는 **신고서 초안**을 생성합니다. **자동 신고는 수행하지 않습니다.**

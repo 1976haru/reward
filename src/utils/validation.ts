@@ -20,12 +20,16 @@ export const LIMITS = {
 
 // 사람 검토 흐름 — 허용된 상태 전이만 진행한다.
 // 자동 신고 흐름 자체가 없으므로 SUBMITTED는 "사용자가 직접 제출 후 수동 기록" 의미만 가진다.
+// 체크리스트 16 확장: HOLD/REPORT_DRAFT/OUTCOME_CHECK 신규 상태 + 체크리스트 7 전이 호환.
 export const ALLOWED_TRANSITIONS: Record<CaseStatus, CaseStatus[]> = {
-  DRAFT: ["REVIEW", "REJECTED"],
-  REVIEW: ["APPROVED", "REJECTED"],
-  APPROVED: ["SUBMITTED", "REJECTED"],
-  SUBMITTED: ["REVIEW"],
-  REJECTED: ["REVIEW"]
+  DRAFT:         ["REVIEW", "REJECTED"],
+  REVIEW:        ["APPROVED", "HOLD", "REJECTED"],
+  HOLD:          ["REVIEW", "REJECTED"],
+  APPROVED:      ["REPORT_DRAFT", "SUBMITTED", "REJECTED"], // SUBMITTED는 체크리스트 7 호환을 위해 유지
+  REPORT_DRAFT:  ["SUBMITTED", "APPROVED", "REJECTED"],
+  SUBMITTED:     ["OUTCOME_CHECK", "REVIEW"],               // REVIEW는 잘못 기록 복원
+  OUTCOME_CHECK: ["REJECTED", "REVIEW"],
+  REJECTED:      ["REVIEW"]
 };
 
 export function isAllowedTransition(from: CaseStatus, to: CaseStatus): boolean {

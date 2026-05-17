@@ -94,27 +94,33 @@ const PROCESS_STEPS = [
   { key: "review", label: "사람검토" }
 ];
 
-// 신 enum (DRAFT/REVIEW/...)과 레거시 enum 모두 처리한다.
+// 신 enum (8개) + 레거시 lowercase 호환 + 한국어 표시명
 const STATUS_LABEL = {
-  DRAFT: "Draft",
-  REVIEW: "Review",
-  APPROVED: "Approved",
-  SUBMITTED: "Submitted",
-  REJECTED: "Rejected",
+  DRAFT: "신규",
+  REVIEW: "검토중",
+  HOLD: "보류",
+  APPROVED: "승인",
+  REPORT_DRAFT: "신고초안",
+  SUBMITTED: "제출(내부 기록)",
+  OUTCOME_CHECK: "결과확인",
+  REJECTED: "폐기",
   // 레거시
-  draft: "Draft",
-  needs_review: "Review",
-  ready_to_report: "Approved",
-  reported: "Submitted",
-  rejected: "Rejected",
-  archived: "Rejected"
+  draft: "신규",
+  needs_review: "검토중",
+  ready_to_report: "승인",
+  reported: "제출(내부 기록)",
+  rejected: "폐기",
+  archived: "폐기"
 };
 
 const STATUS_BADGE = {
   DRAFT: "muted",
   REVIEW: "warn",
+  HOLD: "warn",
   APPROVED: "ok",
+  REPORT_DRAFT: "ok",
   SUBMITTED: "ok",
+  OUTCOME_CHECK: "ok",
   REJECTED: "danger",
   // 레거시
   draft: "muted",
@@ -125,13 +131,23 @@ const STATUS_BADGE = {
   archived: "muted"
 };
 
+const QUEUE_STATUSES = ["DRAFT", "REVIEW", "HOLD", "APPROVED", "REPORT_DRAFT", "SUBMITTED", "OUTCOME_CHECK", "REJECTED"];
+
 const state = {
   selectedModuleId: "false_ad",
   cases: [],
   topics: [],
   selectedTopicIds: new Set(),
-  candidates: []
+  candidates: [],
+  queue: { items: [], summary: null, statusFilter: "ALL", sort: "priority" },
+  queueDetail: null
 };
+
+const LS_KEYS = { queueTab: "rewardAgent.queueTab", queueSort: "rewardAgent.queueSort" };
+function readLS(key, fallback) {
+  try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
+}
+function writeLS(key, val) { try { localStorage.setItem(key, val); } catch { /* ignore */ } }
 
 // ---------- Boot ----------
 document.addEventListener("DOMContentLoaded", async () => {
@@ -142,9 +158,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindForm();
   bindModal();
   bindDiscovery();
+  bindQueue();
+  state.queue.statusFilter = readLS(LS_KEYS.queueTab, "ALL") || "ALL";
+  state.queue.sort = readLS(LS_KEYS.queueSort, "priority") || "priority";
   await loadTopics();
   await loadCandidates();
-  loadCases();
+  await loadQueue();
 });
 
 // /api/modules에서 받은 ModuleDefinition을 UI MODULES 형태로 변환
@@ -305,7 +324,7 @@ function bindForm() {
       renderProcess("done");
       renderResult(data);
       renderEvidence(data);
-      await loadCases();
+      await loadQueue();
     } catch (err) {
       stepTimers.forEach(clearTimeout);
       renderProcess("pending");
@@ -744,53 +763,299 @@ async function loadEvidencePackageSummary(caseId) {
   }
 }
 
-// ---------- Recent cases ----------
-async function loadCases() {
-  const root = document.getElementById("caseList");
-  try {
-    const res = await fetch("/api/cases");
-    const payload = await res.json();
-    // 신 API는 {ok, cases, page}, 레거시는 RewardCase[] — 둘 다 처리
-    const cases = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.cases) ? payload.cases : []);
-    state.cases = cases;
-    if (!cases.length) {
-      root.innerHTML = '<p class="muted">저장된 케이스가 없습니다. 위에서 URL을 입력해 첫 분석을 실행해 보세요.</p>';
-      return;
+// ---------- Human Review Queue ----------
+function bindQueue() {
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.matches("[data-queue-tab]")) {
+      e.preventDefault();
+      state.queue.statusFilter = t.getAttribute("data-queue-tab");
+      writeLS(LS_KEYS.queueTab, state.queue.statusFilter);
+      loadQueue();
     }
-    root.innerHTML = cases.slice(0, 10).map((c) => {
-      const mod = MODULES.find((m) => m.id === c.moduleId);
-      const grade = gradeFromScore(c.riskScore ?? c.score);
-      const statusKey = c.status || "DRAFT";
-      return `
-        <div class="case">
-          <div>
-            <div class="title">${escapeHtml(c.title || c.url)}</div>
-            <div class="meta">
-              ${escapeHtml(mod ? mod.name : c.moduleId)} ·
-              신고처: ${escapeHtml(c.aiFinding && c.aiFinding.recommendedAgency || (mod && mod.agency) || "—")} ·
-              ${escapeHtml(c.createdAt)}
-            </div>
-          </div>
-          <div class="badges">
-            <span class="badge ${grade.cls.replace("grade-", "")}">위험도 ${c.riskScore ?? c.score ?? 0}</span>
-            <span class="badge ${STATUS_BADGE[statusKey] || "muted"}">${escapeHtml(STATUS_LABEL[statusKey] || statusKey)}</span>
-            <button class="ghost" data-id="${escapeAttr(c.id)}">상세보기</button>
-          </div>
-        </div>
-      `;
-    }).join("");
+    if (t.matches("[data-queue-sort]")) {
+      e.preventDefault();
+      state.queue.sort = t.getAttribute("data-queue-sort");
+      writeLS(LS_KEYS.queueSort, state.queue.sort);
+      loadQueue();
+    }
+    if (t.matches("[data-queue-open]")) {
+      e.preventDefault();
+      openQueueDetail(t.getAttribute("data-queue-open"));
+    }
+    if (t.matches("[data-queue-close]")) {
+      e.preventDefault();
+      const m = document.getElementById("queueDetailModal");
+      if (m) m.classList.remove("open");
+      state.queueDetail = null;
+    }
+    if (t.matches("[data-queue-status]")) {
+      e.preventDefault();
+      onQueueStatusButton(t);
+    }
+    if (t.id === "queueNoteSaveBtn") {
+      e.preventDefault();
+      onQueueNoteSave();
+    }
+  });
+}
 
-    root.querySelectorAll("button.ghost[data-id]").forEach((btn) => {
-      btn.addEventListener("click", () => showCaseDetail(btn.getAttribute("data-id")));
-    });
+async function loadQueue() {
+  const root = document.getElementById("caseList");
+  if (!root) return;
+  const filter = state.queue.statusFilter || "ALL";
+  const sort = state.queue.sort || "priority";
+  const qs = new URLSearchParams({ sort });
+  if (filter && filter !== "ALL") qs.set("status", filter);
+  qs.set("limit", "50");
+  try {
+    const res = await fetch(`/api/review/queue?${qs.toString()}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "queue fetch failed");
+    state.queue.items = data.items || [];
+    state.queue.summary = data.summary;
+    state.cases = state.queue.items; // 기존 코드 호환 (showCaseDetail 등에서 참조)
+    renderQueue(root);
   } catch (err) {
     root.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;
   }
 }
 
+function renderQueue(root) {
+  const counts = (state.queue.summary && state.queue.summary.counts) || {};
+  const filter = state.queue.statusFilter || "ALL";
+  const items = state.queue.items || [];
+
+  const countsHtml = QUEUE_STATUSES.map((s) => `
+    <div class="evi-item" style="text-align:center;padding:8px 10px;">
+      <div class="label" style="font-size:11px;">${escapeHtml(STATUS_LABEL[s] || s)}</div>
+      <div class="value" style="font-size:18px;">${counts[s] || 0}</div>
+    </div>
+  `).join("");
+
+  const tabs = ["ALL", ...QUEUE_STATUSES].map((s) => {
+    const active = s === filter;
+    const label = s === "ALL" ? "전체" : (STATUS_LABEL[s] || s);
+    const c = s === "ALL" ? (state.queue.summary?.total ?? 0) : (counts[s] || 0);
+    return `<button class="badge ${active ? 'ok' : 'muted'}" type="button" data-queue-tab="${escapeAttr(s)}" style="border:0;cursor:pointer;padding:6px 10px;font-weight:700;">${escapeHtml(label)} ${c}</button>`;
+  }).join(" ");
+
+  const sortBtns = `
+    <button class="badge ${state.queue.sort === 'priority' ? 'ok' : 'muted'}" type="button" data-queue-sort="priority" style="border:0;cursor:pointer;padding:6px 10px;font-weight:700;">우선순위↓</button>
+    <button class="badge ${state.queue.sort === 'recent' ? 'ok' : 'muted'}" type="button" data-queue-sort="recent" style="border:0;cursor:pointer;padding:6px 10px;font-weight:700;">최신순</button>
+  `;
+
+  const cardsHtml = items.length === 0
+    ? '<p class="muted" style="margin-top:10px;">조건에 맞는 Case가 없습니다. 위에서 후보 발굴 또는 수동 URL 분석을 실행해 보세요.</p>'
+    : items.map((c) => {
+        const mod = MODULES.find((m) => m.id === c.moduleId);
+        const grade = gradeFromScore(c.priorityScore || 0);
+        const statusKey = c.status || "DRAFT";
+        return `
+          <div class="case">
+            <div>
+              <div class="title">${escapeHtml(c.title || c.url || c.id)}</div>
+              <div class="meta">
+                ${escapeHtml(mod ? mod.name : c.moduleId)} ·
+                신고처: ${escapeHtml(c.agencyCandidate || (mod && mod.agency) || "—")} ·
+                ${escapeHtml(c.createdAt)} ·
+                ${c.hasEvidencePackage ? "증거 ✓" : "증거 —"} · ${c.hasReportDraft ? "신고서 ✓" : "신고서 —"}
+              </div>
+            </div>
+            <div class="badges">
+              <span class="badge ${grade.cls.replace('grade-', '')}">우선순위 ${c.priorityScore ?? 0}</span>
+              <span class="badge ${STATUS_BADGE[statusKey] || 'muted'}">${escapeHtml(STATUS_LABEL[statusKey] || statusKey)}</span>
+              <button class="ghost" type="button" data-queue-open="${escapeAttr(c.id)}">상세보기</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+  root.innerHTML = `
+    <p class="muted" style="margin-bottom:8px;">⚠ 이 시스템은 자동 신고를 수행하지 않습니다. SUBMITTED 상태는 외부에 사람이 직접 제출한 사실을 내부에 기록하는 표시일 뿐입니다.</p>
+    <h4 style="margin:6px 0;">상태별 현황</h4>
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));">${countsHtml}</div>
+    <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">${tabs}</div>
+    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">${sortBtns}</div>
+    <div style="margin-top:10px;">${cardsHtml}</div>
+    ${renderQueueDetailModal()}
+  `;
+}
+
+function renderQueueDetailModal() {
+  return `
+    <div class="modal-backdrop" id="queueDetailModal">
+      <div class="modal" style="max-width:780px;width:100%;max-height:90vh;overflow:auto;">
+        <h3 id="queueDetailTitle">Case 상세</h3>
+        <p class="muted" id="queueDetailSafety">⚠ 이 시스템은 자동 신고를 수행하지 않습니다.</p>
+        <div id="queueDetailBody"><p class="muted">불러오는 중...</p></div>
+        <div class="actions">
+          <button class="ghost" type="button" data-queue-close="1">닫기</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function openQueueDetail(caseId) {
+  if (!caseId) return;
+  const m = document.getElementById("queueDetailModal");
+  if (m) m.classList.add("open");
+  const body = document.getElementById("queueDetailBody");
+  if (body) body.innerHTML = '<p class="muted">불러오는 중...</p>';
+  try {
+    const res = await fetch(`/api/review/queue/${encodeURIComponent(caseId)}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "detail fetch failed");
+    state.queueDetail = data;
+    renderQueueDetail(data);
+  } catch (err) {
+    if (body) body.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderQueueDetail(d) {
+  const c = d.case;
+  if (!c) return;
+  const title = document.getElementById("queueDetailTitle");
+  if (title) title.textContent = c.title || c.id;
+  const allowedFrom = Array.isArray(d.allowedFrom) ? d.allowedFrom : [];
+  const ev = d.evidencePackage;
+  const rs = d.reportSummary;
+  const rd = c.ruleDetection;
+  const llm = c.llmAnalysis;
+  const sc = c.scoringResult;
+
+  const transitionBtns = allowedFrom.map((to) => {
+    const label = STATUS_LABEL[to] || to;
+    return `<button class="primary" type="button" data-queue-status="${escapeAttr(to)}" style="padding:8px 12px;font-size:13px;">→ ${escapeHtml(label)}</button>`;
+  }).join(" ");
+
+  const logs = (d.logs || []).slice(0, 15).map((l) => {
+    const kind = l.kind === "STATUS_CHANGE"
+      ? `${escapeHtml(STATUS_LABEL[l.fromStatus] || l.fromStatus || "?")} → ${escapeHtml(STATUS_LABEL[l.toStatus] || l.toStatus || "?")}`
+      : "메모";
+    return `<li><span class="muted">[${escapeHtml(l.createdAt)}]</span> ${escapeHtml(kind)}${l.reviewerName ? ` · ${escapeHtml(l.reviewerName)}` : ""}${l.note ? ` · ${escapeHtml(l.note)}` : ""}</li>`;
+  }).join("");
+
+  const evLine = ev && ev.exists
+    ? `완성도 ${ev.completenessScore}/100 · 파일 ${ev.fileCount}개`
+    : "증거 패키지 미생성";
+  const rsLine = rs && rs.exists
+    ? `생성됨 ${escapeHtml(rs.generatedAt || "")} · ${["MD", "TXT", "DOCX"].filter((_, i) => [rs.hasMarkdown, rs.hasText, rs.hasDocx][i]).join(" / ") || "—"}`
+    : "신고서 초안 미생성 (체크리스트 15 이후 사용 가능)";
+
+  const body = document.getElementById("queueDetailBody");
+  if (!body) return;
+  body.innerHTML = `
+    <div class="muted" style="margin-bottom:6px;">
+      <span class="badge ${STATUS_BADGE[c.status] || 'muted'}">${escapeHtml(STATUS_LABEL[c.status] || c.status)}</span>
+      <span class="badge ${gradeFromScore(c.riskScore || 0).cls.replace('grade-', '')}">우선순위 ${c.riskScore ?? 0}</span>
+      ${c.url ? `· <a href="${escapeAttr(c.url)}" target="_blank" rel="noreferrer">${escapeHtml(c.url)}</a>` : ""}
+    </div>
+    <p>${escapeHtml(c.summary || "(요약 없음)")}</p>
+
+    <h4 style="margin:10px 0 4px;">Rule Agent</h4>
+    <p class="muted">매치 ${(rd?.counts?.total ?? 0)}건 (HIGH ${rd?.counts?.HIGH ?? 0} / MEDIUM ${rd?.counts?.MEDIUM ?? 0} / LOW ${rd?.counts?.LOW ?? 0} / 조합 ${rd?.counts?.combo ?? 0})</p>
+
+    <h4 style="margin:10px 0 4px;">AI 문맥 판단</h4>
+    <p class="muted">위험도 ${escapeHtml(llm?.overallRisk || "—")} · 위반 가능성 ${escapeHtml(llm?.violationLikelihood || "—")} · 신뢰도 ${Math.round((llm?.confidence || 0) * 100)}%</p>
+
+    <h4 style="margin:10px 0 4px;">우선순위 점수</h4>
+    <p class="muted">${sc ? `${sc.priorityScore}/100 (${escapeHtml(sc.priorityLabel)})` : "(미계산)"}</p>
+
+    <h4 style="margin:10px 0 4px;">증거 패키지</h4>
+    <p class="muted">${escapeHtml(evLine)} ·
+      <a href="/api/cases/${escapeAttr(c.id)}/evidence/package" target="_blank" rel="noreferrer">summary</a> ·
+      <a href="/api/cases/${escapeAttr(c.id)}/evidence/manifest.json" target="_blank" rel="noreferrer">manifest</a>
+    </p>
+
+    <h4 style="margin:10px 0 4px;">신고서 초안</h4>
+    <p class="muted">${escapeHtml(rsLine)} ·
+      <a href="/api/cases/${escapeAttr(c.id)}/report/report.md" target="_blank" rel="noreferrer">MD</a> ·
+      <a href="/api/cases/${escapeAttr(c.id)}/report/report.txt" target="_blank" rel="noreferrer">TXT</a> ·
+      <a href="/api/cases/${escapeAttr(c.id)}/report/report.docx" target="_blank" rel="noreferrer">DOCX</a>
+    </p>
+
+    <h4 style="margin:10px 0 4px;">상태 변경</h4>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">${transitionBtns || '<span class="muted">전이 가능한 상태가 없습니다.</span>'}</div>
+
+    <h4 style="margin:10px 0 4px;">검토 메모</h4>
+    <textarea id="queueNoteInput" placeholder="메모를 입력하세요" style="min-height:60px;"></textarea>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
+      <input id="queueReviewerName" type="text" placeholder="검토자 이름 (선택)" style="max-width:240px;" />
+      <button class="primary" type="button" id="queueNoteSaveBtn" style="padding:8px 12px;font-size:13px;">메모 저장</button>
+      <span id="queueNoteStatus" class="muted" style="font-size:12px;"></span>
+    </div>
+
+    <h4 style="margin:10px 0 4px;">최근 로그</h4>
+    <ul style="font-size:12.5px;">${logs || "<li class='muted'>로그 없음</li>"}</ul>
+  `;
+}
+
+async function onQueueStatusButton(btn) {
+  const toStatus = btn.getAttribute("data-queue-status");
+  const d = state.queueDetail;
+  if (!d || !d.case || !toStatus) return;
+  const caseId = d.case.id;
+  let confirmManualSubmission = undefined;
+  let note = undefined;
+  if (toStatus === "SUBMITTED") {
+    const yes = window.confirm("이미 외부 공식 신고 창구에 사람이 직접 제출했습니까?\n이 버튼은 내부 상태만 변경하며 자동 제출을 하지 않습니다.");
+    if (!yes) return;
+    confirmManualSubmission = true;
+    note = "외부 공식 창구에 사람이 직접 제출한 뒤 내부 기록으로 변경";
+  }
+  const body = { status: toStatus, confirmManualSubmission, note };
+  const reviewerInput = document.getElementById("queueReviewerName");
+  if (reviewerInput && reviewerInput.value) body.reviewerName = reviewerInput.value;
+  try {
+    const res = await fetch(`/api/review/queue/${encodeURIComponent(caseId)}/status`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    await openQueueDetail(caseId);
+    await loadQueue();
+  } catch (err) {
+    alert("상태 변경 실패: " + err.message);
+  }
+}
+
+async function onQueueNoteSave() {
+  const d = state.queueDetail;
+  if (!d || !d.case) return;
+  const noteEl = document.getElementById("queueNoteInput");
+  const statusEl = document.getElementById("queueNoteStatus");
+  const reviewerEl = document.getElementById("queueReviewerName");
+  const note = noteEl ? noteEl.value.trim() : "";
+  if (!note) { if (statusEl) statusEl.textContent = "메모를 입력하세요."; return; }
+  try {
+    const res = await fetch(`/api/review/queue/${encodeURIComponent(d.case.id)}/note`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note, reviewerName: reviewerEl?.value || undefined })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    if (statusEl) statusEl.textContent = "메모가 저장되었습니다.";
+    if (noteEl) noteEl.value = "";
+    await openQueueDetail(d.case.id);
+  } catch (err) {
+    if (statusEl) statusEl.textContent = "저장 실패: " + err.message;
+  }
+}
+
+// 분석 결과 영역에서 사용하는 기존 함수 — 인라인 미리보기로만 사용
 function showCaseDetail(id) {
   const c = state.cases.find((x) => x.id === id);
-  if (!c) return;
+  if (!c) {
+    openQueueDetail(id);
+    return;
+  }
   renderResult(c);
   renderEvidence(c);
   renderProcess("done");
