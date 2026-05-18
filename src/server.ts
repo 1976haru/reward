@@ -22,6 +22,7 @@ import { feedbackRouter, caseFeedbackRouter } from "./routes/feedback.js";
 import { evalRouter } from "./routes/eval.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { subsidyRouter } from "./routes/subsidy.js";
+import { bidsRouter } from "./routes/bids.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -141,6 +142,9 @@ app.use("/api/dashboard", dashboardRouter);
 
 // 보조금 부정수급 의심 후보 프로토타입 (체크리스트 25) — sample 기반 분석만 지원.
 app.use("/api/subsidy", subsidyRouter);
+
+// 입찰담합 의심 패턴 프로토타입 (체크리스트 26) — sample 기반 분석만 지원.
+app.use("/api/bids", bidsRouter);
 
 // Candidate Discovery
 app.use("/api/discovery", discoveryRouter);

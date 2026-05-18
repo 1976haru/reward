@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "bid_collusion",
+  "lastReviewedAt": "2026-05-18",
+  "disclaimer": "여기 정의된 신호는 모두 '검토 후보' 분류용이다. 담합 확정 신호가 아니다. 모든 결과는 공정거래위원회 등 관계기관 확인이 필요하다.",
+  "signals": [
+    {
+      "code": "repeated_bidder_group",
+      "label": "반복 업체군 참여",
+      "description": "동일 업체군이 여러 입찰에서 반복적으로 함께 참여한 공개 정황",
+      "weight": 20,
+      "category": "group_pattern",
+      "verificationHint": "단순 동일 업종 활동일 수 있습니다. 발주기관/품목별 정상 분포와 비교가 필요합니다."
+    },
+    {
+      "code": "rotating_winner",
+      "label": "순환 낙찰",
+      "description": "동일 업체군 내에서 낙찰자가 회차마다 순환하는 패턴 (확정 아님)",
+      "weight": 25,
+      "category": "winner_rotation",
+      "verificationHint": "정상 경쟁의 결과일 수도 있습니다. 다른 신호와 결합 여부를 함께 검토하세요."
+    },
+    {
+      "code": "stable_bid_rank_order",
+      "label": "투찰 순위 안정성",
+      "description": "업체별 투찰 순위가 반복적으로 유사 (확정 아님)",
+      "weight": 15,
+      "category": "rank_pattern",
+      "verificationHint": "업종 특성에 따른 자연스러운 순위 안정성일 수 있습니다."
+    },
+    {
+      "code": "narrow_bid_spread",
+      "label": "좁은 투찰 간격",
+      "description": "투찰금액 또는 투찰률 간격이 비정상적으로 좁음 (확정 아님)",
+      "weight": 15,
+      "category": "bid_spread",
+      "verificationHint": "예정가격 대비 자연스러운 수렴일 수 있습니다. 발주기관·품목별 기준이 다릅니다."
+    },
+    {
+      "code": "cover_bid_pattern",
+      "label": "들러리 후보 패턴",
+      "description": "특정 업체들이 반복적으로 낙찰자보다 조금 높게만 투찰한 공개 정황 (확정 아님)",
+      "weight": 20,
+      "category": "cover_bid",
+      "verificationHint": "들러리(cover bid) 확정 신호가 아닙니다. 입찰 의지·자격·실적 등 공식 확인이 필요합니다."
+    },
+    {
+      "code": "single_winner_dominance",
+      "label": "단일 낙찰자 지배",
+      "description": "특정 업체가 특정 발주기관/품목에서 과도하게 반복 낙찰한 공개 정황 (확정 아님)",
+      "weight": 15,
+      "category": "winner_dominance",
+      "verificationHint": "전문 분야 1개 업체일 수 있습니다. 다른 신호와 결합 여부를 검토하세요."
+    },
+    {
+      "code": "abnormal_award_rate_clustering",
+      "label": "낙찰률 군집",
+      "description": "낙찰률이 특정 구간에 비정상적으로 집중된 공개 정황 (확정 아님)",
+      "weight": 15,
+      "category": "award_rate",
+      "verificationHint": "예정가격 산정 방식·낙찰하한율에 따른 자연스러운 군집일 수 있습니다."
+    },
+    {
+      "code": "low_competition_repeated",
+      "label": "낮은 경쟁 반복",
+      "description": "반복적으로 경쟁업체 수가 적거나 같은 업체만 참여한 공개 정황 (확정 아님)",
+      "weight": 10,
+      "category": "low_competition",
+      "verificationHint": "지역/전문성 제약일 수 있습니다."
+    },
+    {
+      "code": "bid_participation_dropout",
+      "label": "형식 참여 패턴",
+      "description": "특정 업체가 낙찰 가능성이 낮은 입찰에 반복적으로 형식 참여한 공개 정황 (확정 아님)",
+      "weight": 10,
+      "category": "formal_participation",
+      "verificationHint": "참여 동기에는 다양한 사유가 있을 수 있습니다."
+    }
+  ]
+}

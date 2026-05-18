@@ -163,6 +163,12 @@ const state = {
     result: null,
     selectedRecordId: null,
     report: null
+  },
+  bids: {
+    result: null,
+    selectedGroupId: null,
+    report: null,
+    category: ""
   }
 };
 
@@ -189,6 +195,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindEval();
   bindDashboard();
   bindSubsidy();
+  bindBids();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -1660,6 +1667,129 @@ async function loadCaseFeedbacks(caseId) {
     const data = await res.json();
     if (data && data.ok) state.feedback.caseFeedbacks = data.items || [];
   } catch { /* ignore */ }
+}
+
+// ---------- 입찰담합 의심 패턴 프로토타입 (체크리스트 26) ----------
+function bindBids() {
+  const aBtn = document.getElementById("bidAnalyzeBtn");
+  if (aBtn) aBtn.addEventListener("click", runBidAnalyze);
+  const rBtn = document.getElementById("bidRefreshBtn");
+  if (rBtn) rBtn.addEventListener("click", runBidAnalyze);
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.matches("[data-bid-report]")) {
+      e.preventDefault();
+      const id = t.getAttribute("data-bid-report");
+      if (id) loadBidReport(id);
+    }
+    if (t.id === "bidReportCloseBtn") {
+      e.preventDefault();
+      state.bids.report = null;
+      renderBidDashboard(document.getElementById("bidDashboard"), state.bids.result);
+    }
+  });
+}
+
+async function runBidAnalyze() {
+  const root = document.getElementById("bidDashboard");
+  if (!root) return;
+  const sel = document.getElementById("bidCategorySelect");
+  const category = sel ? sel.value : "";
+  state.bids.category = category;
+  root.innerHTML = '<p class="muted">sample 입찰 데이터 패턴 분석 중...</p>';
+  try {
+    const body = { useSampleData: true };
+    if (category) body.category = category;
+    const res = await fetch("/api/bids/analyze", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    state.bids.result = data;
+    state.bids.report = null;
+    renderBidDashboard(root, data);
+  } catch (err) {
+    root.innerHTML = `<div class="code">분석 실패: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderBidDashboard(root, data) {
+  if (!root || !data) return;
+  const groups = data.riskGroups || [];
+  const cards = [
+    { label: "총 입찰", value: data.totalBids ?? 0, cls: "muted" },
+    { label: "참여 업체", value: data.uniqueBidders ?? 0, cls: "muted" },
+    { label: "발주기관", value: data.uniqueIssuers ?? 0, cls: "muted" },
+    { label: "위험 업체군", value: data.riskGroupCount ?? 0, cls: (data.riskGroupCount || 0) > 0 ? "warn" : "muted" },
+    { label: "의심 입찰", value: data.suspiciousBidCount ?? 0, cls: (data.suspiciousBidCount || 0) > 0 ? "warn" : "muted" }
+  ];
+  const cardsHtml = cards.map((c) => `
+    <div class="evi-item" style="text-align:center;padding:8px 10px;">
+      <div class="label" style="font-size:11px;">${escapeHtml(c.label)}</div>
+      <div class="value" style="font-size:18px;">${escapeHtml(String(c.value))}</div>
+    </div>
+  `).join("");
+
+  const rows = groups.map((g) => {
+    const lvlCls = g.priorityLevel === "VERY_HIGH_PRIORITY" ? "danger" :
+                   g.priorityLevel === "HIGH_PRIORITY" ? "warn" :
+                   g.priorityLevel === "REVIEW_NEEDED" ? "muted" : "muted";
+    const sigPills = (g.signals || []).slice(0, 8).map((s) =>
+      `<span class="badge ${s.weight >= 20 ? 'danger' : (s.weight >= 15 ? 'warn' : 'muted')}" title="${escapeAttr(s.description)}">${escapeHtml(s.label)} (+${s.weight})</span>`
+    ).join(" ");
+    const winners = Object.entries(g.winners || {}).map(([w, c]) => `${escapeHtml(w)}=${c}`).join(", ");
+    return `
+      <div class="ops-top-row">
+        <div class="ops-top-rank">${g.priorityScore}</div>
+        <div class="ops-top-main">
+          <div class="ops-top-title">${escapeHtml(g.companies.join(" + "))}</div>
+          <div class="muted ops-top-meta">
+            ${g.bidCount}회 동반 참여 · 평균 낙찰률 ${g.avgAwardRate}% · 평균 spread ${g.avgBidSpread}%p ·
+            <span class="badge ${lvlCls}">${escapeHtml(g.priorityLabel)}</span>
+          </div>
+          <div class="muted" style="font-size:12px;margin-top:2px;">낙찰자: ${winners || "(미기록)"}</div>
+          <div style="margin-top:4px;">${sigPills || '<span class="muted" style="font-size:12px;">탐지된 신호 없음</span>'}</div>
+        </div>
+        <div class="ops-top-action">
+          <button class="ghost" type="button" data-bid-report="${escapeAttr(g.groupId)}">리포트 초안</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const reportHtml = state.bids.report
+    ? `
+      <h4 class="ops-section-title">리포트 초안 미리보기 — ${escapeHtml(state.bids.report.group?.groupId || "")}</h4>
+      <pre class="code" style="max-height:320px;overflow:auto;white-space:pre-wrap;font-size:12px;">${escapeHtml(state.bids.report.markdown || "")}</pre>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button class="ghost" type="button" id="bidReportCloseBtn">초안 닫기</button>
+      </div>
+    `
+    : "";
+
+  root.innerHTML = `
+    <p class="muted ops-safety">⚠ ${escapeHtml(data.safetyNotice || "입찰담합 모듈은 공개자료 기반 패턴 분석 프로토타입입니다.")}</p>
+    <p class="muted">데이터: ${data.syntheticOnly ? "synthetic" : "(unknown)"} · analyzedAt ${escapeHtml(data.analyzedAt || "")} · 카테고리 필터: ${escapeHtml(data.categoryFilter || "(전체)")}</p>
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));">${cardsHtml}</div>
+    <h4 class="ops-section-title">위험 업체군 (점수 내림차순)</h4>
+    <div class="ops-top-list">${rows || '<p class="muted">탐지된 위험 업체군이 없습니다.</p>'}</div>
+    ${reportHtml}
+  `;
+}
+
+async function loadBidReport(groupId) {
+  try {
+    const res = await fetch(`/api/bids/groups/${encodeURIComponent(groupId)}/report`);
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    state.bids.report = { group: data.group, markdown: data.report?.markdown || "" };
+    renderBidDashboard(document.getElementById("bidDashboard"), state.bids.result);
+  } catch (err) {
+    alert("리포트 초안 로드 실패: " + err.message);
+  }
 }
 
 // ---------- 보조금 의심 후보 프로토타입 (체크리스트 25) ----------

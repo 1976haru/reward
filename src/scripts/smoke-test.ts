@@ -93,6 +93,19 @@ import {
   subsidyFraudDefinition,
   type SubsidyAnalyzedCandidate
 } from "../modules/subsidy-fraud/index.js";
+import {
+  analyzeBidDataset,
+  bidCollusionDefinition,
+  buildBidCollusionReportMarkdown,
+  calculateBidCollusionRiskSignals,
+  calculateBidSpread,
+  findAwardRateClustering,
+  findRepeatedBidderGroups,
+  findRotatingWinners,
+  findSingleWinnerDominance,
+  loadBidSampleData,
+  normalizeCompanyName
+} from "../modules/bid-collusion/index.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -1560,6 +1573,130 @@ try {
   badRegionThrown = true;
 }
 check("subsidy unsupported region throws", badRegionThrown);
+
+// 26) Bid Collusion Prototype — module / sample / analyzer / scoring / report
+check("bid_collusion module id", bidCollusionDefinition.id === "bid_collusion");
+check("bid_collusion module slug", bidCollusionDefinition.slug === "bid-collusion");
+check("bid_collusion module status prototype", bidCollusionDefinition.status === "prototype");
+check("bid_collusion module registered", moduleRegistry.has("bid_collusion"));
+const bidMod = moduleRegistry.get("bid_collusion");
+check("bid_collusion module category antitrust", bidMod?.category === "antitrust");
+check("bid_collusion module reportDraft true", bidMod?.capabilities.reportDraft === true);
+check("bid_collusion safetyNotes include 단정 금지",
+  bidMod?.safetyNotes.some((n) => /단정/.test(n)) === true);
+
+// 회귀: false_ad/counterfeit_goods/subsidy_fraud 깨지지 않음
+check("regression: false_ad still active", moduleRegistry.get("false_ad")?.status === "active");
+check("regression: counterfeit_goods still ready", moduleRegistry.get("counterfeit_goods")?.status === "ready");
+check("regression: subsidy_fraud still prototype", moduleRegistry.get("subsidy_fraud")?.status === "prototype");
+
+// sample-bids.json
+const bidSample = loadBidSampleData();
+check("bid sample isSyntheticSample=true", bidSample.isSyntheticSample === true);
+check("bid sample bids >= 30", bidSample.bids.length >= 30, `len=${bidSample.bids.length}`);
+check("bid sample bidders >= 8", bidSample.bidders.length >= 8);
+// 합성 데이터 안전 검증 — 실제 브랜드/실제 발주기관 패턴이 들어가지 않았는지
+const allBidText = JSON.stringify(bidSample);
+check("bid sample uses synthetic company names only",
+  /샘플업체[A-H]/.test(allBidText) && !/주식회사\s/.test(allBidText));
+check("bid sample disclaimer mentions 합성", /합성/.test(bidSample.disclaimer));
+
+// normalize / spread / clustering 헬퍼
+check("normalizeCompanyName trims/cases", normalizeCompanyName("샘플 업체 A") === "샘플업체a");
+check("normalizeCompanyName parens removed", normalizeCompanyName("(주)샘플업체") === "주샘플업체");
+const spread = calculateBidSpread([
+  { companyName: "X", bidAmount: 100, bidRate: 88.5, rank: 1 },
+  { companyName: "Y", bidAmount: 101, bidRate: 89.1, rank: 2 }
+]);
+check("calculateBidSpread ~ 0.6", Math.abs(spread - 0.6) < 1e-6, `spread=${spread}`);
+const cluster = findAwardRateClustering([88.5, 88.7, 89.0, 88.9], 2);
+check("findAwardRateClustering clustered=true (range ~0.5)", cluster.clustered === true && cluster.rangePct <= 2);
+const noCluster = findAwardRateClustering([80, 85, 90, 95], 2);
+check("findAwardRateClustering clustered=false (range 15)", noCluster.clustered === false);
+
+// 그룹 찾기 + 순환 + 지배
+const groups = findRepeatedBidderGroups(bidSample.bids, 2);
+check("findRepeatedBidderGroups returns >= 2 groups", groups.length >= 2, `groups=${groups.length}`);
+const abcGroup = groups.find((g) => {
+  const names = g.companies.map(normalizeCompanyName).sort();
+  return names.includes("샘플업체a") && names.includes("샘플업체b") && names.includes("샘플업체c");
+});
+check("ABC group exists", Boolean(abcGroup));
+if (abcGroup) {
+  const rot = findRotatingWinners(bidSample.bids, abcGroup.bidIds);
+  check("ABC group rotates=true", rot.rotates === true, `winners=${JSON.stringify(rot.winners)}`);
+  check("ABC group has 3 unique winners", rot.uniqueWinners.length >= 3);
+}
+
+// office_supplies 카테고리 단독 분석
+const officeBids = bidSample.bids.filter((b) => b.category === "office_supplies");
+const officeDom = findSingleWinnerDominance(officeBids, 0.6);
+check("office category — 샘플업체D dominance detected", officeDom.some((d) => d.winner === "샘플업체D"));
+
+// 전체 분석
+const bidAnalysis = analyzeBidDataset({ useSampleData: true });
+check("bid analysis moduleId", bidAnalysis.moduleId === "bid_collusion");
+check("bid analysis syntheticOnly=true", bidAnalysis.syntheticOnly === true);
+check("bid analysis totalBids = sample length", bidAnalysis.totalBids === bidSample.bids.length);
+check("bid analysis safetyNotice 담합 확정 아님",
+  /담합 확정 판단이 아니/.test(bidAnalysis.safetyNotice));
+check("bid analysis autoReport=false", bidAnalysis.autoReport === false);
+check("bid analysis humanReviewRequired=true", bidAnalysis.humanReviewRequired === true);
+check("bid analysis has risk groups", bidAnalysis.riskGroups.length >= 1);
+
+// 점수 정렬
+check("bid riskGroups sorted desc by priorityScore",
+  bidAnalysis.riskGroups.every((g, i) => i === 0 || bidAnalysis.riskGroups[i - 1].priorityScore >= g.priorityScore));
+
+// 컴포넌트 합 = 100
+const top = bidAnalysis.riskGroups[0];
+check("bid top group has 8 components", top.components.length === 8);
+check("bid top group component max points sum to 100", (() => {
+  const sum = top.components.reduce((s, c) => s + c.maxPoints, 0);
+  return sum === 100;
+})(), `sum=${top.components.reduce((s, c) => s + c.maxPoints, 0)}`);
+
+// ABC 시설 유지보수 그룹은 회전+좁은 spread+클러스터 → HIGH 이상 기대
+const abcRiskGroup = bidAnalysis.riskGroups.find((g) =>
+  g.companies.map(normalizeCompanyName).sort().join(",").includes("샘플업체a") &&
+  g.bidCount >= 5
+);
+check("ABC risk group exists in analysis", Boolean(abcRiskGroup));
+check("ABC risk group priorityScore >= 60",
+  (abcRiskGroup?.priorityScore ?? 0) >= 60, `score=${abcRiskGroup?.priorityScore}`);
+const abcSignalCodes = (abcRiskGroup?.signals ?? []).map((s) => s.code);
+check("ABC group detects rotating_winner", abcSignalCodes.includes("rotating_winner"));
+check("ABC group detects narrow_bid_spread", abcSignalCodes.includes("narrow_bid_spread"));
+check("ABC group detects abnormal_award_rate_clustering",
+  abcSignalCodes.includes("abnormal_award_rate_clustering"));
+check("ABC group detects repeated_bidder_group", abcSignalCodes.includes("repeated_bidder_group"));
+
+// calculateBidCollusionRiskSignals 직접 호출
+const directSignals = calculateBidCollusionRiskSignals(bidSample.bids, abcGroup!);
+check("calculateBidCollusionRiskSignals returns array", Array.isArray(directSignals) && directSignals.length >= 1);
+
+// 리포트 마크다운 안전 문구 + 단정 표현 없음
+const reportMd = buildBidCollusionReportMarkdown(top);
+check("bid report mentions 자동 신고서가 아닙니다", reportMd.includes("자동 신고서가 아닙니다"));
+check("bid report mentions 담합 여부를 확정하지 않습니다", reportMd.includes("담합 여부를 확정하지 않습니다"));
+check("bid report mentions 공정거래위원회", reportMd.includes("공정거래위원회"));
+// 본문(1~8 섹션)에 단정 표현 없음 — disclaimer 인 "확정 아님" 은 허용된다.
+// "담합 확정 (없는 단어)" vs "담합 확정 아님" 구분: 부정 표현(아닙니다/아님/이 아닙니다)이 뒤에 오는 경우는 정상 disclaimer 로 본다.
+check("bid report does NOT contain raw 담합 확정 단정",
+  !/담합\s*확정(?!\s*(?:이|판단)?\s*아닙?니?다?|\s*아님|\s*판단이?\s*아니|\s*신호가?\s*아니|\s*아닌)/.test(reportMd));
+check("bid report does NOT contain raw 들러리 확정 단정",
+  !/들러리\s*확정(?!\s*아님|\s*아닙?니?다?|\s*판단이?\s*아니)/.test(reportMd));
+check("bid report does NOT contain 사기꾼", !/사기꾼/.test(reportMd));
+check("bid report does NOT contain 포상금 보장", !/포상금\s*보장/.test(reportMd));
+
+// useSampleData=false 거부
+let bidNonSampleThrown = false;
+try {
+  analyzeBidDataset({ useSampleData: false });
+} catch {
+  bidNonSampleThrown = true;
+}
+check("bid useSampleData=false throws", bidNonSampleThrown);
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

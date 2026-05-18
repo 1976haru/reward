@@ -1,0 +1,564 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "bid_collusion",
+  "isSyntheticSample": true,
+  "source": "bid_collusion_pilot_sample_v1",
+  "disclaimer": "본 sample-bids.json 은 패턴 분석 로직 검증을 위한 합성 데이터다. 실제 업체명/발주기관/공고를 단정하지 않으며, '샘플업체A'~'샘플업체H' 와 '예시발주기관 1/2/3' 형태로 작성되었다. 본 데이터로 특정 업체를 담합 업체로 표시하지 않는다.",
+  "categories": [
+    { "id": "facility_maintenance", "label": "시설 유지보수 (sample)" },
+    { "id": "office_supplies", "label": "사무용품 납품 (sample)" },
+    { "id": "general", "label": "일반 (sample)" }
+  ],
+  "bidders": [
+    "샘플업체A", "샘플업체B", "샘플업체C", "샘플업체D",
+    "샘플업체E", "샘플업체F", "샘플업체G", "샘플업체H"
+  ],
+  "bids": [
+    {
+      "noticeId": "SAMPLE-2024-0001",
+      "title": "[샘플] 시설 유지보수 용역",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-01-10",
+      "openDate": "2024-01-20",
+      "baseAmount": 100000000,
+      "estimatedPrice": 98500000,
+      "awardAmount": 87200000,
+      "awardRate": 88.53,
+      "winner": "샘플업체A",
+      "bidders": [
+        { "companyName": "샘플업체A", "bidAmount": 87200000, "bidRate": 88.53, "rank": 1 },
+        { "companyName": "샘플업체B", "bidAmount": 87800000, "bidRate": 89.13, "rank": 2 },
+        { "companyName": "샘플업체C", "bidAmount": 88100000, "bidRate": 89.44, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0002",
+      "title": "[샘플] 시설 유지보수 용역 (2분기)",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-04-01",
+      "openDate": "2024-04-10",
+      "baseAmount": 100000000,
+      "estimatedPrice": 99000000,
+      "awardAmount": 87600000,
+      "awardRate": 88.48,
+      "winner": "샘플업체B",
+      "bidders": [
+        { "companyName": "샘플업체B", "bidAmount": 87600000, "bidRate": 88.48, "rank": 1 },
+        { "companyName": "샘플업체A", "bidAmount": 88200000, "bidRate": 89.09, "rank": 2 },
+        { "companyName": "샘플업체C", "bidAmount": 88500000, "bidRate": 89.39, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0003",
+      "title": "[샘플] 시설 유지보수 용역 (3분기)",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-07-01",
+      "openDate": "2024-07-12",
+      "baseAmount": 100000000,
+      "estimatedPrice": 99000000,
+      "awardAmount": 87900000,
+      "awardRate": 88.79,
+      "winner": "샘플업체C",
+      "bidders": [
+        { "companyName": "샘플업체C", "bidAmount": 87900000, "bidRate": 88.79, "rank": 1 },
+        { "companyName": "샘플업체A", "bidAmount": 88300000, "bidRate": 89.19, "rank": 2 },
+        { "companyName": "샘플업체B", "bidAmount": 88500000, "bidRate": 89.39, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0004",
+      "title": "[샘플] 시설 유지보수 용역 (4분기)",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-10-01",
+      "openDate": "2024-10-15",
+      "baseAmount": 100000000,
+      "estimatedPrice": 98800000,
+      "awardAmount": 87400000,
+      "awardRate": 88.46,
+      "winner": "샘플업체A",
+      "bidders": [
+        { "companyName": "샘플업체A", "bidAmount": 87400000, "bidRate": 88.46, "rank": 1 },
+        { "companyName": "샘플업체B", "bidAmount": 87900000, "bidRate": 88.97, "rank": 2 },
+        { "companyName": "샘플업체C", "bidAmount": 88200000, "bidRate": 89.27, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0005",
+      "title": "[샘플] 시설 유지보수 용역 추가",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-11-01",
+      "openDate": "2024-11-12",
+      "baseAmount": 80000000,
+      "estimatedPrice": 79000000,
+      "awardAmount": 70100000,
+      "awardRate": 88.73,
+      "winner": "샘플업체B",
+      "bidders": [
+        { "companyName": "샘플업체B", "bidAmount": 70100000, "bidRate": 88.73, "rank": 1 },
+        { "companyName": "샘플업체C", "bidAmount": 70400000, "bidRate": 89.11, "rank": 2 },
+        { "companyName": "샘플업체A", "bidAmount": 70600000, "bidRate": 89.37, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0006",
+      "title": "[샘플] 시설 유지보수 용역 보강",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-12-01",
+      "openDate": "2024-12-15",
+      "baseAmount": 90000000,
+      "estimatedPrice": 89000000,
+      "awardAmount": 79000000,
+      "awardRate": 88.76,
+      "winner": "샘플업체C",
+      "bidders": [
+        { "companyName": "샘플업체C", "bidAmount": 79000000, "bidRate": 88.76, "rank": 1 },
+        { "companyName": "샘플업체A", "bidAmount": 79400000, "bidRate": 89.21, "rank": 2 },
+        { "companyName": "샘플업체B", "bidAmount": 79700000, "bidRate": 89.55, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0007",
+      "title": "[샘플] 시설 보안점검",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-02-10",
+      "openDate": "2024-02-20",
+      "baseAmount": 50000000,
+      "estimatedPrice": 49500000,
+      "awardAmount": 43900000,
+      "awardRate": 88.69,
+      "winner": "샘플업체A",
+      "bidders": [
+        { "companyName": "샘플업체A", "bidAmount": 43900000, "bidRate": 88.69, "rank": 1 },
+        { "companyName": "샘플업체B", "bidAmount": 44100000, "bidRate": 89.09, "rank": 2 },
+        { "companyName": "샘플업체C", "bidAmount": 44400000, "bidRate": 89.70, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0008",
+      "title": "[샘플] 시설 보안점검 추가",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-05-15",
+      "openDate": "2024-05-25",
+      "baseAmount": 50000000,
+      "estimatedPrice": 49500000,
+      "awardAmount": 44100000,
+      "awardRate": 89.09,
+      "winner": "샘플업체B",
+      "bidders": [
+        { "companyName": "샘플업체B", "bidAmount": 44100000, "bidRate": 89.09, "rank": 1 },
+        { "companyName": "샘플업체C", "bidAmount": 44300000, "bidRate": 89.49, "rank": 2 },
+        { "companyName": "샘플업체A", "bidAmount": 44500000, "bidRate": 89.90, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0009",
+      "title": "[샘플] 시설 청소용역",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-03-01",
+      "openDate": "2024-03-10",
+      "baseAmount": 40000000,
+      "estimatedPrice": 39500000,
+      "awardAmount": 35100000,
+      "awardRate": 88.86,
+      "winner": "샘플업체C",
+      "bidders": [
+        { "companyName": "샘플업체C", "bidAmount": 35100000, "bidRate": 88.86, "rank": 1 },
+        { "companyName": "샘플업체A", "bidAmount": 35300000, "bidRate": 89.37, "rank": 2 },
+        { "companyName": "샘플업체B", "bidAmount": 35500000, "bidRate": 89.87, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0010",
+      "title": "[샘플] 시설 청소용역 추가",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-06-01",
+      "openDate": "2024-06-15",
+      "baseAmount": 40000000,
+      "estimatedPrice": 39500000,
+      "awardAmount": 35200000,
+      "awardRate": 89.11,
+      "winner": "샘플업체A",
+      "bidders": [
+        { "companyName": "샘플업체A", "bidAmount": 35200000, "bidRate": 89.11, "rank": 1 },
+        { "companyName": "샘플업체B", "bidAmount": 35400000, "bidRate": 89.62, "rank": 2 },
+        { "companyName": "샘플업체C", "bidAmount": 35500000, "bidRate": 89.87, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0011",
+      "title": "[샘플] 사무용품 정기납품",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "office_supplies",
+      "noticeDate": "2024-01-05",
+      "openDate": "2024-01-18",
+      "baseAmount": 30000000,
+      "estimatedPrice": 29500000,
+      "awardAmount": 25000000,
+      "awardRate": 84.75,
+      "winner": "샘플업체D",
+      "bidders": [
+        { "companyName": "샘플업체D", "bidAmount": 25000000, "bidRate": 84.75, "rank": 1 },
+        { "companyName": "샘플업체E", "bidAmount": 26200000, "bidRate": 88.81, "rank": 2 },
+        { "companyName": "샘플업체F", "bidAmount": 27500000, "bidRate": 93.22, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0012",
+      "title": "[샘플] 사무용품 추가납품",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "office_supplies",
+      "noticeDate": "2024-04-05",
+      "openDate": "2024-04-15",
+      "baseAmount": 30000000,
+      "estimatedPrice": 29500000,
+      "awardAmount": 24800000,
+      "awardRate": 84.07,
+      "winner": "샘플업체D",
+      "bidders": [
+        { "companyName": "샘플업체D", "bidAmount": 24800000, "bidRate": 84.07, "rank": 1 },
+        { "companyName": "샘플업체E", "bidAmount": 26500000, "bidRate": 89.83, "rank": 2 },
+        { "companyName": "샘플업체G", "bidAmount": 27800000, "bidRate": 94.24, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0013",
+      "title": "[샘플] 사무용품 정기납품 (Q3)",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "office_supplies",
+      "noticeDate": "2024-07-05",
+      "openDate": "2024-07-15",
+      "baseAmount": 30000000,
+      "estimatedPrice": 29500000,
+      "awardAmount": 24900000,
+      "awardRate": 84.41,
+      "winner": "샘플업체D",
+      "bidders": [
+        { "companyName": "샘플업체D", "bidAmount": 24900000, "bidRate": 84.41, "rank": 1 },
+        { "companyName": "샘플업체E", "bidAmount": 26300000, "bidRate": 89.15, "rank": 2 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0014",
+      "title": "[샘플] 사무용품 정기납품 (Q4)",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "office_supplies",
+      "noticeDate": "2024-10-05",
+      "openDate": "2024-10-15",
+      "baseAmount": 30000000,
+      "estimatedPrice": 29500000,
+      "awardAmount": 24700000,
+      "awardRate": 83.73,
+      "winner": "샘플업체D",
+      "bidders": [
+        { "companyName": "샘플업체D", "bidAmount": 24700000, "bidRate": 83.73, "rank": 1 },
+        { "companyName": "샘플업체E", "bidAmount": 26400000, "bidRate": 89.49, "rank": 2 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0015",
+      "title": "[샘플] 사무용품 특별 납품",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "office_supplies",
+      "noticeDate": "2024-12-05",
+      "openDate": "2024-12-15",
+      "baseAmount": 20000000,
+      "estimatedPrice": 19800000,
+      "awardAmount": 16700000,
+      "awardRate": 84.34,
+      "winner": "샘플업체D",
+      "bidders": [
+        { "companyName": "샘플업체D", "bidAmount": 16700000, "bidRate": 84.34, "rank": 1 },
+        { "companyName": "샘플업체E", "bidAmount": 17600000, "bidRate": 88.89, "rank": 2 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0016",
+      "title": "[샘플] 행사 운영 용역",
+      "issuingAuthority": "예시발주기관 3",
+      "category": "general",
+      "noticeDate": "2024-02-10",
+      "openDate": "2024-02-20",
+      "baseAmount": 60000000,
+      "estimatedPrice": 59500000,
+      "awardAmount": 51200000,
+      "awardRate": 86.05,
+      "winner": "샘플업체G",
+      "bidders": [
+        { "companyName": "샘플업체G", "bidAmount": 51200000, "bidRate": 86.05, "rank": 1 },
+        { "companyName": "샘플업체H", "bidAmount": 53400000, "bidRate": 89.75, "rank": 2 },
+        { "companyName": "샘플업체F", "bidAmount": 55100000, "bidRate": 92.61, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0017",
+      "title": "[샘플] 행사 디자인 용역",
+      "issuingAuthority": "예시발주기관 3",
+      "category": "general",
+      "noticeDate": "2024-03-20",
+      "openDate": "2024-04-01",
+      "baseAmount": 30000000,
+      "estimatedPrice": 29500000,
+      "awardAmount": 24300000,
+      "awardRate": 82.37,
+      "winner": "샘플업체H",
+      "bidders": [
+        { "companyName": "샘플업체H", "bidAmount": 24300000, "bidRate": 82.37, "rank": 1 },
+        { "companyName": "샘플업체F", "bidAmount": 26900000, "bidRate": 91.19, "rank": 2 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0018",
+      "title": "[샘플] 전문 교육 운영",
+      "issuingAuthority": "예시발주기관 3",
+      "category": "general",
+      "noticeDate": "2024-05-05",
+      "openDate": "2024-05-15",
+      "baseAmount": 25000000,
+      "estimatedPrice": 24600000,
+      "awardAmount": 20100000,
+      "awardRate": 81.71,
+      "winner": "샘플업체F",
+      "bidders": [
+        { "companyName": "샘플업체F", "bidAmount": 20100000, "bidRate": 81.71, "rank": 1 },
+        { "companyName": "샘플업체G", "bidAmount": 22500000, "bidRate": 91.46, "rank": 2 },
+        { "companyName": "샘플업체H", "bidAmount": 23700000, "bidRate": 96.34, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0019",
+      "title": "[샘플] IT 컨설팅 용역",
+      "issuingAuthority": "예시발주기관 3",
+      "category": "general",
+      "noticeDate": "2024-06-10",
+      "openDate": "2024-06-20",
+      "baseAmount": 80000000,
+      "estimatedPrice": 79500000,
+      "awardAmount": 71200000,
+      "awardRate": 89.56,
+      "winner": "샘플업체G",
+      "bidders": [
+        { "companyName": "샘플업체G", "bidAmount": 71200000, "bidRate": 89.56, "rank": 1 },
+        { "companyName": "샘플업체H", "bidAmount": 72800000, "bidRate": 91.57, "rank": 2 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0020",
+      "title": "[샘플] 시설 보수 자재 납품",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "general",
+      "noticeDate": "2024-08-10",
+      "openDate": "2024-08-20",
+      "baseAmount": 15000000,
+      "estimatedPrice": 14800000,
+      "awardAmount": 11900000,
+      "awardRate": 80.41,
+      "winner": "샘플업체E",
+      "bidders": [
+        { "companyName": "샘플업체E", "bidAmount": 11900000, "bidRate": 80.41, "rank": 1 },
+        { "companyName": "샘플업체G", "bidAmount": 13700000, "bidRate": 92.57, "rank": 2 },
+        { "companyName": "샘플업체H", "bidAmount": 14100000, "bidRate": 95.27, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0021",
+      "title": "[샘플] 일반 인쇄 납품",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "general",
+      "noticeDate": "2024-09-10",
+      "openDate": "2024-09-20",
+      "baseAmount": 8000000,
+      "estimatedPrice": 7900000,
+      "awardAmount": 6300000,
+      "awardRate": 79.75,
+      "winner": "샘플업체F",
+      "bidders": [
+        { "companyName": "샘플업체F", "bidAmount": 6300000, "bidRate": 79.75, "rank": 1 },
+        { "companyName": "샘플업체H", "bidAmount": 7100000, "bidRate": 89.87, "rank": 2 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0022",
+      "title": "[샘플] 비품 정기납품",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "general",
+      "noticeDate": "2024-11-15",
+      "openDate": "2024-11-25",
+      "baseAmount": 12000000,
+      "estimatedPrice": 11900000,
+      "awardAmount": 9100000,
+      "awardRate": 76.47,
+      "winner": "샘플업체H",
+      "bidders": [
+        { "companyName": "샘플업체H", "bidAmount": 9100000, "bidRate": 76.47, "rank": 1 },
+        { "companyName": "샘플업체G", "bidAmount": 10800000, "bidRate": 90.76, "rank": 2 },
+        { "companyName": "샘플업체F", "bidAmount": 11200000, "bidRate": 94.11, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0023",
+      "title": "[샘플] 시설 안전점검",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-08-15",
+      "openDate": "2024-08-25",
+      "baseAmount": 30000000,
+      "estimatedPrice": 29500000,
+      "awardAmount": 26200000,
+      "awardRate": 88.81,
+      "winner": "샘플업체A",
+      "bidders": [
+        { "companyName": "샘플업체A", "bidAmount": 26200000, "bidRate": 88.81, "rank": 1 },
+        { "companyName": "샘플업체B", "bidAmount": 26400000, "bidRate": 89.49, "rank": 2 },
+        { "companyName": "샘플업체C", "bidAmount": 26500000, "bidRate": 89.83, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0024",
+      "title": "[샘플] 시설 보강 용역",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-09-15",
+      "openDate": "2024-09-25",
+      "baseAmount": 60000000,
+      "estimatedPrice": 59500000,
+      "awardAmount": 52700000,
+      "awardRate": 88.57,
+      "winner": "샘플업체B",
+      "bidders": [
+        { "companyName": "샘플업체B", "bidAmount": 52700000, "bidRate": 88.57, "rank": 1 },
+        { "companyName": "샘플업체C", "bidAmount": 53100000, "bidRate": 89.24, "rank": 2 },
+        { "companyName": "샘플업체A", "bidAmount": 53400000, "bidRate": 89.75, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0025",
+      "title": "[샘플] 시설 설비 점검",
+      "issuingAuthority": "예시발주기관 1",
+      "category": "facility_maintenance",
+      "noticeDate": "2024-10-15",
+      "openDate": "2024-10-25",
+      "baseAmount": 50000000,
+      "estimatedPrice": 49500000,
+      "awardAmount": 43800000,
+      "awardRate": 88.48,
+      "winner": "샘플업체C",
+      "bidders": [
+        { "companyName": "샘플업체C", "bidAmount": 43800000, "bidRate": 88.48, "rank": 1 },
+        { "companyName": "샘플업체A", "bidAmount": 44100000, "bidRate": 89.09, "rank": 2 },
+        { "companyName": "샘플업체B", "bidAmount": 44300000, "bidRate": 89.49, "rank": 3 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0026",
+      "title": "[샘플] 사무용품 일반 (단독참여)",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "office_supplies",
+      "noticeDate": "2024-02-20",
+      "openDate": "2024-03-01",
+      "baseAmount": 10000000,
+      "estimatedPrice": 9900000,
+      "awardAmount": 9700000,
+      "awardRate": 97.98,
+      "winner": "샘플업체D",
+      "bidders": [
+        { "companyName": "샘플업체D", "bidAmount": 9700000, "bidRate": 97.98, "rank": 1 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0027",
+      "title": "[샘플] 사무용품 일반 (Q2 단독)",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "office_supplies",
+      "noticeDate": "2024-05-20",
+      "openDate": "2024-06-01",
+      "baseAmount": 10000000,
+      "estimatedPrice": 9900000,
+      "awardAmount": 9650000,
+      "awardRate": 97.47,
+      "winner": "샘플업체D",
+      "bidders": [
+        { "companyName": "샘플업체D", "bidAmount": 9650000, "bidRate": 97.47, "rank": 1 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0028",
+      "title": "[샘플] 사무용품 일반 (Q3 단독)",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "office_supplies",
+      "noticeDate": "2024-08-20",
+      "openDate": "2024-09-01",
+      "baseAmount": 10000000,
+      "estimatedPrice": 9900000,
+      "awardAmount": 9700000,
+      "awardRate": 97.98,
+      "winner": "샘플업체D",
+      "bidders": [
+        { "companyName": "샘플업체D", "bidAmount": 9700000, "bidRate": 97.98, "rank": 1 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0029",
+      "title": "[샘플] 사무용품 일반 (Q4 단독)",
+      "issuingAuthority": "예시발주기관 2",
+      "category": "office_supplies",
+      "noticeDate": "2024-11-20",
+      "openDate": "2024-12-01",
+      "baseAmount": 10000000,
+      "estimatedPrice": 9900000,
+      "awardAmount": 9680000,
+      "awardRate": 97.78,
+      "winner": "샘플업체D",
+      "bidders": [
+        { "companyName": "샘플업체D", "bidAmount": 9680000, "bidRate": 97.78, "rank": 1 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0030",
+      "title": "[샘플] 정상 다업체 경쟁 비교용",
+      "issuingAuthority": "예시발주기관 3",
+      "category": "general",
+      "noticeDate": "2024-04-25",
+      "openDate": "2024-05-05",
+      "baseAmount": 40000000,
+      "estimatedPrice": 39500000,
+      "awardAmount": 32100000,
+      "awardRate": 81.27,
+      "winner": "샘플업체H",
+      "bidders": [
+        { "companyName": "샘플업체H", "bidAmount": 32100000, "bidRate": 81.27, "rank": 1 },
+        { "companyName": "샘플업체F", "bidAmount": 33800000, "bidRate": 85.57, "rank": 2 },
+        { "companyName": "샘플업체G", "bidAmount": 35200000, "bidRate": 89.11, "rank": 3 },
+        { "companyName": "샘플업체E", "bidAmount": 37100000, "bidRate": 93.92, "rank": 4 }
+      ]
+    },
+    {
+      "noticeId": "SAMPLE-2024-0031",
+      "title": "[샘플] 정상 다업체 경쟁 비교용 2",
+      "issuingAuthority": "예시발주기관 3",
+      "category": "general",
+      "noticeDate": "2024-06-25",
+      "openDate": "2024-07-05",
+      "baseAmount": 35000000,
+      "estimatedPrice": 34500000,
+      "awardAmount": 27800000,
+      "awardRate": 80.58,
+      "winner": "샘플업체F",
+      "bidders": [
+        { "companyName": "샘플업체F", "bidAmount": 27800000, "bidRate": 80.58, "rank": 1 },
+        { "companyName": "샘플업체H", "bidAmount": 29400000, "bidRate": 85.22, "rank": 2 },
+        { "companyName": "샘플업체E", "bidAmount": 31200000, "bidRate": 90.43, "rank": 3 },
+        { "companyName": "샘플업체G", "bidAmount": 32800000, "bidRate": 95.07, "rank": 4 }
+      ]
+    }
+  ]
+}

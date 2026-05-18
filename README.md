@@ -284,6 +284,32 @@ API:
 
 자세한 명세는 [`docs/subsidy_module.md`](./docs/subsidy_module.md).
 
+## Bid Collusion Prototype Module (입찰담합 의심 패턴 — 프로토타입)
+
+The `bid_collusion` module analyzes structured public procurement data for **review-worthy collusion patterns**. It checks:
+
+- repeated bidder groups (동일 업체군 반복 참여)
+- rotating winners (순환 낙찰)
+- narrow bid spreads (좁은 투찰 간격)
+- cover-bid pattern candidates (들러리 후보)
+- single-winner dominance (단일 낙찰자 지배)
+- award-rate clustering (낙찰률 군집)
+- repeated low competition / formal participation patterns
+
+**This module does not determine collusion.** It only generates candidates for human review. 자동 신고 / 자동 민원 / 인증키 커밋 / 특정 업체 단정 모두 금지.
+
+- Status: `prototype` (Module Registry)
+- Sample dataset: 합성 입찰 31건 / 업체 8개 (`샘플업체A`~`샘플업체H`) / 발주기관 3개 (`예시발주기관 1/2/3`) — **실제 업체/기관 사용 금지**
+- 9 risk signals, 8 score components (총 100점)
+
+API:
+
+- `GET /api/bids/sources` / `risk-signals` / `agency-config` / `sample`
+- `POST /api/bids/analyze` (sample 기반만 허용)
+- `POST|GET /api/bids/groups/:groupId/report`
+
+자세한 명세는 [`docs/bid_collusion_module.md`](./docs/bid_collusion_module.md).
+
 ## Search Collector / Scout Agent
 
 The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.

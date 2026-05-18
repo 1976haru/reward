@@ -183,6 +183,29 @@
           <div id="subsidyDashboard" class="muted">아직 분석을 실행하지 않았습니다. 위에서 "시범 지자체 분석 실행"을 눌러 sample 분석을 시작하세요.</div>
         </section>
 
+        <!-- 8e. 입찰담합 의심 패턴 프로토타입 (체크리스트 26) -->
+        <section class="card" id="bidCollusionCard">
+          <h2>입찰담합 의심 패턴 (프로토타입)</h2>
+          <p class="section-hint">
+            <strong>이 모듈은 프로토타입입니다.</strong> 합성 입찰 데이터셋(synthetic)을 기반으로
+            반복 업체군·순환 낙찰·좁은 투찰 간격·들러리 후보 패턴 등을 탐지합니다.
+            <strong>담합 확정 판단이 아니며, 공정거래위원회 등 관계기관 확인이 필요합니다.</strong>
+            특정 업체를 담합 주체로 단정하지 않습니다.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+            <label style="font-size:12px;margin:0;">품목/업종</label>
+            <select id="bidCategorySelect" style="width:auto;flex:0 0 auto;">
+              <option value="">(전체)</option>
+              <option value="facility_maintenance">시설 유지보수</option>
+              <option value="office_supplies">사무용품 납품</option>
+              <option value="general">일반</option>
+            </select>
+            <button class="primary" type="button" id="bidAnalyzeBtn">Sample 입찰 데이터 분석 실행</button>
+            <button class="ghost" type="button" id="bidRefreshBtn">최신 결과 새로고침</button>
+          </div>
+          <div id="bidDashboard" class="muted">아직 분석을 실행하지 않았습니다. 위에서 "Sample 입찰 데이터 분석 실행"을 눌러 패턴 분석을 시작하세요.</div>
+        </section>
+
         <!-- 9. Scheduler -->
         <section class="card">
           <h2>정기 수집 스케줄러</h2>

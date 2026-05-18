@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "bid_collusion",
+  "lastReviewedAt": "2026-05-18",
+  "disclaimer": "여기 등록된 소스는 입찰담합 의심 패턴 검토를 위한 공공자료 참고용이다. 본 모듈은 자동 대량 수집을 수행하지 않으며, 인증키가 필요한 공공데이터포털/나라장터 API 도 수동/사용자 입력 기준으로만 사용한다. 인증키는 절대 커밋하지 않는다.",
+  "officialSources": [
+    {
+      "sourceId": "g2b_bid_notice",
+      "name": "조달청_나라장터 입찰공고정보서비스",
+      "type": "public_data_api",
+      "url": "https://www.data.go.kr/data/15129394/openapi.do",
+      "usage": "공개 입찰공고 데이터 (API 활용신청 + 인증키 필요)"
+    },
+    {
+      "sourceId": "g2b_award",
+      "name": "조달청_나라장터 낙찰정보서비스",
+      "type": "public_data_api",
+      "url": "https://www.data.go.kr/data/15129397/openapi.do",
+      "usage": "공개 낙찰정보 데이터 (API 활용신청 + 인증키 필요)"
+    },
+    {
+      "sourceId": "g2b_contract",
+      "name": "조달청_나라장터 계약과정통합공개서비스",
+      "type": "public_data_api",
+      "url": "https://www.data.go.kr/data/15129459/openapi.do",
+      "usage": "공개 계약과정 통합 데이터 (API 활용신청 + 인증키 필요)"
+    },
+    {
+      "sourceId": "g2b_data_hub",
+      "name": "조달데이터허브",
+      "type": "official_portal",
+      "url": "https://data.g2b.go.kr/",
+      "usage": "조달 데이터 공개·분석 진입점 (공식 안내 확인)"
+    },
+    {
+      "sourceId": "ftc_reward",
+      "name": "공정거래위원회 신고포상금 안내",
+      "type": "official_page",
+      "url": "https://www.ftc.go.kr/www/contents.do?key=402",
+      "usage": "담합 신고포상금 제도 공식 안내 — 본 모듈은 포상금 지급을 보장하지 않음"
+    },
+    {
+      "sourceId": "ftc_collusion_report",
+      "name": "공정거래위원회 담합 신고 안내",
+      "type": "official_page",
+      "url": "https://www.ftc.go.kr/www/contents.do?key=368",
+      "usage": "담합 신고 절차 / 증거 요건 공식 안내"
+    }
+  ],
+  "prototypeSources": [
+    {
+      "sourceId": "sample_bid_dataset",
+      "name": "입찰담합 분석용 synthetic sample",
+      "type": "sample_structured_data",
+      "usage": "API 키 없이 패턴 분석 로직 검증. 실제 업체/발주기관을 단정하지 않는 합성 데이터."
+    }
+  ],
+  "prohibitedSources": [
+    "비공개 입찰자료",
+    "로그인 우회 자료",
+    "업체 내부자료",
+    "개인 연락처",
+    "계좌번호",
+    "민감정보",
+    "무단 대량 크롤링",
+    "공식 API 제한 우회"
+  ]
+}
