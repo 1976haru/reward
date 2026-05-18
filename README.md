@@ -260,6 +260,30 @@ API:
 
 자세한 명세는 [`docs/counterfeit_module.md`](./docs/counterfeit_module.md).
 
+## Subsidy Fraud Prototype Module (보조금 부정수급 의심 — 프로토타입)
+
+The `subsidy_fraud` module is a **prototype** for identifying public-subsidy review candidates using public data. It analyzes:
+
+- subsidy project records (sample-data.json)
+- recipient names / addresses (공시 영역만)
+- repeated recipient patterns / same-address signals / similar project titles
+- result evidence presence / amount vs output imbalance / related vendor patterns
+- execution pattern anomalies / disclosure gaps / duplicate content
+
+**This module does not confirm fraud.** It only produces "검토 후보" based on public data. 자동 신고 제출 / 특정 단체 단정 / 개인정보 수집 / 인증키 커밋은 절대 수행하지 않습니다.
+
+- Pilot region: 충청남도 당진시 (sample). 모든 단체명/주소/대표자는 가상 합성 데이터입니다.
+- Status: `prototype` (Module Registry)
+- 9 risk signals, 7 score components (총 100점)
+
+API:
+
+- `GET /api/subsidy/sources` / `risk-signals` / `agency-config` / `sample`
+- `POST /api/subsidy/analyze` (sample 기반만 허용)
+- `POST|GET /api/subsidy/candidates/:recordId/report`
+
+자세한 명세는 [`docs/subsidy_module.md`](./docs/subsidy_module.md).
+
 ## Search Collector / Scout Agent
 
 The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.

@@ -86,6 +86,13 @@ import {
 } from "../modules/counterfeit-goods/keywordLoader.js";
 import { counterfeitTopics, getCounterfeitTopicById } from "../modules/counterfeit-goods/scout_topics.js";
 import { counterfeitGoodsDefinition } from "../modules/counterfeit-goods/index.js";
+import {
+  analyzeSubsidySample,
+  buildSubsidyReportMarkdown,
+  loadSubsidySampleDataSync,
+  subsidyFraudDefinition,
+  type SubsidyAnalyzedCandidate
+} from "../modules/subsidy-fraud/index.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -1443,6 +1450,116 @@ try {
   const { rm: rmFn } = await import("node:fs/promises");
   try { await rmFn(rpt.getReportDir(cfRptCaseId), { recursive: true, force: true }); } catch { /* ignore */ }
 }
+
+// 25) Subsidy Fraud Prototype — module registration, sample analysis, signals, scoring, report
+check("subsidy module id", subsidyFraudDefinition.id === "subsidy_fraud");
+check("subsidy module slug", subsidyFraudDefinition.slug === "subsidy-fraud");
+check("subsidy module status prototype", subsidyFraudDefinition.status === "prototype");
+check("subsidy module registered", moduleRegistry.has("subsidy_fraud"));
+const subMod = moduleRegistry.get("subsidy_fraud");
+check("subsidy module category public_funds", subMod?.category === "public_funds");
+check("subsidy module reportDraft true", subMod?.capabilities.reportDraft === true);
+check("subsidy safetyNotes include 단정 금지",
+  subMod?.safetyNotes.some((n) => /단정하지 않/.test(n)) === true);
+
+// false_ad / counterfeit_goods 등 기존 모듈이 깨지지 않았는지 회귀 확인
+check("regression: false_ad still active", moduleRegistry.get("false_ad")?.status === "active");
+check("regression: counterfeit_goods still ready", moduleRegistry.get("counterfeit_goods")?.status === "ready");
+
+// sample-data 검증
+const subSample = loadSubsidySampleDataSync();
+check("subsidy sample synthetic=true", subSample.synthetic === true);
+check("subsidy sample pilotRegionId dangjin", subSample.pilotRegionId === "dangjin");
+check("subsidy sample records >= 5", subSample.records.length >= 5);
+check("subsidy sample disclaimer mentions 가상",
+  /가상/.test(subSample.disclaimer) || /합성/.test(subSample.disclaimer));
+
+// 분석 실행
+const analysis = analyzeSubsidySample();
+check("subsidy analysis moduleId", analysis.moduleId === "subsidy_fraud");
+check("subsidy analysis pilotRegionId dangjin", analysis.pilotRegionId === "dangjin");
+check("subsidy analysis syntheticOnly=true", analysis.syntheticOnly === true);
+check("subsidy analysis recordCount == sample records",
+  analysis.recordCount === subSample.records.length);
+check("subsidy analysis safetyNotice mentions 부정수급 확정",
+  /부정수급 확정/.test(analysis.safetyNotice));
+check("subsidy analysis autoReport=false", analysis.autoReport === false);
+check("subsidy analysis humanReviewRequired=true", analysis.humanReviewRequired === true);
+
+// 점수 정렬
+const cs = analysis.candidates;
+check("subsidy candidates sorted desc by priorityScore",
+  cs.every((c, i) => i === 0 || cs[i - 1].priorityScore >= c.priorityScore));
+check("subsidy candidate has 7 components",
+  cs[0].components.length === 7);
+check("subsidy total component max points = 100", (() => {
+  const sum = cs[0].components.reduce((s, c) => s + c.maxPoints, 0);
+  return sum === 100;
+})(), `sum=${cs[0].components.reduce((s, c) => s + c.maxPoints, 0)}`);
+
+// dj_2024_001 케이스 — 동일 주소 + 동일 대표자 + 용역업체 정황 → 신호 다수
+const dj1 = cs.find((c) => c.recordId === "dj_2024_001") as SubsidyAnalyzedCandidate;
+check("dj_2024_001 found", Boolean(dj1));
+const dj1SignalCodes = (dj1?.signals ?? []).map((s) => s.code);
+check("dj_2024_001 detects repeated_recipient", dj1SignalCodes.includes("repeated_recipient"));
+check("dj_2024_001 detects same_address_multiple_entities", dj1SignalCodes.includes("same_address_multiple_entities"));
+check("dj_2024_001 detects related_vendor_signal", dj1SignalCodes.includes("related_vendor_signal"));
+check("dj_2024_001 detects high_amount_low_output", dj1SignalCodes.includes("high_amount_low_output"));
+check("dj_2024_001 priorityScore >= 60 (HIGH or VERY_HIGH)",
+  dj1!.priorityScore >= 60, `score=${dj1?.priorityScore}`);
+
+// dj_2023_002 — 결과물 없음 → missing_result_evidence + repeated
+const dj2 = cs.find((c) => c.recordId === "dj_2023_002");
+check("dj_2023_002 detects missing_result_evidence",
+  (dj2?.signals ?? []).some((s) => s.code === "missing_result_evidence"));
+check("dj_2023_002 detects similar_project_titles",
+  (dj2?.signals ?? []).some((s) => s.code === "similar_project_titles"));
+
+// dj_2024_003 — 정산 미제출 + 결과물 없음 + 다른 단체와 동일 주소/대표 → disclosure_missing + same_address + related_vendor
+const dj3 = cs.find((c) => c.recordId === "dj_2024_003");
+check("dj_2024_003 detects disclosure_missing",
+  (dj3?.signals ?? []).some((s) => s.code === "disclosure_missing"));
+check("dj_2024_003 detects related_vendor_signal",
+  (dj3?.signals ?? []).some((s) => s.code === "related_vendor_signal"));
+
+// dj_2024_004 — 정상 케이스, 낮은 점수
+const dj4 = cs.find((c) => c.recordId === "dj_2024_004");
+check("dj_2024_004 priorityScore < 60", (dj4?.priorityScore ?? 0) < 60, `score=${dj4?.priorityScore}`);
+
+// dj_2023_005 — 8천만원 + 결과물 1건 + 홍보비 75% → high_amount_low_output + execution_pattern_anomaly
+const dj5 = cs.find((c) => c.recordId === "dj_2023_005");
+check("dj_2023_005 detects high_amount_low_output",
+  (dj5?.signals ?? []).some((s) => s.code === "high_amount_low_output"));
+check("dj_2023_005 detects execution_pattern_anomaly",
+  (dj5?.signals ?? []).some((s) => s.code === "execution_pattern_anomaly"));
+
+// 리포트 마크다운 — 안전 문구 + 단정 표현 없음
+const md = buildSubsidyReportMarkdown(dj1!);
+check("subsidy report mentions 자동 신고서가 아닙니다", md.includes("자동 신고서가 아닙니다"));
+check("subsidy report mentions 부정수급 여부를 확정하지 않습니다", md.includes("부정수급 여부를 확정하지 않습니다"));
+check("subsidy report mentions 국민권익위", md.includes("국민권익위원회"));
+// "피해야 할 표현" 섹션은 본 리포트에는 포함되지 않음 (collector 마크다운). 본문에 단정 표현이 없는지만 확인.
+check("subsidy report does NOT contain 부정수급 확정", !/부정수급 확정\b/.test(md));
+check("subsidy report does NOT contain 횡령 확정", !/횡령 확정/.test(md));
+check("subsidy report does NOT contain 사기꾼", !/사기꾼/.test(md));
+
+// useSampleData=false → 예외
+let nonSampleThrown = false;
+try {
+  analyzeSubsidySample({ useSampleData: false });
+} catch {
+  nonSampleThrown = true;
+}
+check("subsidy useSampleData=false throws", nonSampleThrown);
+
+// 미지원 region → 예외
+let badRegionThrown = false;
+try {
+  analyzeSubsidySample({ regionId: "unknown_region" });
+} catch {
+  badRegionThrown = true;
+}
+check("subsidy unsupported region throws", badRegionThrown);
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

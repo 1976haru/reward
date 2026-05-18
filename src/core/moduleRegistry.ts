@@ -1,11 +1,12 @@
 // Module Registry — 정적, 단순, 안전.
 // 외부 코드 동적 로딩 없음. 모듈은 src/modules/index.ts에서 명시적으로 register() 호출.
 
-// "active" — 분석 파이프라인까지 모두 연결됨 (false_ad)
-// "ready"  — 최소 룰/스카웃/리포트 연결, 사용은 가능하지만 LLM 등 일부는 미연결 (counterfeit_goods)
-// "planned"— 등록만 되어 있고 분석은 미연결
-// "disabled"— 비활성
-export type ModuleStatus = "active" | "ready" | "planned" | "disabled";
+// "active"    — 분석 파이프라인까지 모두 연결됨 (false_ad)
+// "ready"     — 최소 룰/스카웃/리포트 연결, 사용은 가능하지만 LLM 등 일부는 미연결 (counterfeit_goods)
+// "prototype" — 시범 지자체 / sample 데이터 기반 프로토타입 단계 (subsidy_fraud)
+// "planned"   — 등록만 되어 있고 분석은 미연결
+// "disabled"  — 비활성
+export type ModuleStatus = "active" | "ready" | "prototype" | "planned" | "disabled";
 
 export interface ModuleCapabilities {
   publicUrlAnalysis: boolean;

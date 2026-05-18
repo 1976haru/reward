@@ -21,6 +21,7 @@ import { dedupeRouter } from "./routes/dedupe.js";
 import { feedbackRouter, caseFeedbackRouter } from "./routes/feedback.js";
 import { evalRouter } from "./routes/eval.js";
 import { dashboardRouter } from "./routes/dashboard.js";
+import { subsidyRouter } from "./routes/subsidy.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -137,6 +138,9 @@ app.use("/api/eval", evalRouter);
 
 // 운영 대시보드 (체크리스트 23) — 조회 전용. 외부 신고 자동 제출 없음.
 app.use("/api/dashboard", dashboardRouter);
+
+// 보조금 부정수급 의심 후보 프로토타입 (체크리스트 25) — sample 기반 분석만 지원.
+app.use("/api/subsidy", subsidyRouter);
 
 // Candidate Discovery
 app.use("/api/discovery", discoveryRouter);

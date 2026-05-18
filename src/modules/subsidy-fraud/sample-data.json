@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "subsidy_fraud",
+  "pilotRegion": "충청남도 당진시",
+  "pilotRegionId": "dangjin",
+  "synthetic": true,
+  "source": "subsidy_fraud_pilot_sample_v1",
+  "disclaimer": "본 sample-data 는 가상/샘플이며 실제 단체/개인/사업자를 식별하지 않는다. 공공데이터포털에 당진시 지방보조금 관련 데이터 예시가 공개되어 있음을 참고하되, 본 파일의 모든 단체명/주소/대표자는 합성 데이터다.",
+  "publicDataPortalNotes": [
+    "충청남도 당진시_지방보조금통합관리시스템 보조사업 및 보조사업자 정보",
+    "충청남도 당진시_지방보조금통합관리시스템 보조사업자교부정보",
+    "충청남도 당진시_지방보조금통합관리시스템 집행내역정보"
+  ],
+  "records": [
+    {
+      "id": "dj_2024_001",
+      "fiscalYear": 2024,
+      "managingAgency": "충청남도 당진시 (시범 sample)",
+      "projectTitle": "지역 청년 문화 활성화 지원사업",
+      "recipientName": "샘플청년문화A협회",
+      "recipientId": "synthetic-recipient-A",
+      "recipientAddress": "충청남도 당진시 시범로 100",
+      "representative": "샘플대표A",
+      "grantAmount": 50000000,
+      "executionItems": [
+        { "category": "운영비", "amount": 12000000 },
+        { "category": "행사진행", "amount": 8000000 },
+        { "category": "용역비", "amount": 25000000 },
+        { "category": "기타", "amount": 5000000 }
+      ],
+      "settlementSubmitted": true,
+      "resultEvidenceUrls": [
+        "https://example.test/dangjin/sample/dj_2024_001/report.pdf"
+      ],
+      "vendorInfo": {
+        "name": "샘플용역A",
+        "address": "충청남도 당진시 시범로 100",
+        "representative": "샘플대표A"
+      },
+      "publicListingUrl": "https://example.test/dangjin/sample/dj_2024_001",
+      "capturedAt": "2026-05-18T00:00:00.000Z",
+      "syntheticNotes": "동일 주소 + 동일 대표자 + 용역업체 정황 — related_vendor_signal / same_address_multiple_entities 후보로 의도된 합성 케이스"
+    },
+    {
+      "id": "dj_2023_002",
+      "fiscalYear": 2023,
+      "managingAgency": "충청남도 당진시 (시범 sample)",
+      "projectTitle": "지역 청년 문화 활성화 지원 사업",
+      "recipientName": "샘플청년문화A협회",
+      "recipientId": "synthetic-recipient-A",
+      "recipientAddress": "충청남도 당진시 시범로 100",
+      "representative": "샘플대표A",
+      "grantAmount": 48000000,
+      "executionItems": [
+        { "category": "운영비", "amount": 10000000 },
+        { "category": "행사진행", "amount": 8000000 },
+        { "category": "용역비", "amount": 25000000 },
+        { "category": "기타", "amount": 5000000 }
+      ],
+      "settlementSubmitted": true,
+      "resultEvidenceUrls": [],
+      "vendorInfo": {
+        "name": "샘플용역A",
+        "address": "충청남도 당진시 시범로 100",
+        "representative": "샘플대표A"
+      },
+      "publicListingUrl": "https://example.test/dangjin/sample/dj_2023_002",
+      "capturedAt": "2026-05-18T00:00:00.000Z",
+      "syntheticNotes": "전년도 동일 단체/유사 사업명 — repeated_recipient + similar_project_titles + missing_result_evidence 의도"
+    },
+    {
+      "id": "dj_2024_003",
+      "fiscalYear": 2024,
+      "managingAgency": "충청남도 당진시 (시범 sample)",
+      "projectTitle": "지역 청년 문화 활성화 캠페인",
+      "recipientName": "샘플청년문화B센터",
+      "recipientId": "synthetic-recipient-B",
+      "recipientAddress": "충청남도 당진시 시범로 100",
+      "representative": "샘플대표B",
+      "grantAmount": 30000000,
+      "executionItems": [
+        { "category": "운영비", "amount": 5000000 },
+        { "category": "행사진행", "amount": 3000000 },
+        { "category": "용역비", "amount": 22000000 }
+      ],
+      "settlementSubmitted": false,
+      "resultEvidenceUrls": [],
+      "vendorInfo": {
+        "name": "샘플용역A",
+        "address": "충청남도 당진시 시범로 100",
+        "representative": "샘플대표A"
+      },
+      "publicListingUrl": "https://example.test/dangjin/sample/dj_2024_003",
+      "capturedAt": "2026-05-18T00:00:00.000Z",
+      "syntheticNotes": "동일 주소 + 동일 용역업체 정황 + 정산자료 미제출 + 결과물 없음 — same_address / related_vendor / disclosure_missing / execution_pattern_anomaly 의도"
+    },
+    {
+      "id": "dj_2024_004",
+      "fiscalYear": 2024,
+      "managingAgency": "충청남도 당진시 (시범 sample)",
+      "projectTitle": "농촌 일손돕기 캠페인 운영 사업",
+      "recipientName": "샘플농업협력단",
+      "recipientId": "synthetic-recipient-C",
+      "recipientAddress": "충청남도 당진시 농촌로 220",
+      "representative": "샘플대표C",
+      "grantAmount": 25000000,
+      "executionItems": [
+        { "category": "운영비", "amount": 5000000 },
+        { "category": "행사진행", "amount": 12000000 },
+        { "category": "교육비", "amount": 8000000 }
+      ],
+      "settlementSubmitted": true,
+      "resultEvidenceUrls": [
+        "https://example.test/dangjin/sample/dj_2024_004/report.pdf",
+        "https://example.test/dangjin/sample/dj_2024_004/photos.zip"
+      ],
+      "vendorInfo": null,
+      "publicListingUrl": "https://example.test/dangjin/sample/dj_2024_004",
+      "capturedAt": "2026-05-18T00:00:00.000Z",
+      "syntheticNotes": "비교적 정상 케이스 — 결과물 보고 + 다른 주소 + 별도 용역업체 없음. 리스크 점수 낮음 의도"
+    },
+    {
+      "id": "dj_2023_005",
+      "fiscalYear": 2023,
+      "managingAgency": "충청남도 당진시 (시범 sample)",
+      "projectTitle": "전통시장 활성화 지원사업",
+      "recipientName": "샘플전통시장상인회",
+      "recipientId": "synthetic-recipient-D",
+      "recipientAddress": "충청남도 당진시 시장로 30",
+      "representative": "샘플대표D",
+      "grantAmount": 80000000,
+      "executionItems": [
+        { "category": "운영비", "amount": 10000000 },
+        { "category": "홍보비", "amount": 60000000 },
+        { "category": "행사진행", "amount": 10000000 }
+      ],
+      "settlementSubmitted": true,
+      "resultEvidenceUrls": [
+        "https://example.test/dangjin/sample/dj_2023_005/promo.pdf"
+      ],
+      "vendorInfo": {
+        "name": "샘플홍보B",
+        "address": "충청남도 당진시 다른로 500",
+        "representative": "샘플대표E"
+      },
+      "publicListingUrl": "https://example.test/dangjin/sample/dj_2023_005",
+      "capturedAt": "2026-05-18T00:00:00.000Z",
+      "syntheticNotes": "교부금액 8000만원 대비 결과물 1건만 공개 — high_amount_low_output / execution_pattern_anomaly (홍보비 75%) 의도"
+    },
+    {
+      "id": "dj_2024_006",
+      "fiscalYear": 2024,
+      "managingAgency": "충청남도 당진시 (시범 sample)",
+      "projectTitle": "지역 청년 문화 활성화 행사",
+      "recipientName": "샘플청년문화C네트워크",
+      "recipientId": "synthetic-recipient-E",
+      "recipientAddress": "충청남도 당진시 청년로 77",
+      "representative": "샘플대표F",
+      "grantAmount": 20000000,
+      "executionItems": [
+        { "category": "운영비", "amount": 4000000 },
+        { "category": "행사진행", "amount": 10000000 },
+        { "category": "용역비", "amount": 6000000 }
+      ],
+      "settlementSubmitted": true,
+      "resultEvidenceUrls": [
+        "https://example.test/dangjin/sample/dj_2024_006/report.pdf"
+      ],
+      "vendorInfo": null,
+      "publicListingUrl": "https://example.test/dangjin/sample/dj_2024_006",
+      "capturedAt": "2026-05-18T00:00:00.000Z",
+      "syntheticNotes": "사업명만 유사 — similar_project_titles 단독 의도 (낮은 점수)"
+    }
+  ]
+}

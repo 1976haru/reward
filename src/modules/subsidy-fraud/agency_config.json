@@ -1,0 +1,106 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "subsidy_fraud",
+  "category": "public_funds",
+  "lastReviewedAt": "2026-05-18",
+  "disclaimer": "본 안내는 공개 정보를 정리한 보조 자료이며, 부정수급 여부를 확정하지 않는다. 신고 채널·환수·처분·포상 여부는 공식 기준과 처리 결과에 따라 달라지므로 각 기관 공식 안내를 직접 확인해야 한다.",
+  "rewardPolicySummary": {
+    "rewardGuaranteed": false,
+    "notes": [
+      "보조금 관련 보상/포상은 환수·처분·공공기관 수입 회복·공식 기준에 따라 달라집니다.",
+      "이 프로그램은 포상금 수령을 보장하지 않습니다.",
+      "신고 전 공식 기준을 직접 확인해야 합니다."
+    ]
+  },
+  "primaryAgencies": [
+    {
+      "agencyId": "acrc",
+      "agencyName": "국민권익위원회 / 청렴포털 / 국민신문고",
+      "role": "공익신고 / 부패신고 / 보조금 부정수급 관련 신고 접수·보호·보상 제도 운영 기관",
+      "officialUrl": "https://www.acrc.go.kr/",
+      "additionalUrls": [
+        "https://www.epeople.go.kr/",
+        "https://www.clean.go.kr/"
+      ],
+      "scope": [
+        "공익신고자 보호",
+        "부패신고",
+        "보조금 부정수급 관련 신고 검토 채널"
+      ],
+      "caution": "공식 페이지에서 신고 절차/보호/보상 기준을 직접 확인하세요. 본 도구는 신고 접수를 자동화하지 않습니다."
+    },
+    {
+      "agencyId": "subsidy_managing_agency",
+      "agencyName": "보조금 관리기관 (중앙부처/지자체/공공기관)",
+      "role": "해당 보조사업을 교부·관리한 기관",
+      "officialUrl": null,
+      "scope": [
+        "보조사업 교부 결정",
+        "정산/결과 검토",
+        "환수/제재 조치 검토"
+      ],
+      "caution": "사안마다 관리기관이 다릅니다. 공고/교부정보의 교부기관을 확인하세요."
+    },
+    {
+      "agencyId": "local_audit",
+      "agencyName": "관할 지자체 감사부서",
+      "role": "지방보조금 사업 점검·감사 가능 기관",
+      "officialUrl": null,
+      "scope": [
+        "지방보조금 사업 점검",
+        "현장 확인 / 자료 요청"
+      ],
+      "caution": "관할 지자체 감사 안내를 별도로 확인하세요."
+    }
+  ],
+  "secondaryAgencies": [
+    {
+      "agencyId": "bojo_portal",
+      "agencyName": "e나라도움 / 보조금통합포털",
+      "role": "국고보조금 공개자료 확인 및 시스템 참고",
+      "officialUrl": "https://www.bojo.go.kr/",
+      "additionalUrls": ["https://www.gosims.go.kr/", "https://www.losims.go.kr/"],
+      "scope": [
+        "공모/교부/공시/집행/정산 공개자료 확인",
+        "공식 시스템 안내 참고"
+      ],
+      "caution": "시스템 자체는 신고 채널이 아닙니다. 신고는 위 1차 기관에서 진행하세요."
+    }
+  ],
+  "evidenceRequirements": [
+    "보조사업명",
+    "보조사업자명 (공시 영역)",
+    "교부기관",
+    "회계연도",
+    "교부금액",
+    "집행내역 (공개)",
+    "정산/결과보고 자료 (공개)",
+    "결과물 URL 또는 증빙 (공개)",
+    "동일 주소/대표/단체명 유사성 근거 (공개자료)",
+    "반복 수급 근거 (공개자료)",
+    "원본 공고/공시 URL",
+    "수집일시",
+    "캡처/PDF"
+  ],
+  "rewardNotes": [
+    "보조금 관련 보상/포상은 환수, 처분, 공공기관 수입 회복, 공식 기준에 따라 달라집니다.",
+    "본 도구는 포상금 수령을 보장하지 않습니다.",
+    "신고 전 공식 기준을 직접 확인해야 합니다."
+  ],
+  "officialReportingLinks": [
+    {
+      "agencyId": "acrc_epeople",
+      "agencyName": "국민신문고",
+      "label": "국민신문고 신고 진입",
+      "url": "https://www.epeople.go.kr/",
+      "caution": "공식 페이지에서 신고 양식·증빙 요건을 직접 확인하세요. 자동 로그인/자동 제출은 수행되지 않습니다."
+    },
+    {
+      "agencyId": "acrc_clean",
+      "agencyName": "청렴포털",
+      "label": "청렴포털 (부패·공익신고)",
+      "url": "https://www.clean.go.kr/",
+      "caution": "공익신고자 보호 제도와 보상 기준을 공식 페이지에서 확인하세요."
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "subsidy_fraud",
+  "lastReviewedAt": "2026-05-18",
+  "disclaimer": "여기 등록된 소스는 보조금 부정수급 의심 후보 검토를 위한 공공자료 참고용이다. 본 모듈은 자동 대량 수집을 수행하지 않으며, 인증키가 필요한 공공데이터포털 API 도 수동/사용자 입력 기준으로만 사용한다.",
+  "officialSources": [
+    {
+      "sourceId": "bojo_portal",
+      "name": "보조금통합포털",
+      "type": "official_portal",
+      "url": "https://www.bojo.go.kr/",
+      "usage": "국고보조금 공모/사업자/공시 등 공공자료 확인 진입점"
+    },
+    {
+      "sourceId": "bojo_task_request",
+      "name": "보조금통합포털 공모사업찾기",
+      "type": "official_portal",
+      "url": "https://bojo.go.kr/hg/hg002/retrieveTaskReqstList.do",
+      "usage": "공모 사업 목록 확인"
+    },
+    {
+      "sourceId": "bojo_disclosure",
+      "name": "보조사업자 정보공시",
+      "type": "official_portal",
+      "url": "https://bojo.go.kr/opn/ii/ii001/getII001002QView.do",
+      "usage": "보조사업자 정보공시 — 공시 항목/결과보고 등 공공자료"
+    },
+    {
+      "sourceId": "gosims",
+      "name": "e나라도움",
+      "type": "official_system",
+      "url": "https://www.gosims.go.kr/",
+      "usage": "국고보조금 통합관리시스템 — 공개 영역 안내/문서/뉴스 참고"
+    },
+    {
+      "sourceId": "losims",
+      "name": "지방보조금관리시스템 (보탬e)",
+      "type": "official_system",
+      "url": "https://www.losims.go.kr/",
+      "usage": "지방보조금 관리/공시 시스템 참고"
+    },
+    {
+      "sourceId": "public_data_portal",
+      "name": "공공데이터포털",
+      "type": "public_data_portal",
+      "url": "https://www.data.go.kr/",
+      "usage": "지자체별 지방보조금 파일/API 데이터 확인 (인증키 별도 신청). 본 모듈은 인증키를 커밋하지 않는다."
+    }
+  ],
+  "prototypeSources": [
+    {
+      "sourceId": "dangjin_sample",
+      "name": "당진시 지방보조금 공공데이터 예시 (sample)",
+      "type": "sample_public_data",
+      "regionId": "dangjin",
+      "regionName": "충청남도 당진시",
+      "publicDataPortalNotes": [
+        "충청남도 당진시_지방보조금통합관리시스템 보조사업 및 보조사업자 정보",
+        "충청남도 당진시_지방보조금통합관리시스템 보조사업자교부정보",
+        "충청남도 당진시_지방보조금통합관리시스템 집행내역정보"
+      ],
+      "usage": "시범 지자체 1곳 mock/sample 분석 구조. 실제 데이터는 공공데이터포털에서 직접 확인."
+    }
+  ],
+  "prohibitedSources": [
+    "비공개 내부자료",
+    "로그인 우회 자료",
+    "개인 주민등록번호",
+    "계좌번호",
+    "민감정보",
+    "익명 커뮤니티 단정 글",
+    "무단 대량 크롤링"
+  ]
+}

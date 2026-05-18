@@ -158,6 +158,11 @@ const state = {
   dashboard: {
     summary: null,
     lastError: null
+  },
+  subsidy: {
+    result: null,
+    selectedRecordId: null,
+    report: null
   }
 };
 
@@ -183,6 +188,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindFeedback();
   bindEval();
   bindDashboard();
+  bindSubsidy();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -275,11 +281,12 @@ async function runSchedulerOnce() {
 // /api/modules에서 받은 ModuleDefinition을 UI MODULES 형태로 변환
 function toUiModule(m) {
   // "active" = 풀 파이프라인 / "ready" = 최소 룰·스카웃·리포트 연결 (counterfeit_goods)
-  // 둘 다 UI에서 선택 가능으로 처리한다.
+  // "prototype" = sample 기반 프로토타입 (subsidy_fraud)
+  // 셋 다 UI에서 선택 가능으로 처리한다.
   return {
     id: m.id,
     name: m.name,
-    available: m.status === "active" || m.status === "ready",
+    available: m.status === "active" || m.status === "ready" || m.status === "prototype",
     status: m.status,
     agency: (m.ui && m.ui.agency) || "—",
     target: (m.ui && m.ui.target) || "—",
@@ -312,9 +319,11 @@ function renderModules() {
   const root = document.getElementById("moduleList");
   root.innerHTML = MODULES.map((m) => {
     const isActive = state.selectedModuleId === m.id && m.available;
-    const statusBadge = m.available
-      ? '<span class="badge ok">사용 가능</span>'
-      : '<span class="badge muted">준비 중</span>';
+    let statusBadge;
+    if (m.status === "active") statusBadge = '<span class="badge ok">사용 가능</span>';
+    else if (m.status === "ready") statusBadge = '<span class="badge ok">사용 가능 (룰 기반)</span>';
+    else if (m.status === "prototype") statusBadge = '<span class="badge warn">프로토타입</span>';
+    else statusBadge = '<span class="badge muted">준비 중</span>';
     return `
       <div class="module-card ${isActive ? "active" : ""} ${m.available ? "" : "disabled"}" data-id="${m.id}">
         <div class="mc-title">
@@ -1651,6 +1660,129 @@ async function loadCaseFeedbacks(caseId) {
     const data = await res.json();
     if (data && data.ok) state.feedback.caseFeedbacks = data.items || [];
   } catch { /* ignore */ }
+}
+
+// ---------- 보조금 의심 후보 프로토타입 (체크리스트 25) ----------
+function bindSubsidy() {
+  const aBtn = document.getElementById("subsidyAnalyzeBtn");
+  if (aBtn) aBtn.addEventListener("click", runSubsidyAnalyze);
+  const rBtn = document.getElementById("subsidyRefreshBtn");
+  if (rBtn) rBtn.addEventListener("click", runSubsidyAnalyze);
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.matches("[data-subsidy-report]")) {
+      e.preventDefault();
+      const id = t.getAttribute("data-subsidy-report");
+      if (id) loadSubsidyReport(id);
+    }
+    if (t.id === "subsidyReportCloseBtn") {
+      e.preventDefault();
+      state.subsidy.report = null;
+      renderSubsidyDashboard(document.getElementById("subsidyDashboard"), state.subsidy.result);
+    }
+  });
+}
+
+async function runSubsidyAnalyze() {
+  const root = document.getElementById("subsidyDashboard");
+  if (!root) return;
+  root.innerHTML = '<p class="muted">sample 기반 분석 중...</p>';
+  try {
+    const res = await fetch("/api/subsidy/analyze", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ regionId: "dangjin", useSampleData: true })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    state.subsidy.result = data;
+    state.subsidy.report = null;
+    renderSubsidyDashboard(root, data);
+  } catch (err) {
+    root.innerHTML = `<div class="code">분석 실패: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderSubsidyDashboard(root, data) {
+  if (!root || !data) return;
+  const candidates = data.candidates || [];
+  const total = data.recordCount ?? candidates.length;
+  const veryHigh = candidates.filter((c) => c.priorityLevel === "VERY_HIGH_PRIORITY").length;
+  const high = candidates.filter((c) => c.priorityLevel === "HIGH_PRIORITY").length;
+  const review = candidates.filter((c) => c.priorityLevel === "REVIEW_NEEDED").length;
+  const low = candidates.filter((c) => c.priorityLevel === "LOW").length;
+
+  const cards = [
+    { label: "분석 레코드", value: total, cls: "muted" },
+    { label: "최우선 검토", value: veryHigh, cls: veryHigh > 0 ? "danger" : "muted" },
+    { label: "우선 검토", value: high, cls: high > 0 ? "warn" : "muted" },
+    { label: "검토 필요", value: review, cls: "muted" },
+    { label: "낮음", value: low, cls: "muted" }
+  ];
+  const cardsHtml = cards.map((c) => `
+    <div class="evi-item" style="text-align:center;padding:8px 10px;">
+      <div class="label" style="font-size:11px;">${escapeHtml(c.label)}</div>
+      <div class="value" style="font-size:18px;">${escapeHtml(String(c.value))}</div>
+    </div>
+  `).join("");
+
+  const rows = candidates.map((c) => {
+    const lvlCls = c.priorityLevel === "VERY_HIGH_PRIORITY" ? "danger" :
+                   c.priorityLevel === "HIGH_PRIORITY" ? "warn" :
+                   c.priorityLevel === "REVIEW_NEEDED" ? "muted" : "muted";
+    const sigPills = (c.signals || []).slice(0, 6).map((s) =>
+      `<span class="badge ${s.weight >= 20 ? 'danger' : (s.weight >= 15 ? 'warn' : 'muted')}" title="${escapeAttr(s.description)}">${escapeHtml(s.label)} (+${s.weight})</span>`
+    ).join(" ");
+    return `
+      <div class="ops-top-row">
+        <div class="ops-top-rank">${c.priorityScore}</div>
+        <div class="ops-top-main">
+          <div class="ops-top-title">${escapeHtml(c.projectTitle)}</div>
+          <div class="muted ops-top-meta">
+            ${escapeHtml(c.recipientName)} · ${c.fiscalYear}년 · ${(c.grantAmount || 0).toLocaleString()}원 ·
+            <span class="badge ${lvlCls}">${escapeHtml(c.priorityLabel)}</span>
+          </div>
+          <div style="margin-top:4px;">${sigPills || '<span class="muted" style="font-size:12px;">탐지된 신호 없음</span>'}</div>
+          <div class="muted ops-top-url" style="font-size:11.5px;">${escapeHtml(c.publicListingUrl || "")}</div>
+        </div>
+        <div class="ops-top-action">
+          <button class="ghost" type="button" data-subsidy-report="${escapeAttr(c.recordId)}">리포트 초안</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const reportHtml = state.subsidy.report
+    ? `
+      <h4 class="ops-section-title">리포트 초안 미리보기 — ${escapeHtml(state.subsidy.report.candidate?.recordId || "")}</h4>
+      <pre class="code" style="max-height:320px;overflow:auto;white-space:pre-wrap;font-size:12px;">${escapeHtml(state.subsidy.report.markdown || "")}</pre>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button class="ghost" type="button" id="subsidyReportCloseBtn">초안 닫기</button>
+      </div>
+    `
+    : "";
+
+  root.innerHTML = `
+    <p class="muted ops-safety">⚠ ${escapeHtml(data.safetyNotice || "보조금 모듈은 공개자료 기반 검토 후보를 만드는 프로토타입입니다.")}</p>
+    <p class="muted">시범 지자체: <strong>${escapeHtml(data.pilotRegion || "(미지정)")}</strong> · synthetic=${data.syntheticOnly ? "true" : "false"} · analyzedAt ${escapeHtml(data.analyzedAt || "")}</p>
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));">${cardsHtml}</div>
+    <h4 class="ops-section-title">후보 목록 (점수 내림차순)</h4>
+    <div class="ops-top-list">${rows || '<p class="muted">후보가 없습니다.</p>'}</div>
+    ${reportHtml}
+  `;
+}
+
+async function loadSubsidyReport(recordId) {
+  try {
+    const res = await fetch(`/api/subsidy/candidates/${encodeURIComponent(recordId)}/report`);
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    state.subsidy.report = { candidate: data.candidate, markdown: data.report?.markdown || "" };
+    renderSubsidyDashboard(document.getElementById("subsidyDashboard"), state.subsidy.result);
+  } catch (err) {
+    alert("리포트 초안 로드 실패: " + err.message);
+  }
 }
 
 // ---------- 운영 대시보드 (체크리스트 23) ----------

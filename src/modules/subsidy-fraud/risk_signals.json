@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "subsidy_fraud",
+  "lastReviewedAt": "2026-05-18",
+  "disclaimer": "여기 정의된 신호는 모두 '검토 후보' 분류용이다. 부정수급 확정 신호가 아니다. 모든 결과는 공식기관 확인이 필요하다.",
+  "signals": [
+    {
+      "code": "repeated_recipient",
+      "label": "반복 수급 패턴",
+      "description": "동일 또는 유사 단체가 여러 회계연도/여러 기관에서 반복적으로 보조금 교부를 받은 공개 정황",
+      "weight": 20,
+      "category": "recipient_pattern",
+      "verificationHint": "공시된 보조사업자명과 회계연도를 교차 확인하세요. 동일성 판단은 공식기관 확인이 필요합니다."
+    },
+    {
+      "code": "same_address_multiple_entities",
+      "label": "동일 주소 다단체",
+      "description": "동일 주소에 여러 보조사업자 또는 유사 단체가 공개 정보상 함께 존재",
+      "weight": 20,
+      "category": "address_pattern",
+      "verificationHint": "주소는 공개 영역만 사용합니다. 개인 거주 주소가 아닌 사업장/단체 주소만 검토 대상입니다."
+    },
+    {
+      "code": "similar_project_titles",
+      "label": "유사 사업명 반복",
+      "description": "사업명이 매우 유사한 보조사업이 반복 신청·수행된 공개 정황",
+      "weight": 15,
+      "category": "project_pattern",
+      "verificationHint": "사업명 유사도는 단순 텍스트 비교입니다. 사업 목적의 실제 동일성은 사람 확인이 필요합니다."
+    },
+    {
+      "code": "missing_result_evidence",
+      "label": "결과물 증빙 부족",
+      "description": "보조사업 결과물, 행사 기록, 홍보물, 결과보고서 등 공개 증빙이 부족",
+      "weight": 15,
+      "category": "evidence_gap",
+      "verificationHint": "공개 자료에 없을 뿐 비공개 영역에 있을 수 있습니다. 관리기관에 자료 확인을 요청해야 합니다."
+    },
+    {
+      "code": "high_amount_low_output",
+      "label": "교부금액 대비 산출물 부족",
+      "description": "교부금액 대비 공개 결과물(행사 결과, 홍보물, 보고서, 결과물 URL 등)이 부족해 보임",
+      "weight": 15,
+      "category": "amount_output_imbalance",
+      "verificationHint": "산출물 평가는 비교 기준이 다양합니다. 공식 정산 자료 확인이 우선입니다."
+    },
+    {
+      "code": "related_vendor_signal",
+      "label": "특수관계 의심 (용역업체)",
+      "description": "수급단체와 용역업체의 주소/대표자/연락처가 유사해 보이는 공개자료 정황",
+      "weight": 20,
+      "category": "related_vendor",
+      "verificationHint": "특수관계 여부는 공식 등기/사업자 정보 등 공식 확인이 필요합니다. 본 신호는 단정 근거가 아닙니다."
+    },
+    {
+      "code": "execution_pattern_anomaly",
+      "label": "집행 패턴 이상",
+      "description": "집행내역이 특정 비목 또는 특정 시점에 과도하게 몰리는 공개 정황",
+      "weight": 10,
+      "category": "execution_pattern",
+      "verificationHint": "사업 성격에 따라 집행 패턴이 다를 수 있습니다. 사업계획서 대비 확인이 필요합니다."
+    },
+    {
+      "code": "disclosure_missing",
+      "label": "공시 누락 의심",
+      "description": "공시 대상처럼 보이지만 공개자료가 부족하거나 확인이 곤란",
+      "weight": 10,
+      "category": "disclosure_gap",
+      "verificationHint": "공시 대상 여부와 누락 여부는 공식 안내 기준으로 확인해야 합니다."
+    },
+    {
+      "code": "duplicate_content",
+      "label": "결과보고 콘텐츠 중복",
+      "description": "결과보고서/이미지/홍보문구 등이 다른 사업과 유사하거나 중복되는 공개 정황",
+      "weight": 15,
+      "category": "content_duplication",
+      "verificationHint": "공통 양식·템플릿 사용일 수 있습니다. 실제 중복 여부는 원문 비교가 필요합니다."
+    }
+  ]
+}
