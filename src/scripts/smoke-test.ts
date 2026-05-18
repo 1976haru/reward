@@ -1960,6 +1960,71 @@ check("retention report safetyNotice present", typeof retReport.safetyNotice ===
 // 삭제 안전장치 — 직접 호출 대신 라우터 안전 로직을 단위 테스트로 검증
 // (별도 isPathSafeForDelete 노출 없으므로 검증은 API 통합에서 수행)
 
+// 29) Deployment artifacts — Dockerfile / compose / .dockerignore / scripts / deployment_guide / README
+async function fileExists(p: string): Promise<boolean> {
+  try { await fsStat(p); return true; } catch { return false; }
+}
+async function readFileSafe(p: string): Promise<string> {
+  try { return await readFile(p, "utf8"); } catch { return ""; }
+}
+
+const root = process.cwd();
+check("deploy: .env.example exists", await fileExists(path.join(root, ".env.example")));
+check("deploy: Dockerfile exists", await fileExists(path.join(root, "Dockerfile")));
+check("deploy: docker-compose.yml exists", await fileExists(path.join(root, "docker-compose.yml")));
+check("deploy: .dockerignore exists", await fileExists(path.join(root, ".dockerignore")));
+check("deploy: docs/deployment_guide.md exists", await fileExists(path.join(root, "docs", "deployment_guide.md")));
+check("deploy: scripts/health-check.js exists", await fileExists(path.join(root, "scripts", "health-check.js")));
+check("deploy: scripts/dev.ps1 exists", await fileExists(path.join(root, "scripts", "dev.ps1")));
+check("deploy: scripts/start-local.ps1 exists", await fileExists(path.join(root, "scripts", "start-local.ps1")));
+check("deploy: scripts/dev.sh exists", await fileExists(path.join(root, "scripts", "dev.sh")));
+check("deploy: scripts/start-local.sh exists", await fileExists(path.join(root, "scripts", "start-local.sh")));
+
+// health-check.js — PORT env 사용 여부 + http 호출
+const healthSrc = await readFileSafe(path.join(root, "scripts", "health-check.js"));
+check("deploy: health-check reads PORT env", /process\.env\.PORT/.test(healthSrc));
+check("deploy: health-check uses /api/health", /api\/health/.test(healthSrc));
+check("deploy: health-check has timeout handling", /timeout/i.test(healthSrc));
+
+// package.json — start/build/test/dev/check/health 존재
+const pkgRaw = await readFileSafe(path.join(root, "package.json"));
+const pkg = JSON.parse(pkgRaw) as { scripts?: Record<string, string> };
+const scripts = pkg.scripts ?? {};
+for (const s of ["start", "build", "test", "dev", "check", "health"]) {
+  check(`deploy: package.json script "${s}" exists`, typeof scripts[s] === "string" && scripts[s].length > 0);
+}
+
+// .dockerignore — secrets + data 산출물 제외
+const dockerignore = await readFileSafe(path.join(root, ".dockerignore"));
+check("deploy: .dockerignore excludes .env", /^\.env$/m.test(dockerignore) || /^\.env\b/m.test(dockerignore));
+check("deploy: .dockerignore excludes data/cases", /^data\/cases\b/m.test(dockerignore));
+check("deploy: .dockerignore excludes data/evidence", /^data\/evidence\b/m.test(dockerignore));
+check("deploy: .dockerignore excludes data/traces", /^data\/traces\b/m.test(dockerignore));
+check("deploy: .dockerignore excludes node_modules", /^node_modules\b/m.test(dockerignore));
+check("deploy: .dockerignore excludes dist", /^dist\b/m.test(dockerignore));
+check("deploy: .dockerignore excludes *.db", /\*\.db/m.test(dockerignore));
+
+// Dockerfile — non-root + EXPOSE 3001 + HEALTHCHECK
+const dockerfileSrc = await readFileSafe(path.join(root, "Dockerfile"));
+check("deploy: Dockerfile uses non-root user", /USER\s+(node|\d+:\d+)/m.test(dockerfileSrc));
+check("deploy: Dockerfile EXPOSE 3001", /EXPOSE\s+3001/.test(dockerfileSrc));
+check("deploy: Dockerfile has HEALTHCHECK", /HEALTHCHECK/.test(dockerfileSrc));
+check("deploy: Dockerfile multi-stage (FROM ... AS ...)",
+  (dockerfileSrc.match(/^FROM\s+\S+\s+AS\s+\w+/gm) ?? []).length >= 2);
+
+// docker-compose.yml — ./data:/app/data volume + port mapping + env_file
+const composeSrc = await readFileSafe(path.join(root, "docker-compose.yml"));
+check("deploy: docker-compose mounts ./data:/app/data", /\.\/data:\/app\/data/.test(composeSrc));
+check("deploy: docker-compose maps port 3001", /"?3001:3001"?/.test(composeSrc));
+check("deploy: docker-compose has env_file .env", /env_file/.test(composeSrc) && /\.env/.test(composeSrc));
+check("deploy: docker-compose has healthcheck", /healthcheck/i.test(composeSrc));
+
+// README — Quick Start 섹션
+const readme = await readFileSafe(path.join(root, "README.md"));
+check("deploy: README has Quick Start", /Quick Start/i.test(readme));
+check("deploy: README has Docker Quick Start", /docker compose up/i.test(readme));
+check("deploy: README links docs/deployment_guide.md", /docs\/deployment_guide\.md/.test(readme));
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);

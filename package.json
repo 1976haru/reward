@@ -12,7 +12,8 @@
     "check": "npm run build && npm run test",
     "check:policy": "node scripts/check-approval-gate.js",
     "playwright:install": "playwright install chromium",
-    "eval:generate": "tsx scripts/generate-eval-set.ts"
+    "eval:generate": "tsx scripts/generate-eval-set.ts",
+    "health": "node scripts/health-check.js"
   },
   "dependencies": {
     "@openai/agents": "latest",

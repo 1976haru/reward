@@ -1,0 +1,48 @@
+# reward-agent-mvp — docker-compose (체크리스트 29)
+#
+# 사용:
+#   docker compose up --build
+#   docker compose logs -f app
+#   docker compose down
+#
+# 주의:
+# - .env 는 호스트의 .env 파일을 이미지에 주입한다 (.dockerignore 처리되어 이미지에는 포함되지 않음).
+# - 산출물 디렉터리 ./data 는 호스트와 볼륨 마운트 — 컨테이너 삭제 시에도 데이터 유지.
+# - Playwright 스크린샷/PDF 는 기본 비활성. 활성화하려면 별도 chromium 이미지 필요.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: reward-agent-mvp:latest
+    container_name: reward-agent-mvp
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      # docker-compose 환경에서는 모든 인터페이스 바인드 (호스트 매핑은 ports 가 처리)
+      NODE_ENV: production
+      PORT: 3001
+      DATA_DIR: /app/data
+      EVIDENCE_ENABLE_SCREENSHOT: "false"
+      EVIDENCE_ENABLE_PDF: "false"
+      # health-check.js 가 컨테이너 안에서 동작하기 위한 host 지정
+      HEALTH_HOST: 127.0.0.1
+    volumes:
+      # 산출물 영속 — 컨테이너 재시작에도 데이터 유지
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "scripts/health-check.js"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+    # 보안 — 권한 상승 차단
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp

@@ -41,6 +41,55 @@ npm run dev
 
 macOS/Linux 사용자는 5번을 `cp .env.example .env`, 6번 이하 동일하게 진행하세요.
 
+## Quick Start (Local — 한 줄 요약)
+
+```bash
+git clone https://github.com/1976haru/reward.git && cd reward
+npm install
+cp .env.example .env           # Windows: Copy-Item .env.example .env
+npm run dev                    # → http://localhost:3001
+```
+
+또는 OS별 원클릭 스크립트:
+
+```bash
+# Windows PowerShell
+.\scripts\dev.ps1              # 개발 모드 (자동 재시작)
+.\scripts\start-local.ps1      # 빌드 + 프로덕션
+
+# Linux / macOS
+./scripts/dev.sh
+./scripts/start-local.sh
+```
+
+## Quick Start (Docker)
+
+```bash
+cp .env.example .env
+docker compose up --build      # 빌드 + 실행 (포트 3001)
+docker compose logs -f app     # 로그 확인 (Ctrl+C)
+docker compose down            # 중지 — ./data 는 유지됨
+```
+
+Docker 이미지는 `.env` 와 `data/` 산출물을 포함하지 않습니다. `./data` 는 호스트와 볼륨 마운트되어 컨테이너 재시작에도 데이터가 유지됩니다. Playwright 캡처(스크린샷/PDF)는 Docker 기본 비활성 — HTML/TEXT/Report 중심으로 동작합니다.
+
+## Health Check
+
+```bash
+curl http://localhost:3001/api/health
+# → { "ok": true, "service": "reward-agent-mvp", "port": 3001, ... }
+
+npm run health                 # PORT env 자동 인식, 종료 코드 0/1
+```
+
+## Data Directory
+
+`./data/` 하위 모든 산출물(cases / evidence / reports / raw / candidates / scheduler / dedupe / feedback / eval/runs / traces)은 **GitHub 에 올라가지 않습니다.** `.gitkeep` 만 추적됩니다. Docker compose 는 `./data` 를 컨테이너 `/app/data` 에 바인드 마운트합니다.
+
+## Deployment Guide
+
+상세 가이드: [`docs/deployment_guide.md`](./docs/deployment_guide.md) — Local / Docker / Health / Data / Troubleshooting / Server Notes / Safety.
+
 ### Verification
 
 서버가 정상이라면 다음 응답을 받습니다.

@@ -1,0 +1,50 @@
+# Build artifacts / dev files
+node_modules
+dist
+coverage
+.cache
+*.log
+
+# Secrets — 절대 이미지에 포함 금지
+.env
+.env.*
+!.env.example
+
+# Local data — 산출물 / 시크릿 / 개인정보 회피
+data/cases
+data/evidence
+data/reports
+data/raw
+data/candidates
+data/scheduler
+data/dedupe
+data/feedback
+data/eval/runs
+data/traces
+*.db
+prisma/dev.db
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# 큰 / 불필요한 자원
+docs
+*.md
+!README.md
+!docs/deployment_guide.md
+test
+tests
+**/*.test.ts
+**/*.spec.ts
+
+# Docker meta — 자기 자신은 컨텍스트에 넣지 않음
+Dockerfile.local
+docker-compose.override.yml
