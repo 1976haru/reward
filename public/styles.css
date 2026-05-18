@@ -247,10 +247,109 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
 .modal p { color: var(--muted); margin: 0 0 16px; line-height: 1.55; }
 .modal .actions { display: flex; justify-content: flex-end; gap: 8px; }
 
+/* ---------- 운영 대시보드 (체크리스트 23) ---------- */
+.ops-section-title { margin: 14px 0 6px; font-size: 14px; }
+.ops-safety { font-size: 12.5px; margin: 0 0 6px; }
+.ops-generated { font-size: 11.5px; margin: 0 0 10px; }
+
+.ops-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.ops-kpi {
+  text-align: center;
+  padding: 12px 10px;
+  border-left: 4px solid #94a3b8;
+}
+.ops-kpi.kpi-ok { border-left-color: #16a34a; }
+.ops-kpi.kpi-warn { border-left-color: #f59e0b; }
+.ops-kpi.kpi-danger { border-left-color: #dc2626; }
+.ops-kpi.kpi-muted { border-left-color: #94a3b8; }
+.ops-kpi .value { font-size: 22px; font-weight: 700; }
+.ops-kpi .label { font-size: 12px; color: var(--muted); }
+.ops-hint { font-size: 11px; margin-top: 4px; }
+
+.ops-queue-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+.ops-queue-cell { text-align: center; padding: 8px 6px; }
+.ops-queue-cell .value { font-size: 18px; font-weight: 700; }
+.ops-queue-cell .label { font-size: 11px; color: var(--muted); }
+
+.ops-top-list { display: flex; flex-direction: column; gap: 6px; }
+.ops-top-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+.ops-top-rank { font-weight: 700; font-size: 16px; color: #2563eb; }
+.ops-top-title { font-weight: 600; font-size: 14px; }
+.ops-top-meta { font-size: 12px; margin-top: 2px; }
+.ops-top-url {
+  font-size: 11.5px; margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 100%;
+}
+.ops-top-action button {
+  min-width: 64px;
+  min-height: 36px;
+}
+
+.ops-table-wrap { overflow-x: auto; }
+.ops-modules-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  background: white;
+}
+.ops-modules-table th, .ops-modules-table td {
+  padding: 6px 8px; text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+.ops-modules-table th { background: #f3f4f6; font-size: 12px; }
+
+.ops-bar-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 60px;
+  gap: 8px; align-items: center;
+  margin: 4px 0; font-size: 12.5px;
+}
+.ops-bar {
+  height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden;
+}
+.ops-bar-fill {
+  height: 100%; background: #94a3b8;
+}
+.ops-bar-fill.ok { background: #16a34a; }
+.ops-bar-fill.warn { background: #f59e0b; }
+.ops-bar-fill.danger { background: #dc2626; }
+.ops-bar-fill.muted { background: #94a3b8; }
+.ops-eval-meta { font-size: 11.5px; margin: 4px 0 6px; }
+
+.ops-twocol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.ops-feedback-reasons { padding-left: 18px; font-size: 12.5px; margin: 0; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 1024px) {
   .layout { grid-template-columns: 1fr; }
   .process { grid-template-columns: repeat(4, 1fr); }
+  .ops-queue-grid { grid-template-columns: repeat(4, 1fr); }
+  .ops-twocol { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .ops-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .ops-queue-grid { grid-template-columns: repeat(4, 1fr); }
+  .ops-bar-row { grid-template-columns: 80px 1fr 50px; }
 }
 @media (max-width: 640px) {
   body { padding: 14px; }
@@ -258,4 +357,15 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
   .hero h1 { font-size: 22px; }
   .process { grid-template-columns: repeat(2, 1fr); }
   .case { grid-template-columns: 1fr; }
+  .ops-queue-grid { grid-template-columns: repeat(2, 1fr); }
+  .ops-top-row { grid-template-columns: 36px 1fr; }
+  .ops-top-action { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+  .ops-top-action button { min-height: 40px; padding: 8px 14px; }
+}
+@media (max-width: 480px) {
+  .ops-kpi-grid { grid-template-columns: 1fr; }
+  .ops-queue-grid { grid-template-columns: repeat(2, 1fr); }
+  .ops-kpi .value { font-size: 20px; }
+  .ops-modules-table { min-width: 460px; }
+  .ops-bar-row { grid-template-columns: 70px 1fr 46px; font-size: 12px; }
 }

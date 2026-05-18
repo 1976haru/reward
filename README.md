@@ -223,6 +223,23 @@ API:
 
 자세한 명세는 [`docs/eval_set.md`](./docs/eval_set.md).
 
+## Dashboard (운영 대시보드)
+
+오늘 수집·검토 현황, Review Queue 상태, 후보 TOP10, 모듈별 성과, Eval 품질 지표(Precision/Recall/F1/Accuracy), Scheduler·Dedupe·Feedback 요약을 한 화면에서 확인하는 **조회 전용** 운영 대시보드입니다.
+
+- "제출 기록" 은 사람이 외부 공식 창구에서 직접 제출한 뒤 내부에 표시한 상태입니다. **자동 제출/자동 신고 기능 없음.**
+- 포상금 예측/수익 예측 카드는 추가하지 않습니다.
+- 모바일 반응형: 1024 / 768 / 480px breakpoint.
+
+API:
+
+- `GET /api/dashboard/summary`
+- `GET /api/dashboard/top-candidates?limit=N`
+- `GET /api/dashboard/module-performance`
+- `GET /api/dashboard/quality`
+
+자세한 명세는 [`docs/dashboard.md`](./docs/dashboard.md).
+
 ## Search Collector / Scout Agent
 
 The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.

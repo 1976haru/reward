@@ -20,6 +20,7 @@ import { schedulerService } from "./services/scheduler/SchedulerService.js";
 import { dedupeRouter } from "./routes/dedupe.js";
 import { feedbackRouter, caseFeedbackRouter } from "./routes/feedback.js";
 import { evalRouter } from "./routes/eval.js";
+import { dashboardRouter } from "./routes/dashboard.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -133,6 +134,9 @@ app.use("/api/feedback", feedbackRouter);
 
 // Eval Set (체크리스트 22) — 합성 평가셋 기반 품질 측정. LLM 호출 기본 비활성, 외부 신고 미수행.
 app.use("/api/eval", evalRouter);
+
+// 운영 대시보드 (체크리스트 23) — 조회 전용. 외부 신고 자동 제출 없음.
+app.use("/api/dashboard", dashboardRouter);
 
 // Candidate Discovery
 app.use("/api/discovery", discoveryRouter);

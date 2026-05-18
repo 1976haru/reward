@@ -79,6 +79,7 @@ import {
 import { JsonEvalRepository, checkEvalSetForPii, isSafeRunId } from "../repositories/EvalRepository.js";
 import { EvalRunner } from "../services/eval/EvalRunner.js";
 import { EVAL_LABELS } from "../types/eval.js";
+import { DashboardService, DASHBOARD_SAFETY_NOTICE } from "../services/dashboard/DashboardService.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -1251,6 +1252,43 @@ try {
 } finally {
   await rm(tmpEvalRunDir, { recursive: true, force: true });
 }
+
+// 23) Dashboard service — 통합 요약이 graceful degrade로 동작하는지 확인
+const dash = new DashboardService();
+const dashSummary = await dash.getSummary();
+check("dashboard schemaVersion 1.0.0", dashSummary.schemaVersion === "1.0.0");
+check("dashboard has today.date YYYY-MM-DD", /^\d{4}-\d{2}-\d{2}$/.test(dashSummary.today.date), `date=${dashSummary.today.date}`);
+check("dashboard kpis length 8", dashSummary.kpis.length === 8, `len=${dashSummary.kpis.length}`);
+const kpiKeys = dashSummary.kpis.map((k) => k.key);
+check("dashboard kpis include submitted_records", kpiKeys.includes("submitted_records"));
+check("dashboard kpis include eval_f1", kpiKeys.includes("eval_f1"));
+check("dashboard kpis include dedupe_rate", kpiKeys.includes("dedupe_rate"));
+check("dashboard kpis include candidates_today", kpiKeys.includes("candidates_today"));
+check("dashboard queue has 8 status counts", Object.keys(dashSummary.queue.counts).length === 8);
+check("dashboard queue total >= 0", dashSummary.queue.total >= 0);
+check("dashboard modules contain false_ad", dashSummary.modules.some((m) => m.moduleId === "false_ad"));
+check("dashboard false_ad active=true", dashSummary.modules.find((m) => m.moduleId === "false_ad")?.active === true);
+check("dashboard safetyNotice mentions 자동 제출", /자동\s*제출하지\s*않/.test(dashSummary.safetyNotice));
+check("dashboard autoReport === false", dashSummary.autoReport === false);
+check("dashboard humanReviewRequired === true", dashSummary.humanReviewRequired === true);
+check("dashboard topCandidates is array", Array.isArray(dashSummary.topCandidates));
+check("dashboard evalMetrics has exists field", typeof dashSummary.evalMetrics.exists === "boolean");
+check("dashboard scheduler has enabled field", typeof dashSummary.scheduler.enabled === "boolean");
+check("dashboard dedupe.duplicateRate in 0..1", dashSummary.dedupe.duplicateRate >= 0 && dashSummary.dedupe.duplicateRate <= 1);
+check("dashboard feedback.total is number", typeof dashSummary.feedback.total === "number");
+
+// 제출 기록 카드 hint에 '자동 제출이 아닙니다' 문구 포함 — 안전 문구 회귀 방지
+const submitKpi = dashSummary.kpis.find((k) => k.key === "submitted_records");
+check("submitted_records hint mentions 자동 제출 아님", typeof submitKpi?.hint === "string" && /자동\s*제출이\s*아닙니다/.test(submitKpi.hint));
+
+// getTopCandidates / getModulePerformance / getQuality 단독 동작
+const top5 = await dash.getTopCandidates(5);
+check("getTopCandidates(5) returns <= 5", Array.isArray(top5) && top5.length <= 5);
+const perf = await dash.getModulePerformance();
+check("getModulePerformance includes active false_ad", perf.some((m) => m.moduleId === "false_ad" && m.active === true));
+const quality = await dash.getQuality();
+check("getQuality returns eval + feedback + safetyNotice", typeof quality.safetyNotice === "string" && quality.safetyNotice.length > 0);
+check("DASHBOARD_SAFETY_NOTICE matches getSummary().safetyNotice", DASHBOARD_SAFETY_NOTICE === dashSummary.safetyNotice);
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

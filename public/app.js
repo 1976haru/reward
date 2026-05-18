@@ -154,6 +154,10 @@ const state = {
     threshold: 60,
     latest: null,
     lastRunId: null
+  },
+  dashboard: {
+    summary: null,
+    lastError: null
   }
 };
 
@@ -178,6 +182,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindScheduler();
   bindFeedback();
   bindEval();
+  bindDashboard();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -186,6 +191,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadFeedbackStats();
   await loadEvalSets();
   await loadEvalLatest();
+  await loadDashboardSummary();
 });
 
 function bindScheduler() {
@@ -1643,6 +1649,194 @@ async function loadCaseFeedbacks(caseId) {
     const data = await res.json();
     if (data && data.ok) state.feedback.caseFeedbacks = data.items || [];
   } catch { /* ignore */ }
+}
+
+// ---------- 운영 대시보드 (체크리스트 23) ----------
+function bindDashboard() {
+  const btn = document.getElementById("opsRefreshBtn");
+  if (btn) btn.addEventListener("click", loadDashboardSummary);
+  // Top candidate 상세 보기
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.matches("[data-dash-open]")) {
+      e.preventDefault();
+      openQueueDetail(t.getAttribute("data-dash-open"));
+    }
+  });
+}
+
+async function loadDashboardSummary() {
+  const root = document.getElementById("opsDashboard");
+  if (!root) return;
+  try {
+    const res = await fetch("/api/dashboard/summary");
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "summary failed");
+    state.dashboard.summary = data;
+    state.dashboard.lastError = null;
+    renderDashboard(root, data);
+  } catch (err) {
+    state.dashboard.lastError = err.message;
+    root.innerHTML = `<div class="code">대시보드 데이터를 불러오지 못했습니다: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderDashboard(root, d) {
+  const kpis = d.kpis || [];
+  const queue = d.queue || { total: 0, counts: {} };
+  const top = d.topCandidates || [];
+  const modules = d.modules || [];
+  const ev = d.evalMetrics || { exists: false };
+  const sch = d.scheduler || { enabled: false };
+  const dd = d.dedupe || { exists: false };
+  const fb = d.feedback || { total: 0, topReasonCategories: [] };
+
+  const kpisHtml = kpis.map((k) => `
+    <div class="evi-item ops-kpi ${k.cls ? "kpi-" + k.cls : ""}" title="${escapeAttr(k.hint || "")}">
+      <div class="label">${escapeHtml(k.label)}</div>
+      <div class="value">${escapeHtml(String(k.value))}</div>
+      ${k.hint ? `<div class="muted ops-hint">${escapeHtml(k.hint)}</div>` : ""}
+    </div>
+  `).join("");
+
+  const QSTATUSES = ["DRAFT","REVIEW","HOLD","APPROVED","REPORT_DRAFT","SUBMITTED","OUTCOME_CHECK","REJECTED"];
+  const QLABEL = { DRAFT:"신규", REVIEW:"검토중", HOLD:"보류", APPROVED:"승인", REPORT_DRAFT:"신고초안", SUBMITTED:"제출기록", OUTCOME_CHECK:"결과확인", REJECTED:"폐기" };
+  const queueHtml = QSTATUSES.map((s) => `
+    <div class="evi-item ops-queue-cell">
+      <div class="label">${escapeHtml(QLABEL[s])}</div>
+      <div class="value">${queue.counts?.[s] ?? 0}</div>
+    </div>
+  `).join("");
+
+  const topHtml = top.length
+    ? `
+      <div class="ops-top-list">
+        ${top.map((c, i) => `
+          <div class="ops-top-row">
+            <div class="ops-top-rank">#${i + 1}</div>
+            <div class="ops-top-main">
+              <div class="ops-top-title">${escapeHtml(c.title || c.url || c.id)}</div>
+              <div class="muted ops-top-meta">
+                ${escapeHtml(c.status)} · 점수 ${c.priorityScore} ·
+                ${escapeHtml(c.agencyCandidate || "—")} ·
+                ${c.hasEvidence ? "증거 ✓" : "증거 —"} · ${c.hasReport ? "신고서 ✓" : "신고서 —"}
+              </div>
+              <div class="muted ops-top-url">${escapeHtml(c.url || "")}</div>
+            </div>
+            <div class="ops-top-action">
+              <button class="ghost" type="button" data-dash-open="${escapeAttr(c.id)}">상세</button>
+            </div>
+          </div>
+        `).join("")}
+      </div>`
+    : '<p class="muted">아직 Case가 없습니다.</p>';
+
+  const modulesHtml = modules.length
+    ? `
+      <table class="ops-modules-table">
+        <thead>
+          <tr><th>모듈</th><th>상태</th><th>후보</th><th>Case</th><th>신고서 초안</th><th>제출 기록</th></tr>
+        </thead>
+        <tbody>
+          ${modules.map((m) => `
+            <tr>
+              <td>${escapeHtml(m.name)}</td>
+              <td><span class="badge ${m.active ? "ok" : "muted"}">${escapeHtml(m.status)}</span></td>
+              <td>${m.candidates}</td>
+              <td>${m.cases}</td>
+              <td>${m.reportDrafts}</td>
+              <td>${m.submittedRecords}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>`
+    : '<p class="muted">등록된 모듈이 없습니다.</p>';
+
+  const fmtPct = (v) => typeof v === "number" ? (v * 100).toFixed(1) + "%" : "—";
+  const fmtScore = (v) => typeof v === "number" ? v.toFixed(3) : "—";
+  const evalBars = ev.exists ? `
+    <div class="ops-bar-row">
+      <span class="label">Precision</span>
+      <div class="ops-bar"><div class="ops-bar-fill ok" style="width:${(ev.precision * 100).toFixed(1)}%;"></div></div>
+      <span class="value">${fmtScore(ev.precision)}</span>
+    </div>
+    <div class="ops-bar-row">
+      <span class="label">Recall</span>
+      <div class="ops-bar"><div class="ops-bar-fill warn" style="width:${(ev.recall * 100).toFixed(1)}%;"></div></div>
+      <span class="value">${fmtScore(ev.recall)}</span>
+    </div>
+    <div class="ops-bar-row">
+      <span class="label">F1</span>
+      <div class="ops-bar"><div class="ops-bar-fill ok" style="width:${(ev.f1 * 100).toFixed(1)}%;"></div></div>
+      <span class="value">${fmtScore(ev.f1)}</span>
+    </div>
+    <div class="ops-bar-row">
+      <span class="label">Accuracy</span>
+      <div class="ops-bar"><div class="ops-bar-fill muted" style="width:${(ev.accuracy * 100).toFixed(1)}%;"></div></div>
+      <span class="value">${fmtScore(ev.accuracy)}</span>
+    </div>
+    <p class="muted ops-eval-meta">
+      runId <code>${escapeHtml(ev.runId || "")}</code> · ran ${escapeHtml(ev.ranAt || "")} · threshold ${ev.threshold}
+      · FP ${ev.confusion?.FP ?? 0} / FN ${ev.confusion?.FN ?? 0}
+    </p>
+  ` : '<p class="muted">아직 평가 실행 결과가 없습니다.</p>';
+
+  const schRun = sch.latestRun;
+  const schHtml = schRun
+    ? `<p class="muted">최근 실행: <span class="badge ${schRun.status === "SUCCESS" ? "ok" : (schRun.status === "FAILED" ? "danger" : "muted")}">${escapeHtml(schRun.status)}</span>
+       · ${escapeHtml(schRun.startedAt || "")}
+       · 수집 ${schRun.totalFound ?? 0} / 저장 ${schRun.totalSaved ?? 0} / 중복제거 ${schRun.duplicatesRemoved ?? 0}</p>`
+    : '<p class="muted">아직 스케줄러 실행 기록 없음.</p>';
+  const dedupeBar = dd.exists
+    ? `<div class="ops-bar-row">
+        <span class="label">중복률</span>
+        <div class="ops-bar"><div class="ops-bar-fill warn" style="width:${(dd.duplicateRate * 100).toFixed(1)}%;"></div></div>
+        <span class="value">${fmtPct(dd.duplicateRate)}</span>
+       </div>
+       <p class="muted ops-eval-meta">총 ${dd.total} / 유지 ${dd.kept} / 중복 ${dd.duplicates} · ${escapeHtml(dd.generatedAt || "")}</p>`
+    : '<p class="muted">아직 Dedupe 리포트가 없습니다.</p>';
+
+  const fbReasons = (fb.topReasonCategories || []).slice(0, 5);
+  const fbHtml = `
+    <p class="muted">총 ${fb.total} · 오탐 관련 ${fb.falsePositives} · 증거부족 ${fb.evidenceInsufficient} · 중복 ${fb.duplicates}</p>
+    <ul class="ops-feedback-reasons">
+      ${fbReasons.length ? fbReasons.map((r) => `<li>${escapeHtml(r.code)} · ${r.count}건</li>`).join("") : '<li class="muted">아직 피드백 없음</li>'}
+    </ul>
+  `;
+
+  root.innerHTML = `
+    <p class="muted ops-safety">⚠ ${escapeHtml(d.safetyNotice || "")}</p>
+    <p class="muted ops-generated">generatedAt ${escapeHtml(d.generatedAt || "")} · today ${escapeHtml(d.today?.date || "")}</p>
+
+    <h4 class="ops-section-title">KPI</h4>
+    <div class="ops-kpi-grid">${kpisHtml}</div>
+
+    <h4 class="ops-section-title">Review Queue 상태</h4>
+    <div class="ops-queue-grid">${queueHtml}</div>
+
+    <h4 class="ops-section-title">후보 TOP ${top.length}</h4>
+    ${topHtml}
+
+    <h4 class="ops-section-title">모듈별 성과</h4>
+    <div class="ops-table-wrap">${modulesHtml}</div>
+
+    <h4 class="ops-section-title">품질 지표 (Eval)</h4>
+    ${evalBars}
+
+    <div class="ops-twocol">
+      <div>
+        <h4 class="ops-section-title">스케줄러</h4>
+        ${schHtml}
+        <h4 class="ops-section-title">중복 제거</h4>
+        ${dedupeBar}
+      </div>
+      <div>
+        <h4 class="ops-section-title">피드백 요약</h4>
+        ${fbHtml}
+      </div>
+    </div>
+  `;
 }
 
 // ---------- Eval Dashboard (체크리스트 22) ----------

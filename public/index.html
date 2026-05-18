@@ -37,6 +37,16 @@
 
       <!-- ===== Main (프로세스 + 분석 + 결과 + 증거 + 케이스) ===== -->
       <section class="col-main">
+        <!-- 0. 운영 대시보드 (체크리스트 23) -->
+        <section class="card" id="opsDashboardCard">
+          <h2>운영 대시보드</h2>
+          <p class="section-hint">오늘 수집·탐지·검토·신고서 초안·제출 기록과 품질 지표를 한눈에 봅니다. <strong>제출 기록은 사람이 외부 공식 창구에서 직접 제출한 뒤 내부에 표시한 상태입니다.</strong> 시스템은 자동 제출/신고 기능을 제공하지 않습니다.</p>
+          <div id="opsDashboard" class="muted">불러오는 중...</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <button class="primary" type="button" id="opsRefreshBtn">대시보드 새로고침</button>
+          </div>
+        </section>
+
         <!-- 4. 원스톱 프로세스 -->
         <section class="card">
           <h2>원스톱 프로세스</h2>
