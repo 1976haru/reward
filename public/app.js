@@ -180,6 +180,12 @@ const state = {
     policy: null,
     retention: null,
     lastMask: null
+  },
+  outcome: {
+    meta: null,
+    items: [],
+    stats: null,
+    followUp: []
   }
 };
 
@@ -209,6 +215,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindBids();
   bindTrace();
   bindPrivacy();
+  bindOutcome();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -219,6 +226,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadEvalLatest();
   await loadDashboardSummary();
   await loadTraceData();
+  await loadOutcomeMeta();
+  await loadOutcomeData();
 });
 
 function bindScheduler() {
@@ -1681,6 +1690,191 @@ async function loadCaseFeedbacks(caseId) {
     const data = await res.json();
     if (data && data.ok) state.feedback.caseFeedbacks = data.items || [];
   } catch { /* ignore */ }
+}
+
+// ---------- Outcome Tracker (체크리스트 30) ----------
+function bindOutcome() {
+  const saveBtn = document.getElementById("outcomeSaveBtn");
+  if (saveBtn) saveBtn.addEventListener("click", saveOutcome);
+  const refreshBtn = document.getElementById("outcomeRefreshBtn");
+  if (refreshBtn) refreshBtn.addEventListener("click", loadOutcomeData);
+}
+
+async function loadOutcomeMeta() {
+  try {
+    const res = await fetch("/api/outcomes/meta");
+    const data = await res.json();
+    if (!data.ok) return;
+    state.outcome.meta = data;
+    populateOutcomeSelects(data);
+  } catch { /* ignore */ }
+}
+
+function populateOutcomeSelects(meta) {
+  const statusSel = document.getElementById("outcomeStatus");
+  const decSel = document.getElementById("outcomeDecision");
+  const rewardSel = document.getElementById("outcomeReward");
+  if (statusSel) {
+    statusSel.innerHTML = (meta.statuses || []).map((s) =>
+      `<option value="${escapeAttr(s.code)}" ${s.code === "SUBMITTED_MANUALLY" ? "selected" : ""}>${escapeHtml(s.label)}</option>`
+    ).join("");
+  }
+  if (decSel) {
+    decSel.innerHTML = (meta.decisions || []).map((d) =>
+      `<option value="${escapeAttr(d.code)}" ${d.code === "PENDING" ? "selected" : ""}>${escapeHtml(d.label)}</option>`
+    ).join("");
+  }
+  if (rewardSel) {
+    rewardSel.innerHTML = (meta.rewardOutcomes || []).map((r) =>
+      `<option value="${escapeAttr(r.code)}" ${r.code === "UNKNOWN" ? "selected" : ""}>${escapeHtml(r.label)}</option>`
+    ).join("");
+  }
+}
+
+async function loadOutcomeData() {
+  try {
+    const [listRes, statsRes, followRes] = await Promise.all([
+      fetch("/api/outcomes?limit=30").then((r) => r.json()),
+      fetch("/api/outcomes/stats").then((r) => r.json()),
+      fetch("/api/outcomes/follow-up?graceDays=14").then((r) => r.json())
+    ]);
+    if (listRes.ok) state.outcome.items = listRes.items || [];
+    if (statsRes.ok) state.outcome.stats = statsRes.stats;
+    if (followRes.ok) state.outcome.followUp = followRes.items || [];
+    renderOutcomeStats();
+    renderOutcomeFollowUp();
+    renderOutcomeList();
+  } catch (err) {
+    const root = document.getElementById("outcomeList");
+    if (root) root.innerHTML = `<div class="code">로드 실패: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderOutcomeStats() {
+  const root = document.getElementById("outcomeStats");
+  if (!root) return;
+  const s = state.outcome.stats;
+  if (!s) { root.textContent = "통계 없음"; return; }
+  const cards = [
+    { label: "총 기록", value: s.total ?? 0, cls: "muted" },
+    { label: "제출 기록", value: s.submittedCount ?? 0, cls: "muted" },
+    { label: "접수 확인", value: s.receivedCount ?? 0, cls: "ok" },
+    { label: "처리 중", value: s.inReviewCount ?? 0, cls: "muted" },
+    { label: "보완 요청", value: s.supplementRequestedCount ?? 0, cls: "warn" },
+    { label: "수용/인정", value: s.acceptedCount ?? 0, cls: "ok" },
+    { label: "반려", value: s.rejectedCount ?? 0, cls: "danger" },
+    { label: "포상 검토", value: s.rewardReviewCount ?? 0, cls: "muted" },
+    { label: "지급 확인", value: s.rewardPaidCount ?? 0, cls: "ok" },
+    { label: "Follow-up", value: s.followUpDueCount ?? 0, cls: (s.followUpDueCount || 0) > 0 ? "warn" : "muted" }
+  ];
+  const cardsHtml = cards.map((c) => `
+    <div class="evi-item ${c.cls === 'ok' ? 'kpi-ok' : c.cls === 'warn' ? 'kpi-warn' : c.cls === 'danger' ? 'kpi-danger' : 'kpi-muted'}" style="text-align:center;padding:8px 10px;">
+      <div class="label" style="font-size:11px;">${escapeHtml(c.label)}</div>
+      <div class="value" style="font-size:18px;">${escapeHtml(String(c.value))}</div>
+    </div>
+  `).join("");
+  const reward = `<p class="muted" style="font-size:12px;margin-top:6px;">사용자 입력 지급 확인 금액 합계: <code>${(s.rewardPaidAmountTotal || 0).toLocaleString()}</code> (예측 아님, 실제 지급 확인 ${s.rewardPaidEntries || 0}건)</p>`;
+  root.innerHTML = `<div class="ops-kpi-grid">${cardsHtml}</div>${reward}`;
+}
+
+function renderOutcomeFollowUp() {
+  const root = document.getElementById("outcomeFollowUp");
+  if (!root) return;
+  const items = state.outcome.followUp || [];
+  if (items.length === 0) {
+    root.innerHTML = '<p class="muted">follow-up 필요 항목 없음.</p>';
+    return;
+  }
+  const rows = items.slice(0, 20).map((f) => {
+    const cls = f.daysOverdue > 0 ? "danger" : f.daysOverdue === 0 ? "warn" : "muted";
+    return `<li>
+      <span class="badge ${cls}">D${f.daysOverdue > 0 ? "+" : ""}${f.daysOverdue}</span>
+      caseId <code>${escapeHtml(f.caseId)}</code> · ${escapeHtml(f.agencyName || "(미기록)")} · ${escapeHtml(f.status)} · due ${escapeHtml(f.followUpDueAt)}
+    </li>`;
+  }).join("");
+  root.innerHTML = `<ul style="font-size:12.5px;">${rows}</ul>`;
+}
+
+function renderOutcomeList() {
+  const root = document.getElementById("outcomeList");
+  if (!root) return;
+  const items = state.outcome.items || [];
+  if (items.length === 0) {
+    root.innerHTML = '<p class="muted">아직 기록된 결과가 없습니다. 위에서 Case ID 를 입력하고 결과를 저장해 보세요.</p>';
+    return;
+  }
+  const rows = items.map((o) => {
+    const statusCls = (o.status === "REJECTED" || o.status === "REWARD_REJECTED") ? "danger"
+      : (o.status === "ACCEPTED" || o.status === "REWARD_PAID") ? "ok"
+      : (o.status === "SUPPLEMENT_REQUESTED") ? "warn" : "muted";
+    const reward = o.rewardOutcome && o.rewardOutcome !== "UNKNOWN" ? `<span class="badge muted" style="margin-left:4px;">${escapeHtml(o.rewardOutcome)}</span>` : "";
+    const masked = o.piiMasked ? '<span class="badge warn" style="margin-left:4px;">PII 마스킹</span>' : "";
+    const ref = o.referenceNumber ? `· 접수 <code>${escapeHtml(String(o.referenceNumber))}</code>` : "";
+    return `
+      <div class="ops-top-row">
+        <div class="ops-top-rank" style="font-size:12px;">${escapeHtml(o.id)}</div>
+        <div class="ops-top-main">
+          <div class="ops-top-title" style="font-size:13px;">
+            case <code>${escapeHtml(o.caseId)}</code> · ${escapeHtml(o.moduleId || "-")} ·
+            ${escapeHtml(o.agencyName || "(미기록)")} ${ref}
+          </div>
+          <div class="muted" style="font-size:12px;">
+            <span class="badge ${statusCls}">${escapeHtml(o.status)}</span>
+            · 결과 <span class="badge muted">${escapeHtml(o.decision)}</span>
+            ${reward} ${masked}
+            · 제출 ${escapeHtml(o.submittedAt || "-")} · 접수 ${escapeHtml(o.receivedAt || "-")} · 다음 확인 ${escapeHtml(o.followUpDueAt || "-")}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+  root.innerHTML = `<div class="ops-top-list">${rows}</div>`;
+}
+
+async function saveOutcome() {
+  const status = document.getElementById("outcomeSaveStatus");
+  const caseId = (document.getElementById("outcomeCaseId")?.value || "").trim();
+  if (!caseId) {
+    if (status) status.textContent = "Case ID 를 입력하세요.";
+    return;
+  }
+  const payload = {
+    agencyName: (document.getElementById("outcomeAgencyName")?.value || "").trim() || undefined,
+    agencyChannel: (document.getElementById("outcomeAgencyChannel")?.value || "").trim() || undefined,
+    referenceNumber: (document.getElementById("outcomeRefNumber")?.value || "").trim() || undefined,
+    submittedAt: document.getElementById("outcomeSubmittedAt")?.value || undefined,
+    receivedAt: document.getElementById("outcomeReceivedAt")?.value || undefined,
+    followUpDueAt: document.getElementById("outcomeFollowUpDueAt")?.value || undefined,
+    status: document.getElementById("outcomeStatus")?.value || undefined,
+    decision: document.getElementById("outcomeDecision")?.value || undefined,
+    rewardOutcome: document.getElementById("outcomeReward")?.value || undefined,
+    rewardAmount: document.getElementById("outcomeRewardAmount")?.value
+      ? Number(document.getElementById("outcomeRewardAmount").value)
+      : undefined,
+    rewardCurrency: (document.getElementById("outcomeRewardCurrency")?.value || "").trim() || undefined,
+    resultSummary: (document.getElementById("outcomeResultSummary")?.value || "").trim() || undefined,
+    rejectionReason: (document.getElementById("outcomeRejectionReason")?.value || "").trim() || undefined,
+    supplementRequest: (document.getElementById("outcomeSupplementRequest")?.value || "").trim() || undefined,
+    notes: (document.getElementById("outcomeNotes")?.value || "").trim() || undefined
+  };
+  try {
+    if (status) status.textContent = "저장 중...";
+    const res = await fetch(`/api/cases/${encodeURIComponent(caseId)}/outcome`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    if (status) {
+      const piiNote = data.piiMasked ? " · PII 마스킹 적용됨" : "";
+      const fbNote = data.recommendedFeedback ? " · Feedback DB 에 반려 사유를 남기는 것을 권장합니다." : "";
+      status.textContent = `저장 완료 (${data.outcome.status})${piiNote}${fbNote}`;
+    }
+    await loadOutcomeData();
+  } catch (err) {
+    if (status) status.textContent = "저장 실패: " + err.message;
+  }
 }
 
 // ---------- 개인정보 보호 / 삭제 (체크리스트 28) ----------

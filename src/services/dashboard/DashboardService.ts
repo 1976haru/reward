@@ -5,6 +5,7 @@ import { createCaseRepository } from "../../repositories/CaseRepository.js";
 import { CandidateRepository } from "../../repositories/CandidateRepository.js";
 import { createFeedbackRepository } from "../../repositories/FeedbackRepository.js";
 import { createEvalRepository } from "../../repositories/EvalRepository.js";
+import { createOutcomeRepository } from "../../repositories/OutcomeRepository.js";
 import { schedulerService } from "../scheduler/SchedulerService.js";
 import { moduleRegistry } from "../../modules/index.js";
 import { EvidenceService } from "../EvidenceService.js";
@@ -110,6 +111,22 @@ export interface DashboardQueueSummary {
   counts: Partial<Record<CaseStatus, number>>;
 }
 
+export interface DashboardOutcomeSummary {
+  total: number;
+  submittedCount: number;
+  receivedCount: number;
+  inReviewCount: number;
+  supplementRequestedCount: number;
+  acceptedCount: number;
+  rejectedCount: number;
+  rewardReviewCount: number;
+  rewardPaidCount: number;
+  followUpDueCount: number;
+  // 사용자 입력 지급 확인 금액 합계 — 예측이 아님
+  rewardPaidAmountTotal: number;
+  rewardPaidEntries: number;
+}
+
 export interface DashboardSummary {
   schemaVersion: "1.0.0";
   generatedAt: string;
@@ -122,6 +139,7 @@ export interface DashboardSummary {
   scheduler: DashboardSchedulerSummary;
   dedupe: DashboardDedupeSummary;
   feedback: DashboardFeedbackSummary;
+  outcome: DashboardOutcomeSummary;
   safetyNotice: string;
   autoReport: false;
   humanReviewRequired: true;
@@ -146,6 +164,7 @@ export class DashboardService {
   private readonly candidateRepo = new CandidateRepository();
   private readonly feedbackRepo = createFeedbackRepository();
   private readonly evalRepo = createEvalRepository();
+  private readonly outcomeRepo = createOutcomeRepository();
   private readonly evidence = new EvidenceService();
   private readonly reports = new ReportService();
 
@@ -355,6 +374,35 @@ export class DashboardService {
       }
     ];
 
+    // 11) Outcome
+    let outcomeStats;
+    try {
+      outcomeStats = await this.outcomeRepo.getStats();
+    } catch {
+      outcomeStats = null;
+    }
+    const outcomeSummary: DashboardOutcomeSummary = outcomeStats
+      ? {
+          total: outcomeStats.total,
+          submittedCount: outcomeStats.submittedCount,
+          receivedCount: outcomeStats.receivedCount,
+          inReviewCount: outcomeStats.inReviewCount,
+          supplementRequestedCount: outcomeStats.supplementRequestedCount,
+          acceptedCount: outcomeStats.acceptedCount,
+          rejectedCount: outcomeStats.rejectedCount,
+          rewardReviewCount: outcomeStats.rewardReviewCount,
+          rewardPaidCount: outcomeStats.rewardPaidCount,
+          followUpDueCount: outcomeStats.followUpDueCount,
+          rewardPaidAmountTotal: outcomeStats.rewardPaidAmountTotal,
+          rewardPaidEntries: outcomeStats.rewardPaidEntries
+        }
+      : {
+          total: 0, submittedCount: 0, receivedCount: 0, inReviewCount: 0,
+          supplementRequestedCount: 0, acceptedCount: 0, rejectedCount: 0,
+          rewardReviewCount: 0, rewardPaidCount: 0, followUpDueCount: 0,
+          rewardPaidAmountTotal: 0, rewardPaidEntries: 0
+        };
+
     return {
       schemaVersion: "1.0.0",
       generatedAt: now.toISOString(),
@@ -367,6 +415,7 @@ export class DashboardService {
       scheduler: schedulerSummary,
       dedupe: dedupeSummary,
       feedback: feedbackSummary,
+      outcome: outcomeSummary,
       safetyNotice: DASHBOARD_SAFETY_NOTICE,
       autoReport: false,
       humanReviewRequired: true

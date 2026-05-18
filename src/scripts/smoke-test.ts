@@ -114,6 +114,8 @@ import { detectSensitive } from "../services/privacy/SensitiveDataDetector.js";
 import { maskText, maskEmail, maskPhone, maskRrn, maskApiKey, maskBearer, maskJwt } from "../services/privacy/MaskingService.js";
 import { getRetentionPolicies, applyRetention } from "../services/privacy/RetentionPolicy.js";
 import { SENSITIVE_DATA_TYPES, MASK_TOKENS } from "../types/privacy.js";
+import { JsonOutcomeRepository, OutcomeValidationError } from "../repositories/OutcomeRepository.js";
+import { OUTCOME_STATUSES, OUTCOME_DECISIONS, REWARD_OUTCOMES } from "../types/outcome.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -2024,6 +2026,188 @@ const readme = await readFileSafe(path.join(root, "README.md"));
 check("deploy: README has Quick Start", /Quick Start/i.test(readme));
 check("deploy: README has Docker Quick Start", /docker compose up/i.test(readme));
 check("deploy: README links docs/deployment_guide.md", /docs\/deployment_guide\.md/.test(readme));
+
+// 30) Outcome Tracker — types, repository, masking, stats, follow-up, dashboard integration
+check("OUTCOME_STATUSES has 13 codes", OUTCOME_STATUSES.length === 13);
+check("OUTCOME_DECISIONS has 7 codes", OUTCOME_DECISIONS.length === 7);
+check("REWARD_OUTCOMES has 6 codes", REWARD_OUTCOMES.length === 6);
+check("OUTCOME_STATUSES include core lifecycle",
+  ["NOT_SUBMITTED", "SUBMITTED_MANUALLY", "RECEIVED", "ACCEPTED", "REJECTED", "REWARD_PAID"].every((s) =>
+    (OUTCOME_STATUSES as readonly string[]).includes(s)));
+
+// 임시 디렉터리에서 Repository 검증
+const tmpOcDir = await mkdtemp(path.join(tmpdir(), "reward-outcome-"));
+try {
+  const ocRepo = new JsonOutcomeRepository(tmpOcDir);
+
+  // 빈 상태
+  const emptyList = await ocRepo.list();
+  check("outcome empty list total=0", emptyList.total === 0);
+  const emptyStats = await ocRepo.getStats();
+  check("outcome empty stats total=0", emptyStats.total === 0);
+
+  // create — 정상 입력
+  const r1 = await ocRepo.create({
+    caseId: "case_oc_001",
+    moduleId: "false_ad",
+    agencyName: "식품의약품안전처 (sample)",
+    agencyChannel: "온라인 불법유통 신고",
+    submittedAt: "2026-05-17",
+    receivedAt: "2026-05-18",
+    referenceNumber: "ABC-2026-0001",
+    status: "SUBMITTED_MANUALLY",
+    decision: "PENDING",
+    rewardOutcome: "UNKNOWN",
+    notes: "국민신문고에 직접 제출"
+  });
+  check("outcome create returns entry with id", typeof r1.outcome.id === "string" && /^oc_/.test(r1.outcome.id));
+  check("outcome create caseId saved", r1.outcome.caseId === "case_oc_001");
+  check("outcome create status default SUBMITTED_MANUALLY", r1.outcome.status === "SUBMITTED_MANUALLY");
+  check("outcome create rewardOutcome saved", r1.outcome.rewardOutcome === "UNKNOWN");
+  check("outcome safetyNotice present", typeof r1.outcome.safetyNotice === "string" && /자동/.test(r1.outcome.safetyNotice));
+  check("outcome create defaults piiMasked", r1.outcome.piiMasked === false);
+
+  // PII 마스킹 — notes 에 이메일/전화 넣으면 마스킹
+  const r2 = await ocRepo.create({
+    caseId: "case_oc_002",
+    moduleId: "false_ad",
+    agencyName: "식약처",
+    notes: "담당자 이메일 alice@example.com 전화 010-1234-5678",
+    referenceNumber: "REF-2026-0002"
+  });
+  check("outcome PII in notes is masked",
+    typeof r2.outcome.notes === "string" &&
+    r2.outcome.notes.includes("[masked-email]") &&
+    r2.outcome.notes.includes("[masked-phone]"));
+  check("outcome create reports piiMasked=true", r2.piiMasked === true && r2.outcome.piiMasked === true);
+
+  // 잘못된 status 거부
+  let badStatusThrown = false;
+  try {
+    await ocRepo.create({ caseId: "case_oc_003", status: "INVALID" as never });
+  } catch (e) {
+    badStatusThrown = e instanceof OutcomeValidationError;
+  }
+  check("outcome rejects invalid status", badStatusThrown);
+
+  // rewardAmount 음수 거부
+  let badRewardThrown = false;
+  try {
+    await ocRepo.create({ caseId: "case_oc_004", rewardAmount: -100 });
+  } catch (e) {
+    badRewardThrown = e instanceof OutcomeValidationError;
+  }
+  check("outcome rejects negative rewardAmount", badRewardThrown);
+
+  // 잘못된 caseId 거부
+  let badCaseIdThrown = false;
+  try {
+    await ocRepo.create({ caseId: "../../etc/passwd" });
+  } catch (e) {
+    badCaseIdThrown = e instanceof OutcomeValidationError;
+  }
+  check("outcome rejects unsafe caseId", badCaseIdThrown);
+
+  // 잘못된 날짜 형식 거부
+  let badDateThrown = false;
+  try {
+    await ocRepo.create({ caseId: "case_oc_005", submittedAt: "2026/05/17" });
+  } catch (e) {
+    badDateThrown = e instanceof OutcomeValidationError;
+  }
+  check("outcome rejects bad date format", badDateThrown);
+
+  // update — 상태 변경 + reward 지급 확인
+  const r3 = await ocRepo.update(r1.outcome.id, {
+    status: "RECEIVED",
+    decision: "PENDING"
+  });
+  check("outcome update changes status", r3.outcome.status === "RECEIVED");
+  check("outcome update keeps caseId", r3.outcome.caseId === "case_oc_001");
+
+  // upsertByCaseId — 같은 caseId 면 update
+  const r4 = await ocRepo.upsertByCaseId("case_oc_001", { caseId: "case_oc_001", status: "ACCEPTED", decision: "ACCEPTED" });
+  check("upsertByCaseId updates existing", r4.outcome.id === r1.outcome.id && r4.outcome.status === "ACCEPTED");
+
+  // 추가 데이터 — REJECTED + REWARD_PAID + followUp
+  await ocRepo.create({
+    caseId: "case_oc_006",
+    moduleId: "false_ad",
+    agencyName: "식약처",
+    status: "REJECTED",
+    decision: "REJECTED",
+    rejectionReason: "증거가 부족합니다"
+  });
+  // REWARD_PAID with amount
+  await ocRepo.create({
+    caseId: "case_oc_007",
+    moduleId: "counterfeit_goods",
+    agencyName: "특허청",
+    status: "REWARD_PAID",
+    decision: "ACCEPTED",
+    rewardOutcome: "PAID",
+    rewardAmount: 100000,
+    rewardCurrency: "KRW"
+  });
+  // follow-up due (어제 날짜)
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await ocRepo.create({
+    caseId: "case_oc_008",
+    status: "IN_REVIEW",
+    followUpDueAt: yesterday
+  });
+
+  // stats
+  const stats = await ocRepo.getStats();
+  check("outcome stats total >= 5", stats.total >= 5);
+  check("outcome stats acceptedCount >= 1", stats.acceptedCount >= 1);
+  check("outcome stats rejectedCount >= 1", stats.rejectedCount >= 1);
+  check("outcome stats rewardPaidCount >= 1", stats.rewardPaidCount >= 1);
+  check("outcome stats followUpDueCount >= 1", stats.followUpDueCount >= 1);
+  check("outcome stats rewardPaidAmountTotal == 100000", stats.rewardPaidAmountTotal === 100000);
+  check("outcome stats rewardPaidEntries == 1", stats.rewardPaidEntries === 1);
+
+  // patterns
+  const patterns = await ocRepo.getPatternStats();
+  check("outcome patterns byAgency includes 식약처",
+    patterns.byAgency.some((a) => a.agencyName === "식약처"));
+  check("outcome patterns byModule includes false_ad",
+    patterns.byModule.some((m) => m.moduleId === "false_ad"));
+  check("outcome patterns has rejection reasons",
+    patterns.topRejectionReasons.length >= 1);
+
+  // follow-up
+  const fu = await ocRepo.getFollowUpDue(0);
+  check("outcome follow-up includes due item", fu.some((f) => f.caseId === "case_oc_008"));
+  check("outcome follow-up daysOverdue >= 1", fu.find((f) => f.caseId === "case_oc_008")?.daysOverdue! >= 1);
+
+  // listByCaseId
+  const byCase = await ocRepo.listByCaseId("case_oc_001");
+  check("listByCaseId returns 1 for case_oc_001", byCase.length === 1);
+
+  // 필터 list
+  const filtered = await ocRepo.list({ status: "REJECTED" });
+  check("filter status=REJECTED returns >=1", filtered.total >= 1);
+  const rewardFiltered = await ocRepo.list({ rewardOutcome: "PAID" });
+  check("filter rewardOutcome=PAID returns 1", rewardFiltered.total === 1);
+} finally {
+  await rm(tmpOcDir, { recursive: true, force: true });
+}
+
+// Dashboard outcome summary 회귀 — getSummary 응답에 outcome 포함
+const dashWithOutcome = await new DashboardService().getSummary();
+check("dashboard summary includes outcome", typeof dashWithOutcome.outcome === "object" && dashWithOutcome.outcome !== null);
+check("dashboard outcome has KPI fields",
+  typeof dashWithOutcome.outcome.total === "number" &&
+  typeof dashWithOutcome.outcome.submittedCount === "number" &&
+  typeof dashWithOutcome.outcome.rewardPaidAmountTotal === "number");
+
+// UI 회귀 — app.js 가 outcome 데이터를 localStorage 에 저장하지 않는지 확인
+const appJs = await readFile(path.join(process.cwd(), "public", "app.js"), "utf8");
+// outcome 관련 키워드 근처에 localStorage 호출이 없어야 함
+const outcomeSection = appJs.slice(appJs.indexOf("// ---------- Outcome Tracker"), appJs.indexOf("// ---------- 개인정보 보호"));
+check("outcome UI does NOT call localStorage",
+  outcomeSection.length > 0 && !/localStorage\.(setItem|getItem|removeItem)\s*\(\s*['\"][^'\"]*outcome/i.test(outcomeSection));
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

@@ -17,6 +17,7 @@ data/dedupe/*
 data/feedback/*
 data/eval/runs/*
 data/traces/*
+data/outcomes/*
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
@@ -27,3 +28,4 @@ data/traces/*
 !data/feedback/.gitkeep
 !data/eval/runs/.gitkeep
 !data/traces/.gitkeep
+!data/outcomes/.gitkeep

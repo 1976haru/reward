@@ -398,6 +398,26 @@ API:
 
 자세한 명세는 [`docs/privacy_policy.md`](./docs/privacy_policy.md).
 
+## Outcome Tracker (실제 신고 결과 기록)
+
+사람이 외부 공식 신고 창구에 직접 제출한 이후, 제출일·접수번호·처리상태·처리결과·포상금/보상금 관련 여부를 **내부 기록**으로 저장하는 기능입니다.
+
+- 시스템은 **외부 신고기관에 자동 제출하지 않습니다** — 사용자가 공식 창구에서 직접 확인한 결과를 수동으로 입력
+- 접수번호 / 메모 / 반려 사유 / 보완 요청 등 본문 텍스트는 **저장 전 자동 마스킹** (이메일·전화·주민번호·API 키·토큰)
+- `rewardAmount` 는 "사용자 입력 지급 확인 금액" — **예측이 아닙니다.** 포상금 수령을 보장하지 않습니다
+- 13개 상태 / 7개 결정 / 6개 포상 결과
+- Dashboard 에 KPI 자동 집계, Trace Log 에 `state_change` + `human_action` 기록 (referenceNumber 는 preview 만)
+- Outcome 이 REJECTED/CLOSED 면 응답에 `recommendedFeedback` 가 포함되어 Feedback DB 연결 유도
+
+API:
+
+- `POST /api/cases/:caseId/outcome` (upsert)
+- `GET /api/cases/:caseId/outcome`
+- `GET /api/outcomes`, `/meta`, `/stats`, `/patterns`, `/follow-up`
+- `GET|PATCH /api/outcomes/:outcomeId`
+
+자세한 명세는 [`docs/outcome_tracker.md`](./docs/outcome_tracker.md).
+
 ## Search Collector / Scout Agent
 
 The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.

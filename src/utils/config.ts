@@ -80,6 +80,11 @@ export const config = {
     maskSensitive: parseBool(process.env.TRACE_MASK_SENSITIVE, true),
     storeFullPrompt: parseBool(process.env.TRACE_STORE_FULL_PROMPT, false)
   },
+  outcome: {
+    dir: process.env.OUTCOME_DIR ?? path.join(dataDir, "outcomes"),
+    useDb: parseBool(process.env.OUTCOME_USE_DB, false),
+    defaultFollowUpDays: Number(process.env.OUTCOME_DEFAULT_FOLLOWUP_DAYS ?? 14)
+  },
   privacy: {
     maskingEnabled: parseBool(process.env.PRIVACY_MASKING_ENABLED, true),
     scanDirs: (process.env.PRIVACY_SCAN_DIRS ?? dataDir)

@@ -26,6 +26,7 @@ import { bidsRouter } from "./routes/bids.js";
 import { tracesRouter, caseTracesRouter } from "./routes/traces.js";
 import { traceMiddleware } from "./middleware/traceMiddleware.js";
 import { privacyRouter } from "./routes/privacy.js";
+import { outcomesRouter, caseOutcomesRouter } from "./routes/outcomes.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -38,7 +39,8 @@ await Promise.all([
   ensureDir(path.join(config.dataDir, "raw")),
   ensureDir(config.feedback.dir),
   ensureDir(path.join(config.eval.dir, "runs")),
-  ensureDir(config.trace.dir)
+  ensureDir(config.trace.dir),
+  ensureDir(config.outcome.dir)
 ]);
 
 app.use(cors());
@@ -158,6 +160,11 @@ app.use("/api/cases", caseTracesRouter);
 
 // Privacy / Data Minimization (체크리스트 28) — scan / mask / delete (기본 dryRun) / retention / policy.
 app.use("/api/privacy", privacyRouter);
+
+// Outcome Tracker (체크리스트 30) — 실제 신고 결과 기록. 자동 제출/자동 조회 없음.
+// /api/cases/:caseId/outcome 는 caseOutcomesRouter 가 처리한다. 다른 case 핸들러보다 먼저 mount.
+app.use("/api/cases", caseOutcomesRouter);
+app.use("/api/outcomes", outcomesRouter);
 
 // Candidate Discovery
 app.use("/api/discovery", discoveryRouter);
