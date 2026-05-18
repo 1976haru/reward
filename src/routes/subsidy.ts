@@ -9,6 +9,7 @@ import {
   loadSubsidySampleDataSync,
   SUBSIDY_FRAUD_SAFETY_NOTICE
 } from "../modules/subsidy-fraud/index.js";
+import { withAgentTrace } from "../services/trace/TraceContext.js";
 
 export const subsidyRouter = Router();
 
@@ -91,7 +92,7 @@ const AnalyzeRequestSchema = z.object({
 });
 
 // POST /api/subsidy/analyze — sample 기반 분석 실행
-subsidyRouter.post("/analyze", (req, res) => {
+subsidyRouter.post("/analyze", async (req, res) => {
   try {
     const body = AnalyzeRequestSchema.parse(req.body ?? {});
     const regionId = body.regionId ?? body.region ?? "dangjin";
@@ -102,7 +103,16 @@ subsidyRouter.post("/analyze", (req, res) => {
         "이번 단계에서는 useSampleData=true 만 지원합니다. 외부 API 호출은 수행하지 않습니다."
       ));
     }
-    const result = analyzeSubsidySample({ regionId, useSampleData: true });
+    const traced = await withAgentTrace(
+      {
+        agentName: "SubsidyAnalyzer",
+        moduleId: "subsidy_fraud",
+        traceId: req.traceContext?.traceId,
+        inputSummary: { regionId, useSampleData: true }
+      },
+      () => analyzeSubsidySample({ regionId, useSampleData: true })
+    );
+    const result = traced.result;
     res.json({
       ok: true,
       ...result,

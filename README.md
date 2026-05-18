@@ -310,6 +310,25 @@ API:
 
 자세한 명세는 [`docs/bid_collusion_module.md`](./docs/bid_collusion_module.md).
 
+## Trace Log (Agent 실행 추적 / 감사로그)
+
+Agent 실행, 판단, tool/service call, 사람 수정 내역을 **내부 감사·디버깅·품질 개선** 목적으로 일자별 JSONL (`data/traces/{yyyy-mm-dd}.jsonl`) 에 기록합니다. Trace 는 판단 과정 기록이지 **법적 판단 확정 근거가 아닙니다.**
+
+- API 키 / 토큰 / 개인정보 / 전체 HTML / 증거파일 내용 / 외부 신고기관 로그인 정보 — **절대 저장 금지**
+- 전체 LLM prompt 본문 저장은 기본 비활성 (`TRACE_STORE_FULL_PROMPT=false`)
+- 마스킹: API 키 패턴 / 이메일·전화·주민번호 / `secret`·`token`·`password`·`authorization` 등 키 이름 — 자동 마스킹
+- 자동 삭제 API 없음 (운영자가 파일 단위 관리)
+
+API:
+
+- `GET /api/traces?agentName=&severity=&eventType=&caseId=&limit=`
+- `GET /api/traces/summary`
+- `GET /api/cases/:caseId/traces`
+
+UI: "Agent 실행 추적 / 감사로그" 카드 + Agent/Severity/EventType/CaseId 필터.
+
+자세한 명세는 [`docs/trace_log.md`](./docs/trace_log.md).
+
 ## Search Collector / Scout Agent
 
 The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.

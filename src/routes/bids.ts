@@ -9,6 +9,7 @@ import {
   loadBidSampleData,
   BID_COLLUSION_SAFETY_NOTICE
 } from "../modules/bid-collusion/index.js";
+import { withAgentTrace } from "../services/trace/TraceContext.js";
 
 export const bidsRouter = Router();
 
@@ -90,7 +91,7 @@ const AnalyzeSchema = z.object({
 });
 
 // POST /api/bids/analyze — sample 기반 패턴 분석
-bidsRouter.post("/analyze", (req, res) => {
+bidsRouter.post("/analyze", async (req, res) => {
   try {
     const body = AnalyzeSchema.parse(req.body ?? {});
     if (body.useSampleData === false) {
@@ -99,11 +100,20 @@ bidsRouter.post("/analyze", (req, res) => {
         "이번 단계에서는 useSampleData=true 만 지원합니다. 외부 API 호출은 수행하지 않습니다."
       ));
     }
-    const result = analyzeBidDataset({
-      useSampleData: true,
-      category: body.category,
-      minGroupRepeats: body.minGroupRepeats
-    });
+    const traced = await withAgentTrace(
+      {
+        agentName: "BidCollusionAnalyzer",
+        moduleId: "bid_collusion",
+        traceId: req.traceContext?.traceId,
+        inputSummary: { useSampleData: true, category: body.category, minGroupRepeats: body.minGroupRepeats }
+      },
+      () => analyzeBidDataset({
+        useSampleData: true,
+        category: body.category,
+        minGroupRepeats: body.minGroupRepeats
+      })
+    );
+    const result = traced.result;
     res.json({
       ok: true,
       ...result,

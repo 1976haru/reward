@@ -169,6 +169,11 @@ const state = {
     selectedGroupId: null,
     report: null,
     category: ""
+  },
+  trace: {
+    events: [],
+    summary: null,
+    filters: { agentName: "", severity: "", eventType: "", caseId: "" }
   }
 };
 
@@ -196,6 +201,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindDashboard();
   bindSubsidy();
   bindBids();
+  bindTrace();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -205,6 +211,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadEvalSets();
   await loadEvalLatest();
   await loadDashboardSummary();
+  await loadTraceData();
 });
 
 function bindScheduler() {
@@ -1667,6 +1674,115 @@ async function loadCaseFeedbacks(caseId) {
     const data = await res.json();
     if (data && data.ok) state.feedback.caseFeedbacks = data.items || [];
   } catch { /* ignore */ }
+}
+
+// ---------- Trace Log (체크리스트 27) ----------
+function bindTrace() {
+  const refresh = document.getElementById("traceRefreshBtn");
+  if (refresh) refresh.addEventListener("click", loadTraceData);
+  for (const id of ["traceAgentFilter", "traceSeverityFilter", "traceEventTypeFilter"]) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", loadTraceData);
+  }
+  const caseInput = document.getElementById("traceCaseIdFilter");
+  if (caseInput) {
+    caseInput.addEventListener("change", loadTraceData);
+    caseInput.addEventListener("keydown", (e) => { if (e.key === "Enter") loadTraceData(); });
+  }
+}
+
+async function loadTraceData() {
+  const root = document.getElementById("traceList");
+  const sumRoot = document.getElementById("traceSummary");
+  if (!root) return;
+  const agent = document.getElementById("traceAgentFilter")?.value || "";
+  const severity = document.getElementById("traceSeverityFilter")?.value || "";
+  const eventType = document.getElementById("traceEventTypeFilter")?.value || "";
+  const caseId = document.getElementById("traceCaseIdFilter")?.value?.trim() || "";
+  state.trace.filters = { agentName: agent, severity, eventType, caseId };
+
+  const params = new URLSearchParams({ limit: "50" });
+  if (agent) params.set("agentName", agent);
+  if (severity) params.set("severity", severity);
+  if (eventType) params.set("eventType", eventType);
+  if (caseId) params.set("caseId", caseId);
+
+  try {
+    const [eventsRes, summaryRes] = await Promise.all([
+      fetch(`/api/traces?${params.toString()}`).then((r) => r.json()),
+      fetch(`/api/traces/summary`).then((r) => r.json())
+    ]);
+    if (!eventsRes.ok) throw new Error(eventsRes.message || "trace list failed");
+    state.trace.events = eventsRes.events || [];
+    state.trace.summary = summaryRes.ok ? summaryRes.summary : null;
+    populateTraceAgentFilter();
+    renderTraceSummary(sumRoot);
+    renderTraceList(root);
+  } catch (err) {
+    root.innerHTML = `<div class="code">trace 조회 실패: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function populateTraceAgentFilter() {
+  const sel = document.getElementById("traceAgentFilter");
+  if (!sel) return;
+  const current = sel.value;
+  const agents = Object.keys(state.trace.summary?.byAgent || {}).sort();
+  sel.innerHTML = '<option value="">(전체)</option>' + agents.map((a) =>
+    `<option value="${escapeAttr(a)}" ${a === current ? "selected" : ""}>${escapeHtml(a)} (${state.trace.summary.byAgent[a]})</option>`
+  ).join("");
+}
+
+function renderTraceSummary(root) {
+  if (!root) return;
+  const s = state.trace.summary;
+  if (!s) { root.textContent = ""; return; }
+  const sev = s.bySeverity || {};
+  const totals = [
+    { label: "총 이벤트", value: s.total ?? 0 },
+    { label: "info", value: sev.info ?? 0 },
+    { label: "warn", value: sev.warn ?? 0, cls: "warn" },
+    { label: "error", value: sev.error ?? 0, cls: "danger" },
+    { label: "agent", value: Object.keys(s.byAgent || {}).length },
+    { label: "module", value: Object.keys(s.byModule || {}).length }
+  ];
+  const html = totals.map((t) =>
+    `<span class="badge ${t.cls || 'muted'}" style="margin-right:6px;">${escapeHtml(t.label)} ${t.value}</span>`
+  ).join("");
+  root.innerHTML = `${html} <span class="muted" style="font-size:11.5px;margin-left:6px;">⚠ ${escapeHtml(s.safetyNotice || "")}</span>`;
+}
+
+function renderTraceList(root) {
+  if (!root) return;
+  const events = state.trace.events || [];
+  if (events.length === 0) {
+    root.innerHTML = '<p class="muted">조건에 맞는 trace 이벤트가 없습니다.</p>';
+    return;
+  }
+  const rows = events.map((e) => {
+    const sevCls = e.severity === "error" ? "danger" : e.severity === "warn" ? "warn" : "muted";
+    const dur = typeof e.durationMs === "number" ? `${e.durationMs}ms` : "—";
+    const masked = e.sensitiveMasked ? '<span class="badge warn" style="margin-left:4px;">PII 마스킹</span>' : "";
+    return `
+      <div class="ops-top-row">
+        <div class="ops-top-rank" style="color:#475569;font-size:12px;">${escapeHtml(e.eventType)}</div>
+        <div class="ops-top-main">
+          <div class="ops-top-title" style="font-size:13px;">
+            ${escapeHtml(e.agentName || "(no agent)")} ·
+            <span class="badge ${sevCls}">${escapeHtml(e.severity)}</span> · ${dur} ${masked}
+          </div>
+          <div class="muted ops-top-meta">${escapeHtml(e.message || "")}</div>
+          <div class="muted" style="font-size:11.5px;">
+            ${escapeHtml(e.ts)} · traceId <code>${escapeHtml(e.traceId)}</code>
+            ${e.caseId ? ` · caseId <code>${escapeHtml(e.caseId)}</code>` : ""}
+            ${e.moduleId ? ` · ${escapeHtml(e.moduleId)}` : ""}
+            ${e.actor ? ` · actor ${escapeHtml(e.actor)}` : ""}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+  root.innerHTML = `<div class="ops-top-list">${rows}</div>`;
 }
 
 // ---------- 입찰담합 의심 패턴 프로토타입 (체크리스트 26) ----------

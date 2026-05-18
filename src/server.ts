@@ -23,6 +23,8 @@ import { evalRouter } from "./routes/eval.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { subsidyRouter } from "./routes/subsidy.js";
 import { bidsRouter } from "./routes/bids.js";
+import { tracesRouter, caseTracesRouter } from "./routes/traces.js";
+import { traceMiddleware } from "./middleware/traceMiddleware.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -34,11 +36,14 @@ await Promise.all([
   ensureDir(config.reportsDir),
   ensureDir(path.join(config.dataDir, "raw")),
   ensureDir(config.feedback.dir),
-  ensureDir(path.join(config.eval.dir, "runs"))
+  ensureDir(path.join(config.eval.dir, "runs")),
+  ensureDir(config.trace.dir)
 ]);
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
+// Trace middleware — /api/* 요청에 traceId 부여 + service_call 기록
+app.use(traceMiddleware);
 app.use(express.static(path.join(process.cwd(), "public")));
 app.use("/data", express.static(path.join(process.cwd(), "data")));
 
@@ -145,6 +150,10 @@ app.use("/api/subsidy", subsidyRouter);
 
 // 입찰담합 의심 패턴 프로토타입 (체크리스트 26) — sample 기반 분석만 지원.
 app.use("/api/bids", bidsRouter);
+
+// Trace Log (체크리스트 27) — 내부 감사·디버깅. 개인정보·API 키·전체 prompt 미저장.
+app.use("/api/traces", tracesRouter);
+app.use("/api/cases", caseTracesRouter);
 
 // Candidate Discovery
 app.use("/api/discovery", discoveryRouter);

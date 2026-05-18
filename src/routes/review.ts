@@ -21,6 +21,7 @@ import {
   type ReviewQueueStatus,
   type QueueSummary
 } from "../types/reviewQueue.js";
+import { traceLogger } from "../services/trace/TraceLogger.js";
 
 const repo: ICaseRepository = createCaseRepository();
 const evidence = new EvidenceService();
@@ -227,6 +228,30 @@ reviewRouter.patch("/queue/:caseId/status", async (req, res) => {
       status: input.status,
       reviewerName: input.reviewerName,
       note: input.note
+    });
+
+    // Trace: state_change + human_action 기록 (개인정보 미저장 — reviewerName 정도만)
+    const traceId = req.traceContext?.traceId;
+    void traceLogger.log({
+      eventType: "state_change",
+      severity: "info",
+      traceId,
+      caseId,
+      moduleId: updated.moduleId,
+      agentName: "ReviewQueue",
+      message: `Case 상태 변경 → ${input.status}`,
+      meta: { fromStatus: updated.statusHistory?.at(-1)?.from, toStatus: input.status }
+    });
+    void traceLogger.log({
+      eventType: "human_action",
+      severity: "info",
+      traceId,
+      caseId,
+      moduleId: updated.moduleId,
+      agentName: "ReviewQueue",
+      actor: input.reviewerName ?? "anonymous",
+      message: `사람 검토 결정: ${input.status}`,
+      meta: { hasNote: Boolean(input.note), confirmManualSubmission: input.confirmManualSubmission }
     });
 
     const log: ReviewLogEntry = {

@@ -10,6 +10,7 @@ import {
 import { evalRunner } from "../services/eval/EvalRunner.js";
 import { EVAL_SAFETY_NOTICE, type EvalRunResult } from "../types/eval.js";
 import { config } from "../utils/config.js";
+import { withAgentTrace } from "../services/trace/TraceContext.js";
 
 const repo: IEvalRepository = createEvalRepository();
 export const evalRouter = Router();
@@ -109,11 +110,25 @@ evalRouter.post("/run", async (req, res) => {
     const input = RunRequestSchema.parse(req.body ?? {});
     const evalSetId = input.evalSetId ?? config.eval.defaultSet;
     const set = await repo.getSet(evalSetId);
-    const run = await evalRunner.run(set, {
-      threshold: input.threshold,
-      useLlm: input.useLlm,
-      maxSamples: input.maxSamples
-    });
+    const traced = await withAgentTrace(
+      {
+        agentName: "EvalRunner",
+        moduleId: set.moduleId,
+        traceId: req.traceContext?.traceId,
+        inputSummary: {
+          evalSetId,
+          threshold: input.threshold ?? config.eval.threshold,
+          useLlm: input.useLlm ?? config.eval.useLlm,
+          maxSamples: input.maxSamples ?? config.eval.maxSamples
+        }
+      },
+      () => evalRunner.run(set, {
+        threshold: input.threshold,
+        useLlm: input.useLlm,
+        maxSamples: input.maxSamples
+      })
+    );
+    const run = traced.result;
     await repo.saveRun(run);
     res.json({
       ok: true,

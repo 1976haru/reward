@@ -206,6 +206,46 @@
           <div id="bidDashboard" class="muted">아직 분석을 실행하지 않았습니다. 위에서 "Sample 입찰 데이터 분석 실행"을 눌러 패턴 분석을 시작하세요.</div>
         </section>
 
+        <!-- 8f. Agent 실행 추적 / 감사로그 (체크리스트 27) -->
+        <section class="card" id="traceCard">
+          <h2>Agent 실행 추적 / 감사로그</h2>
+          <p class="section-hint">
+            <strong>Trace Log는 내부 디버깅·감사용 기록입니다.</strong>
+            개인정보·API 키·전체 prompt는 저장하지 않으며 마스킹 정책이 적용됩니다.
+            Trace는 판단 과정 기록이지 법적 판단 확정 근거가 아닙니다.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+            <label style="font-size:12px;margin:0;">Agent</label>
+            <select id="traceAgentFilter" style="width:auto;flex:0 0 auto;"></select>
+            <label style="font-size:12px;margin:0;">Severity</label>
+            <select id="traceSeverityFilter" style="width:auto;flex:0 0 auto;">
+              <option value="">(전체)</option>
+              <option value="info">info</option>
+              <option value="warn">warn</option>
+              <option value="error">error</option>
+              <option value="debug">debug</option>
+            </select>
+            <label style="font-size:12px;margin:0;">Event Type</label>
+            <select id="traceEventTypeFilter" style="width:auto;flex:0 0 auto;">
+              <option value="">(전체)</option>
+              <option value="agent_start">agent_start</option>
+              <option value="agent_end">agent_end</option>
+              <option value="agent_error">agent_error</option>
+              <option value="service_call">service_call</option>
+              <option value="state_change">state_change</option>
+              <option value="human_action">human_action</option>
+              <option value="tool_call">tool_call</option>
+              <option value="llm_prompt">llm_prompt</option>
+              <option value="llm_output">llm_output</option>
+            </select>
+            <label style="font-size:12px;margin:0;">Case ID</label>
+            <input id="traceCaseIdFilter" type="text" placeholder="caseId (선택)" style="max-width:160px;" />
+            <button class="primary" type="button" id="traceRefreshBtn">새로고침</button>
+          </div>
+          <div id="traceSummary" class="muted" style="margin-bottom:8px;"></div>
+          <div id="traceList" class="muted">불러오는 중...</div>
+        </section>
+
         <!-- 9. Scheduler -->
         <section class="card">
           <h2>정기 수집 스케줄러</h2>

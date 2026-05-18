@@ -106,6 +106,10 @@ import {
   loadBidSampleData,
   normalizeCompanyName
 } from "../modules/bid-collusion/index.js";
+import { TraceLogger, createTraceId, createRunId } from "../services/trace/TraceLogger.js";
+import { maskSensitive, maskString, truncate } from "../services/trace/maskSensitive.js";
+import { withAgentTrace } from "../services/trace/TraceContext.js";
+import { TRACE_EVENT_TYPES, TRACE_SEVERITIES } from "../types/trace.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -1697,6 +1701,181 @@ try {
   bidNonSampleThrown = true;
 }
 check("bid useSampleData=false throws", bidNonSampleThrown);
+
+// 27) Trace Log — types, mask, logger, withAgentTrace
+check("TRACE_EVENT_TYPES has agent_start/agent_end/agent_error",
+  (TRACE_EVENT_TYPES as readonly string[]).includes("agent_start") &&
+  (TRACE_EVENT_TYPES as readonly string[]).includes("agent_end") &&
+  (TRACE_EVENT_TYPES as readonly string[]).includes("agent_error"));
+check("TRACE_SEVERITIES include info/warn/error/debug",
+  ["info", "warn", "error", "debug"].every((s) => (TRACE_SEVERITIES as readonly string[]).includes(s)));
+
+// createTraceId / createRunId
+const traceId1 = createTraceId("tr");
+check("createTraceId returns string with prefix tr_", typeof traceId1 === "string" && /^tr_/.test(traceId1));
+const runId1 = createRunId("run");
+check("createRunId returns string with prefix run_", typeof runId1 === "string" && /^run_/.test(runId1));
+const traceId2 = createTraceId("tr");
+check("createTraceId returns unique ids", traceId1 !== traceId2);
+
+// maskString — API key + 이메일 + 전화 + 주민번호
+const maskedSk = maskString("Authorization: Bearer sk_test_abcdefghijklmnop1234, contact foo@bar.com or 010-1234-5678 RRN 901231-1234567");
+check("maskString masks API key", /\[masked-secret\]/.test(maskedSk.value));
+check("maskString masks email", /\[masked-email\]/.test(maskedSk.value));
+check("maskString masks phone", /\[masked-phone\]/.test(maskedSk.value));
+check("maskString masks rrn", /\[masked-id\]/.test(maskedSk.value));
+check("maskString reports changed=true", maskedSk.changed === true);
+const cleanMask = maskString("그냥 일반 텍스트입니다");
+check("maskString leaves clean text unchanged", cleanMask.changed === false);
+
+// maskSensitive — 객체 / 키 기반 마스킹
+const objMask = maskSensitive({
+  api_key: "AIzaSyDxyzabcdefghijklmno1234567890ab",
+  user: { email: "alice@example.com" },
+  password: "supersecretpw",
+  Authorization: "Bearer ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+  cookie: "session=abcdef",
+  safeField: "hello"
+}, { enabled: true });
+const omv = objMask.value as Record<string, unknown>;
+check("maskSensitive masks api_key value", omv.api_key === "[masked-secret]");
+check("maskSensitive masks password value", omv.password === "[masked-secret]");
+check("maskSensitive masks Authorization value", omv.Authorization === "[masked-secret]");
+check("maskSensitive masks cookie value", omv.cookie === "[masked-secret]");
+check("maskSensitive masks nested email",
+  (omv.user as Record<string, unknown>).email === "[masked-email]");
+check("maskSensitive keeps safe field", omv.safeField === "hello");
+check("maskSensitive reports changed=true", objMask.changed === true);
+
+// maskSensitive disabled
+const noMask = maskSensitive({ api_key: "sk_test_secret_value_abc" }, { enabled: false });
+check("maskSensitive disabled returns input unchanged",
+  (noMask.value as Record<string, unknown>).api_key === "sk_test_secret_value_abc");
+
+// truncate
+const tr = truncate("a".repeat(50), 20);
+check("truncate respects maxLen", tr.truncated === true && tr.value.length > 20 && tr.value.startsWith("aaaaaaaaaaaaaaaaaaaa"));
+
+// TraceLogger — 임시 디렉터리에서 동작
+const tmpTraceDir = await mkdtemp(path.join(tmpdir(), "reward-trace-"));
+try {
+  const logger = new TraceLogger(tmpTraceDir);
+
+  // 빈 상태
+  const emptyList = await logger.list();
+  check("trace empty list", emptyList.length === 0);
+  const emptySummary = await logger.getSummary();
+  check("trace empty summary total=0", emptySummary.total === 0);
+  check("trace summary safetyNotice present",
+    typeof emptySummary.safetyNotice === "string" && /감사용/.test(emptySummary.safetyNotice));
+
+  // 기본 이벤트
+  const ev1 = await logger.log({
+    eventType: "agent_start",
+    severity: "info",
+    agentName: "TestAgent",
+    moduleId: "false_ad",
+    caseId: "case_test_001",
+    message: "테스트 시작",
+    inputSummary: { foo: "bar" }
+  });
+  check("trace log returns event", Boolean(ev1) && /^evt_/.test(ev1?.id ?? ""));
+  check("trace event has traceId", typeof ev1?.traceId === "string" && ev1!.traceId.length > 0);
+
+  // 민감정보 포함 이벤트 → sensitiveMasked=true
+  const ev2 = await logger.log({
+    eventType: "service_call",
+    severity: "info",
+    agentName: "TestAgent",
+    caseId: "case_test_001",
+    inputSummary: { email: "test@example.com", token: "ghp_abcdefghijklmnopqrstuvwxyz1234567890" },
+    meta: { api_key: "sk_test_xxx_yyy_zzz_long" }
+  });
+  check("trace event has sensitiveMasked=true", ev2?.sensitiveMasked === true);
+  // 마스킹된 값에 원본 secret 가 남아있지 않은지 확인
+  const ev2Str = JSON.stringify(ev2);
+  check("trace event does NOT contain raw secret",
+    !ev2Str.includes("ghp_abcdefghijklmnopqrstuvwxyz1234567890") &&
+    !ev2Str.includes("test@example.com"));
+
+  // 에러 이벤트
+  await logger.log({
+    eventType: "agent_error",
+    severity: "error",
+    agentName: "TestAgent",
+    caseId: "case_test_001",
+    message: "테스트 에러"
+  });
+  // 다른 case 이벤트
+  await logger.log({
+    eventType: "human_action",
+    severity: "info",
+    agentName: "ReviewQueue",
+    actor: "tester",
+    caseId: "case_test_002",
+    message: "상태 변경"
+  });
+
+  // list
+  const allEvents = await logger.list();
+  check("trace list returns >= 4", allEvents.length >= 4);
+  check("trace list sorted desc by ts",
+    allEvents.every((e, i) => i === 0 || allEvents[i - 1].ts >= e.ts));
+
+  // listByCase
+  const case1Events = await logger.listByCase("case_test_001");
+  check("listByCase('case_test_001') returns 3", case1Events.length === 3);
+  const case2Events = await logger.listByCase("case_test_002");
+  check("listByCase('case_test_002') returns 1", case2Events.length === 1);
+
+  // list with filters
+  const errOnly = await logger.list({ severity: "error" });
+  check("filter severity=error returns 1", errOnly.length === 1);
+  const reviewOnly = await logger.list({ agentName: "ReviewQueue" });
+  check("filter agentName=ReviewQueue returns 1", reviewOnly.length === 1);
+  const caseFilter = await logger.list({ caseId: "case_test_001" });
+  check("filter caseId returns 3", caseFilter.length === 3);
+
+  // summary
+  const summary = await logger.getSummary();
+  check("summary total = 4", summary.total === 4);
+  check("summary byAgent counts TestAgent=3", summary.byAgent.TestAgent === 3);
+  check("summary byAgent counts ReviewQueue=1", summary.byAgent.ReviewQueue === 1);
+  check("summary bySeverity counts error=1", summary.bySeverity.error === 1);
+  check("summary recentErrors length 1", summary.recentErrors.length === 1);
+  check("summary byModule counts false_ad=1", summary.byModule.false_ad === 1);
+
+  // 알려지지 않은 eventType / severity → skip (log returns null)
+  const badEvent = await logger.log({
+    eventType: "unknown_type" as never,
+    severity: "info"
+  });
+  check("trace log rejects unknown eventType", badEvent === null);
+
+  // withAgentTrace — 성공
+  const wrapResult = await withAgentTrace(
+    { agentName: "WrapTestAgent", moduleId: "false_ad", caseId: "case_wrap_001" },
+    () => Promise.resolve({ priorityScore: 75, priorityLabel: "우선 검토" })
+  );
+  check("withAgentTrace returns result", (wrapResult.result as Record<string, unknown>).priorityScore === 75);
+  check("withAgentTrace traceId returned", typeof wrapResult.traceId === "string" && wrapResult.traceId.length > 0);
+  check("withAgentTrace durationMs >= 0", typeof wrapResult.durationMs === "number" && wrapResult.durationMs >= 0);
+  // (start/end 이벤트는 기본 logger 디렉터리에 기록됨 — withAgentTrace 는 글로벌 logger 사용)
+
+  // withAgentTrace — 실패
+  let wrapErrCaught = false;
+  try {
+    await withAgentTrace(
+      { agentName: "WrapErrAgent" },
+      () => { throw new Error("의도된 실패"); }
+    );
+  } catch (e) {
+    wrapErrCaught = (e as Error).message === "의도된 실패";
+  }
+  check("withAgentTrace re-throws error", wrapErrCaught);
+} finally {
+  await rm(tmpTraceDir, { recursive: true, force: true });
+}
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

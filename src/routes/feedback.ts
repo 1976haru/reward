@@ -16,6 +16,7 @@ import {
   FEEDBACK_NOTES_MAX
 } from "../types/feedback.js";
 import { isSafeCaseId } from "../services/EvidenceService.js";
+import { traceLogger } from "../services/trace/TraceLogger.js";
 
 const feedbackRepo: IFeedbackRepository = createFeedbackRepository();
 const caseRepo = createCaseRepository();
@@ -194,6 +195,25 @@ caseFeedbackRouter.post("/:caseId/feedback", async (req, res) => {
       suggestedScoringChanges: input.suggestedScoringChanges,
       caseStatusAtFeedback: statusAtFeedback,
       moduleId
+    });
+
+    // Trace: human_action 으로 피드백 저장 기록 (memo 본문은 trace 에 저장 X)
+    void traceLogger.log({
+      eventType: "human_action",
+      severity: "info",
+      traceId: req.traceContext?.traceId,
+      caseId,
+      moduleId: moduleId,
+      agentName: "FeedbackDB",
+      actor: input.reviewerName ?? "anonymous",
+      message: `피드백 저장: ${input.decision}`,
+      meta: {
+        decision: input.decision,
+        reasonCategories: input.reasonCategories ?? [],
+        piiMasked: created.piiMasked,
+        relatedRuleIds: input.relatedRuleIds ?? [],
+        hasMemo: typeof input.memo === "string" && input.memo.length > 0
+      }
     });
 
     res.status(201).json({

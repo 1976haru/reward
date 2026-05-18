@@ -71,5 +71,13 @@ export const config = {
       : 60,
     useLlm: parseBool(process.env.EVAL_USE_LLM, false),
     maxSamples: Number(process.env.EVAL_MAX_SAMPLES ?? 200)
+  },
+  trace: {
+    enabled: parseBool(process.env.TRACE_ENABLED, true),
+    dir: process.env.TRACE_DIR ?? path.join(dataDir, "traces"),
+    maxInputChars: Number(process.env.TRACE_MAX_INPUT_CHARS ?? 2000),
+    maxOutputChars: Number(process.env.TRACE_MAX_OUTPUT_CHARS ?? 2000),
+    maskSensitive: parseBool(process.env.TRACE_MASK_SENSITIVE, true),
+    storeFullPrompt: parseBool(process.env.TRACE_STORE_FULL_PROMPT, false)
   }
 };

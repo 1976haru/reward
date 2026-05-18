@@ -16,6 +16,7 @@ data/scheduler/*
 data/dedupe/*
 data/feedback/*
 data/eval/runs/*
+data/traces/*
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
@@ -25,3 +26,4 @@ data/eval/runs/*
 !data/dedupe/.gitkeep
 !data/feedback/.gitkeep
 !data/eval/runs/.gitkeep
+!data/traces/.gitkeep
