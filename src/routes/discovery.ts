@@ -35,7 +35,8 @@ function requireActiveModule(moduleId: string) {
   if (!mod) {
     return { ok: false as const, status: 404, body: errorBody("MODULE_NOT_FOUND", `Unknown moduleId: ${moduleId}`) };
   }
-  if (mod.status !== "active") {
+  // "active" = full pipeline / "ready" = 최소 룰·스카웃·리포트 연결 (예: counterfeit_goods)
+  if (mod.status !== "active" && mod.status !== "ready") {
     return {
       ok: false as const,
       status: 409,

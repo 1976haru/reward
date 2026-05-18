@@ -72,7 +72,7 @@ export class SeedMockDiscovery {
             ? `https://${host}/post/${slug}-${i + v + 1}`
             : `https://${host}/product/${slug}-${i + v + 1}`;
           const title = pick(TITLE_TEMPLATES, i + v).replace("{keyword}", keyword);
-          const disease = topic.diseaseHints[0] ?? "";
+          const disease = (topic.diseaseHints ?? [])[0] ?? "";
           const snippet = pick(SNIPPET_TEMPLATES, i + v).replace("{disease}", disease || keyword);
           const { score, reasons } = scoreCandidate({ title, snippet, url });
           out.push({

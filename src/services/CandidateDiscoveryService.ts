@@ -3,6 +3,7 @@ import { config } from "../utils/config.js";
 import { isHttpUrl } from "../utils/validation.js";
 import { candidateRepository } from "../repositories/CandidateRepository.js";
 import { falseAdTopics, getTopicById } from "../modules/false-ad/topics.js";
+import { counterfeitTopics } from "../modules/counterfeit-goods/scout_topics.js";
 import { SeedMockDiscovery } from "./discovery/SeedMockDiscovery.js";
 import { SearchApiDiscovery, SearchApiDiscoveryNotImplementedError } from "./discovery/SearchApiDiscovery.js";
 import { scoreCandidate } from "./discovery/CandidateScorer.js";
@@ -14,7 +15,8 @@ import {
 } from "../types/candidate.js";
 
 const TOPICS_BY_MODULE: Record<string, DiscoveryTopic[]> = {
-  false_ad: falseAdTopics
+  false_ad: falseAdTopics,
+  counterfeit_goods: counterfeitTopics
 };
 
 export class CandidateDiscoveryService {

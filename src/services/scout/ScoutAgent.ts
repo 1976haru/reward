@@ -1,5 +1,6 @@
 import { searchSourceRegistry } from "./SearchSourceRegistry.js";
 import { falseAdTopics, getTopicById } from "../../modules/false-ad/topics.js";
+import { counterfeitTopics, getCounterfeitTopicById } from "../../modules/counterfeit-goods/scout_topics.js";
 import { candidateRepository, CandidateNotFoundError } from "../../repositories/CandidateRepository.js";
 import { createCaseRepository, type ICaseRepository } from "../../repositories/CaseRepository.js";
 import { config } from "../../utils/config.js";
@@ -14,8 +15,14 @@ import type { ScoutSourceType } from "./SearchSourceAdapter.js";
 import { dedupeEngine } from "../dedupe/DedupeEngine.js";
 
 const DEFAULT_TOPICS_BY_MODULE: Record<string, DiscoveryTopic[]> = {
-  false_ad: falseAdTopics
+  false_ad: falseAdTopics,
+  counterfeit_goods: counterfeitTopics
 };
+
+function resolveTopicForModule(moduleId: string, id: string): DiscoveryTopic | undefined {
+  if (moduleId === "counterfeit_goods") return getCounterfeitTopicById(id);
+  return getTopicById(id);
+}
 
 export class ScoutAgent {
   private cases: ICaseRepository = createCaseRepository();
@@ -46,7 +53,7 @@ export class ScoutAgent {
     if (moduleTopics.length === 0) return { candidates: [], added: [], usedSources: [], sourceFallbacks: [], dailyLimit: config.scout.dailyLimit };
 
     const resolvedTopics = input.topics.length
-      ? input.topics.map((id) => getTopicById(id)).filter(Boolean) as DiscoveryTopic[]
+      ? input.topics.map((id) => resolveTopicForModule(input.moduleId, id)).filter(Boolean) as DiscoveryTopic[]
       : moduleTopics;
     if (resolvedTopics.length === 0) {
       throw new InvalidScoutTopicError("선택된 주제가 모듈에 없습니다.");

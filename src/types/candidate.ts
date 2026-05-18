@@ -30,7 +30,8 @@ export interface DiscoveryTopic {
   label: string;     // "혈당/당뇨"
   description: string;
   seedKeywords: string[];
-  diseaseHints: string[];
+  // false_ad 모듈에서 질병 힌트, counterfeit_goods 등 비질병 모듈에서는 생략 가능.
+  diseaseHints?: string[];
 }
 
 export const MODE_TO_LIMIT: Record<DiscoveryMode, number> = {

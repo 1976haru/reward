@@ -80,6 +80,12 @@ import { JsonEvalRepository, checkEvalSetForPii, isSafeRunId } from "../reposito
 import { EvalRunner } from "../services/eval/EvalRunner.js";
 import { EVAL_LABELS } from "../types/eval.js";
 import { DashboardService, DASHBOARD_SAFETY_NOTICE } from "../services/dashboard/DashboardService.js";
+import {
+  loadCounterfeitKeywordsSync,
+  getCounterfeitKeywordSummary
+} from "../modules/counterfeit-goods/keywordLoader.js";
+import { counterfeitTopics, getCounterfeitTopicById } from "../modules/counterfeit-goods/scout_topics.js";
+import { counterfeitGoodsDefinition } from "../modules/counterfeit-goods/index.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -1289,6 +1295,154 @@ check("getModulePerformance includes active false_ad", perf.some((m) => m.module
 const quality = await dash.getQuality();
 check("getQuality returns eval + feedback + safetyNotice", typeof quality.safetyNotice === "string" && quality.safetyNotice.length > 0);
 check("DASHBOARD_SAFETY_NOTICE matches getSummary().safetyNotice", DASHBOARD_SAFETY_NOTICE === dashSummary.safetyNotice);
+
+// 24) Counterfeit Goods Module — 모듈 등록, 룰셋, 스카웃 주제, RuleAgent/ScoringAgent/ReportService 확장
+check("counterfeit module id", counterfeitGoodsDefinition.id === "counterfeit_goods");
+check("counterfeit module status ready", counterfeitGoodsDefinition.status === "ready");
+check("counterfeit module slug", counterfeitGoodsDefinition.slug === "counterfeit-goods");
+check("counterfeit registered in registry", moduleRegistry.has("counterfeit_goods"));
+const cfMod = moduleRegistry.get("counterfeit_goods");
+check("counterfeit category intellectual_property", cfMod?.category === "intellectual_property");
+check("counterfeit ruleBasedDetection true", cfMod?.capabilities.ruleBasedDetection === true);
+check("counterfeit reportDraft true", cfMod?.capabilities.reportDraft === true);
+
+// false_ad still active + counterfeit ready (기존 동작 깨지지 않음)
+check("false_ad still active", moduleRegistry.get("false_ad")?.status === "active");
+
+// keywords.json — 룰 수 검증
+const cfKw = loadCounterfeitKeywordsSync();
+check("counterfeit keywords schemaVersion", cfKw.schemaVersion === "1.0.0");
+check("counterfeit keywords moduleId", cfKw.moduleId === "counterfeit_goods");
+const cfSummary = getCounterfeitKeywordSummary(cfKw);
+check("counterfeit rules >= 50", cfKw.rules.length >= 50, `len=${cfKw.rules.length}`);
+check("counterfeit HIGH = 20", cfSummary.counts.HIGH === 20, `H=${cfSummary.counts.HIGH}`);
+check("counterfeit MEDIUM = 20", cfSummary.counts.MEDIUM === 20, `M=${cfSummary.counts.MEDIUM}`);
+check("counterfeit LOW = 10", cfSummary.counts.LOW === 10, `L=${cfSummary.counts.LOW}`);
+check("counterfeit combo >= 4", cfSummary.counts.combo >= 4, `C=${cfSummary.counts.combo}`);
+check("counterfeit brandTerms >= 5", cfKw.brandTerms.length >= 5);
+
+// disclaimer must contain "확정하지" or similar
+check("counterfeit disclaimer mentions 확정하지", /확정하지/.test(cfKw.disclaimer));
+
+// RuleAgent 확장 — counterfeit 텍스트 탐지
+const ruleA = new RuleAgent();
+const cfText1 = ruleA.detectDetailed({ claimCandidates: ["미러급 시계 풀박스 구성"], mainText: "미러급 시계 풀박스 구성" }, "counterfeit_goods");
+check("RuleAgent matches 미러급 시계", cfText1.matches.some((m) => m.keyword === "미러급"), `matches=${cfText1.matches.map((m) => m.keyword).join(",")}`);
+
+const cfText2 = ruleA.detectDetailed({ claimCandidates: ["1:1 가방 구성품 완비"], mainText: "1:1 가방 구성품 완비" }, "counterfeit_goods");
+check("RuleAgent matches 1:1", cfText2.matches.some((m) => m.keyword === "1:1"));
+
+const cfText3 = ruleA.detectDetailed({ claimCandidates: ["정품급 운동화 단속 피해서 비밀배송"] }, "counterfeit_goods");
+check("RuleAgent matches 정품급", cfText3.matches.some((m) => m.keyword === "정품급"));
+check("RuleAgent matches 단속 피해서", cfText3.matches.some((m) => m.keyword === "단속 피해서"));
+check("RuleAgent matches 비밀배송", cfText3.matches.some((m) => m.keyword === "비밀배송"));
+
+// Combo regex — 브랜드 + 위조표현
+const cfCombo = ruleA.detectDetailed({ claimCandidates: ["롤렉스 미러급 시계 1:1"] }, "counterfeit_goods");
+check("RuleAgent combo brand+replica regex matches", cfCombo.matches.some((m) => m.matchType === "combo" || m.matchType === "regex"));
+
+// false_ad still works unchanged after counterfeit branch
+const faText = ruleA.detectDetailed({ text: "당뇨 완치에 도움" });
+check("false_ad RuleAgent still works", faText.matches.some((m) => m.keyword === "당뇨 완치"));
+
+// 미지원 모듈은 예외
+let badModuleCaught = false;
+try {
+  ruleA.detectDetailed({ text: "test" }, "unknown_module");
+} catch {
+  badModuleCaught = true;
+}
+check("RuleAgent throws for unknown moduleId", badModuleCaught);
+
+// ScoringAgent.computeCounterfeitPriority — 동작 확인
+const sAgent = new ScoringAgent();
+const cfScore = sAgent.computeCounterfeitPriority({
+  moduleId: "counterfeit_goods",
+  url: "https://example.test/product/p-1",
+  extractionResult: {
+    productName: "샤넬급 가방",
+    textLength: 800,
+    priceCandidates: ["99,000원"],
+    claimCandidates: ["샤넬급 가방 미러급 1:1 풀박스 구성"]
+  },
+  ruleDetectionResult: {
+    riskScore: 75,
+    riskLevel: "높음",
+    counts: { HIGH: 3, MEDIUM: 1, LOW: 0, combo: 1, total: 5 },
+    matches: [
+      { ruleId: "CF_H013", keyword: "샤넬급", riskLevel: "HIGH", matchType: "keyword", category: "brand_lookalike" },
+      { ruleId: "CF_H002", keyword: "미러급", riskLevel: "HIGH", matchType: "keyword", category: "counterfeit_expression" },
+      { ruleId: "CF_H006", keyword: "1:1", riskLevel: "HIGH", matchType: "keyword", category: "counterfeit_expression" },
+      { ruleId: "CF_M004", keyword: "카톡문의", riskLevel: "MEDIUM", matchType: "keyword", category: "private_contact" },
+      { ruleId: "CF_C001", keyword: "...", riskLevel: "HIGH", matchType: "combo", category: "brand_replica_combo" }
+    ]
+  },
+  evidenceSummary: { hasUrl: true, hasHtml: true, hasText: true, hasScreenshot: true, hasPdf: true, hasMetadata: true, hasManifest: true }
+});
+check("counterfeit score is 0..100", cfScore.priorityScore >= 0 && cfScore.priorityScore <= 100, `score=${cfScore.priorityScore}`);
+check("counterfeit score has 6 components", cfScore.components.length === 6);
+check("counterfeit score notLegalConclusion=true", cfScore.notLegalConclusion === true);
+check("counterfeit score rewardGuaranteed=false", cfScore.rewardGuaranteed === false);
+check("counterfeit moduleId", cfScore.moduleId === "counterfeit_goods");
+check("counterfeit safetyWarnings 위조 확정 아님 포함", cfScore.safetyWarnings.some((w) => /위조\s*확정이\s*아닙니다/.test(w)));
+// 위조상품 컴포넌트는 false_ad ComponentKey 와 다르므로 string 비교
+const cfComps = cfScore.components as unknown as Array<{ key: string; maxPoints: number }>;
+const exprComp = cfComps.find((c) => c.key === "counterfeitExpressionSignal");
+check("counterfeitExpressionSignal max 35", exprComp?.maxPoints === 35);
+const brandComp = cfComps.find((c) => c.key === "brandSignal");
+check("brandSignal max 15", brandComp?.maxPoints === 15);
+const sellerComp = cfComps.find((c) => c.key === "sellerPatternSignal");
+check("sellerPatternSignal max 10", sellerComp?.maxPoints === 10);
+
+// computePriorityForModule routes correctly
+const cfRoute = sAgent.computePriorityForModule({ moduleId: "counterfeit_goods" }, "counterfeit_goods");
+check("computePriorityForModule routes to counterfeit", cfRoute.moduleId === "counterfeit_goods");
+
+// scout topics
+check("counterfeit topics has 8", counterfeitTopics.length === 8, `len=${counterfeitTopics.length}`);
+check("getCounterfeitTopicById luxury_bag works", getCounterfeitTopicById("luxury_bag")?.label === "명품 가방");
+check("getCounterfeitTopicById luxury_watch works", getCounterfeitTopicById("luxury_watch")?.label === "명품 시계");
+
+// ScoutAgent.listTopics(counterfeit_goods) returns 8
+const cfScoutTopics = scoutAgent.listTopics("counterfeit_goods");
+check("scoutAgent.listTopics counterfeit = 8", cfScoutTopics.length === 8);
+
+// ReportService — counterfeit 템플릿이 호출되는지 (markdown에 키워드 검증)
+const rpt = new ReportService();
+const cfRptCaseId = "rpt_cf_smoke_" + Math.random().toString(36).slice(2, 8);
+try {
+  const out = await rpt.generateDraft({
+    caseId: cfRptCaseId,
+    moduleId: "counterfeit_goods",
+    title: "위조 의심 후보",
+    url: "https://example.test/p",
+    productName: "샤넬급 가방",
+    status: "REVIEW",
+    agencyCandidate: "특허청 / 지식재산침해 원스톱 신고상담센터",
+    priorityScore: cfScore.priorityScore,
+    priorityLabel: cfScore.priorityLabel,
+    capturedAt: new Date().toISOString(),
+    ruleMatches: [
+      { ruleId: "CF_H013", keyword: "샤넬급", riskLevel: "HIGH", weight: 25, category: "brand_lookalike", reason: "유명 브랜드 모방 등급 표현", matchType: "keyword", sentence: "샤넬급 가방 미러급", excerpt: "샤넬급", sourceSection: "claim" } as any
+    ],
+    evidence: { hasHtml: true, hasText: true, capturedAt: new Date().toISOString(), files: [] },
+    sellerCandidates: []
+  });
+  check("counterfeit report title", /위조상품 온라인 판매 의심/.test(out.markdown));
+  check("counterfeit report mentions 특허청", out.markdown.includes("특허청"));
+  check("counterfeit report mentions 원스톱", out.markdown.includes("원스톱 신고상담센터"));
+  check("counterfeit report mentions 자동 신고서가 아닙니다", out.markdown.includes("자동 신고서가 아닙니다"));
+  check("counterfeit report mentions 위조 여부를 확정하지 않습니다", out.markdown.includes("위조 여부를 확정하지 않습니다"));
+  // 신고서 본문(주장 영역)에는 위반 단정 표현이 절대 들어가서는 안 된다.
+  // ("피해야 할 표현" 안내 섹션에서는 단어가 인용되므로 제외하고, 1~7 섹션만 검사한다)
+  const claimSection = out.markdown.split("## 9. 피해야 할 표현")[0];
+  check("counterfeit report claim section does NOT contain 불법 확정", !/불법\s*확정/.test(claimSection));
+  check("counterfeit report claim section does NOT contain 사기꾼", !/사기꾼/.test(claimSection));
+  check("counterfeit report claim section does NOT contain 포상금 보장", !/포상금\s*보장/.test(claimSection));
+} finally {
+  const { rm: rmFn } = await import("node:fs/promises");
+  try { await rmFn(rpt.getReportDir(cfRptCaseId), { recursive: true, force: true }); } catch { /* ignore */ }
+}
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

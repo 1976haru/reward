@@ -15,14 +15,24 @@ function zodErrorMessage(err: ZodError): string {
 // GET /api/rules/false_ad — 룰셋 메타(설정+요약) 공개. rules는 keyword/regex 표시 정보만.
 rulesRouter.get("/:moduleId", (req, res) => {
   const { moduleId } = req.params;
-  if (moduleId !== "false_ad") {
+  const SUPPORTED_MODULES = new Set(["false_ad", "counterfeit_goods"]);
+  if (!SUPPORTED_MODULES.has(moduleId)) {
     return res.status(404).json({
       ok: false,
       error: "MODULE_NOT_FOUND",
       message: `Rule set not available for moduleId: ${moduleId}`
     });
   }
-  const config = ruleAgent.getConfig();
+  const config = ruleAgent.getConfig(moduleId);
+  // 모듈별 추가 단어 필드는 모듈마다 다름 — false_ad: diseaseTerms/actionTerms/...,
+  // counterfeit_goods: brandTerms/counterfeitTerms/... — 들어 있는 필드만 응답한다.
+  const extraFieldKeys = ["diseaseTerms", "actionTerms", "exaggerationTerms", "productTerms",
+    "brandTerms", "counterfeitTerms", "secretContactTerms", "packagingTerms"] as const;
+  const extraFields: Record<string, unknown> = {};
+  for (const k of extraFieldKeys) {
+    const v = (config as unknown as Record<string, unknown>)[k];
+    if (Array.isArray(v)) extraFields[k] = v;
+  }
   res.json({
     ok: true,
     moduleId,
@@ -34,10 +44,7 @@ rulesRouter.get("/:moduleId", (req, res) => {
       lastReviewedAt: config.lastReviewedAt,
       disclaimer: config.disclaimer,
       riskWeights: config.riskWeights,
-      diseaseTerms: config.diseaseTerms,
-      actionTerms: config.actionTerms,
-      exaggerationTerms: config.exaggerationTerms,
-      productTerms: config.productTerms,
+      ...extraFields,
       rules: config.rules.map((r) => ({
         id: r.id,
         keyword: r.keyword,
@@ -83,7 +90,8 @@ const DetectBodySchema = z
 detectRouter.post("/rules", (req, res) => {
   try {
     const input = DetectBodySchema.parse(req.body);
-    if (input.moduleId !== "false_ad") {
+    const SUPPORTED_MODULES = new Set(["false_ad", "counterfeit_goods"]);
+    if (!SUPPORTED_MODULES.has(input.moduleId)) {
       return res.status(404).json({
         ok: false,
         error: "MODULE_NOT_FOUND",
@@ -95,7 +103,7 @@ detectRouter.post("/rules", (req, res) => {
       claimCandidates: input.claimCandidates,
       reviewCandidates: input.reviewCandidates,
       mainText: input.mainText
-    });
+    }, input.moduleId);
     res.json({
       ok: true,
       moduleId: input.moduleId,

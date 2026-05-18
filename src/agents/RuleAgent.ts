@@ -5,6 +5,7 @@ import {
   type KeywordRule,
   type RiskLevel
 } from "../modules/false-ad/keywordLoader.js";
+import { loadCounterfeitKeywordsSync } from "../modules/counterfeit-goods/keywordLoader.js";
 import { splitSentences } from "../services/TextExtractor.js";
 
 export type SectionName = "claim" | "review" | "ingredient" | "usage" | "warning" | "seller" | "main";
@@ -72,37 +73,74 @@ function excerptAround(haystack: string, needle: string, radius = 60): string {
   return haystack.slice(start, end).trim();
 }
 
+// 모듈별 keywords.json 로더 — 새 모듈을 추가할 때 이 맵에 등록한다.
+const KEYWORD_LOADERS: Record<string, () => KeywordConfig> = {
+  false_ad: () => loadFalseAdKeywordsSync() as KeywordConfig,
+  // counterfeit_goods 의 KeywordConfig는 brandTerms 등 추가 필드를 가지지만,
+  // RuleAgent 가 사용하는 필드(rules, riskWeights, schemaVersion, moduleId)는 동일하므로
+  // KeywordConfig 로 안전하게 cast 한다.
+  counterfeit_goods: () => loadCounterfeitKeywordsSync() as unknown as KeywordConfig
+};
+
 export class RuleAgent {
   private config: KeywordConfig;
   private compiledRegex: Map<string, RegExp>;
+  private readonly moduleConfigs: Map<string, KeywordConfig> = new Map();
+  private readonly moduleRegex: Map<string, Map<string, RegExp>> = new Map();
 
   constructor() {
+    // 기본 모듈은 false_ad (기존 동작 유지)
     this.config = loadFalseAdKeywordsSync();
-    this.compiledRegex = new Map();
-    for (const r of this.config.rules) {
+    this.compiledRegex = this.compileRegex(this.config);
+    this.moduleConfigs.set("false_ad", this.config);
+    this.moduleRegex.set("false_ad", this.compiledRegex);
+  }
+
+  private compileRegex(config: KeywordConfig): Map<string, RegExp> {
+    const m = new Map<string, RegExp>();
+    for (const r of config.rules) {
       if ((r.matchType === "regex" || r.matchType === "combo") && r.pattern) {
-        this.compiledRegex.set(r.id, new RegExp(r.pattern, "gi"));
+        m.set(r.id, new RegExp(r.pattern, "gi"));
       }
     }
+    return m;
   }
 
-  getConfig(): KeywordConfig {
-    return this.config;
-  }
-
-  /** 레거시 호환: 평문 텍스트 → RuleHit[] */
-  detect(moduleId: string, text: string): RuleHit[] {
-    if (moduleId !== "false_ad") {
+  /** 모듈별 keywords.json 을 lazy load한다. 미등록 모듈이면 false_ad 로 fallback 하지 않고 예외를 던진다. */
+  private getConfigFor(moduleId: string): { config: KeywordConfig; regex: Map<string, RegExp> } {
+    const cached = this.moduleConfigs.get(moduleId);
+    if (cached) return { config: cached, regex: this.moduleRegex.get(moduleId)! };
+    const loader = KEYWORD_LOADERS[moduleId];
+    if (!loader) {
       throw new Error(`지원하지 않는 모듈입니다: ${moduleId}`);
     }
-    return this.detectDetailed({ text }).ruleHits;
+    const config = loader();
+    const regex = this.compileRegex(config);
+    this.moduleConfigs.set(moduleId, config);
+    this.moduleRegex.set(moduleId, regex);
+    return { config, regex };
+  }
+
+  getConfig(moduleId: string = "false_ad"): KeywordConfig {
+    return this.getConfigFor(moduleId).config;
+  }
+
+  /** 레거시 호환: 평문 텍스트 → RuleHit[]. moduleId 지정 가능 (기본 false_ad). */
+  detect(moduleId: string, text: string): RuleHit[] {
+    // 미지원 모듈은 getConfigFor 에서 예외 발생
+    this.getConfigFor(moduleId);
+    return this.detectDetailed({ text }, moduleId).ruleHits;
   }
 
   /**
-   * 섹션 인지 탐지.
+   * 섹션 인지 탐지. moduleId 지정 가능 (기본 false_ad — 기존 호출 호환).
    * 우선순위: claimCandidates > reviewCandidates > mainText > text(fallback)
    */
-  detectDetailed(input: DetectInput): RuleDetectionResult {
+  detectDetailed(input: DetectInput, moduleId: string = "false_ad"): RuleDetectionResult {
+    const { config, regex } = this.getConfigFor(moduleId);
+    // 인스턴스 단위 캐시도 갱신 (기존 코드 호환)
+    this.config = config;
+    this.compiledRegex = regex;
     const matches: RuleMatch[] = [];
 
     const sectionInputs: Array<{ name: SectionName; sentences: string[] }> = [];

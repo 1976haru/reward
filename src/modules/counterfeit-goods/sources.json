@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "counterfeit_goods",
+  "allowedSourceTypes": [
+    "manual_url",
+    "mock_scout",
+    "official_api_placeholder",
+    "rss_placeholder"
+  ],
+  "preferredSources": [
+    {
+      "sourceId": "manual_url",
+      "label": "공개 판매게시글 URL",
+      "type": "manual_url",
+      "notes": "로그인 없이 접근 가능한 공개 판매게시글만 사용합니다. 비공개 채팅방·SNS 비공개 게시글은 수집하지 않습니다."
+    },
+    {
+      "sourceId": "mock_scout",
+      "label": "Mock Scout",
+      "type": "mock",
+      "notes": "개발/테스트용 후보 생성. RFC 6761 예약 도메인(.test/.example/.invalid) 만 사용합니다."
+    }
+  ],
+  "prohibitedSources": [
+    "로그인 필요한 페이지",
+    "비공개 채팅방 (텔레그램/카카오톡/디스코드 비공개방)",
+    "구매자 개인정보",
+    "판매자 개인정보 추적",
+    "차단 우회 수집",
+    "CAPTCHA 우회",
+    "프록시/스텔스 브라우저 기반 우회 수집"
+  ]
+}

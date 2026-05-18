@@ -3,34 +3,9 @@
 
 import { moduleRegistry, type ModuleDefinition } from "../core/moduleRegistry.js";
 import { falseAdDefinition } from "./false-ad/index.js";
+import { counterfeitGoodsDefinition } from "./counterfeit-goods/index.js";
 
 const plannedModules: ModuleDefinition[] = [
-  {
-    id: "counterfeit_goods",
-    slug: "counterfeit-goods",
-    name: "위조상품 온라인 판매",
-    category: "intellectual_property",
-    status: "planned",
-    capabilities: {
-      publicUrlAnalysis: false,
-      ruleBasedDetection: false,
-      aiAnalysis: false,
-      evidencePackage: false,
-      reportDraft: false
-    },
-    supportedInputTypes: [],
-    safetyNotes: [
-      "자동 신고 금지",
-      "사람 검토 필수",
-      "포상금 수령 보장 없음"
-    ],
-    ui: {
-      agency: "특허청, 관세청",
-      target: "오픈마켓·SNS·해외직구 위조 브랜드 상품",
-      difficulty: "보통",
-      rewardLikelihood: "공식 기준 확인 필요"
-    }
-  },
   {
     id: "origin_labeling",
     slug: "origin-labeling",
@@ -115,6 +90,8 @@ let bootstrapped = false;
 export function bootstrapModules(): void {
   if (bootstrapped) return;
   moduleRegistry.register(falseAdDefinition, { isDefault: true });
+  // 위조상품 모듈 — ready 상태로 등록 (룰/스카웃/리포트 최소 연결 완료)
+  moduleRegistry.register(counterfeitGoodsDefinition);
   for (const planned of plannedModules) {
     moduleRegistry.register(planned);
   }

@@ -274,10 +274,12 @@ async function runSchedulerOnce() {
 
 // /api/modules에서 받은 ModuleDefinition을 UI MODULES 형태로 변환
 function toUiModule(m) {
+  // "active" = 풀 파이프라인 / "ready" = 최소 룰·스카웃·리포트 연결 (counterfeit_goods)
+  // 둘 다 UI에서 선택 가능으로 처리한다.
   return {
     id: m.id,
     name: m.name,
-    available: m.status === "active",
+    available: m.status === "active" || m.status === "ready",
     status: m.status,
     agency: (m.ui && m.ui.agency) || "—",
     target: (m.ui && m.ui.target) || "—",

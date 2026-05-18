@@ -140,15 +140,19 @@ export function getKeywordConfigSummary(config: KeywordConfig) {
     if (r.matchType === "regex" || r.matchType === "combo") counts.combo++;
     else counts[r.riskLevel]++;
   }
+  // 모듈별 추가 단어 필드는 모듈마다 다름 — false_ad 의 필드가 없는 경우(예: counterfeit_goods)
+  // 0 으로 안전하게 처리한다.
+  const c = config as unknown as Record<string, unknown>;
+  const len = (k: string) => (Array.isArray(c[k]) ? (c[k] as unknown[]).length : 0);
   return {
     schemaVersion: config.schemaVersion,
     moduleId: config.moduleId,
     lastReviewedAt: config.lastReviewedAt,
     totalRules: config.rules.length,
     counts,
-    diseaseTerms: config.diseaseTerms.length,
-    actionTerms: config.actionTerms.length,
-    exaggerationTerms: config.exaggerationTerms.length,
-    productTerms: config.productTerms.length
+    diseaseTerms: len("diseaseTerms"),
+    actionTerms: len("actionTerms"),
+    exaggerationTerms: len("exaggerationTerms"),
+    productTerms: len("productTerms")
   };
 }

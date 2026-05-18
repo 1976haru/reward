@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "counterfeit_goods",
+  "category": "intellectual_property",
+  "lastReviewedAt": "2026-05-18",
+  "disclaimer": "본 안내는 공개 정보를 정리한 보조 자료이며, 위조상품 또는 상표권 침해 여부를 확정하지 않는다. 신고 채널·증거 요건·포상금 지급 여부는 변경될 수 있으므로 각 기관 공식 안내를 직접 확인해야 한다.",
+  "rewardPolicySummary": {
+    "rewardGuaranteed": false,
+    "notes": [
+      "포상금 지급 여부와 한도는 공식 기준과 처리 결과에 따라 달라집니다.",
+      "본 프로그램은 포상금 수령을 보장하지 않습니다.",
+      "신고 채널/포상금 안내는 각 기관 공식 페이지에서 직접 확인해야 합니다."
+    ]
+  },
+  "primaryAgencies": [
+    {
+      "agencyId": "kipo",
+      "agencyName": "특허청",
+      "role": "위조상품 신고포상금 제도 및 상표권 침해 단속 관련 공식 기관",
+      "officialUrl": "https://www.kipo.go.kr/ko/kpoContentView.do?menuCd=SCD0200346",
+      "label": "특허청 위조상품 신고포상금 안내",
+      "scope": [
+        "온라인 위조상품 판매 의심 신고",
+        "상표권 침해 의심 신고",
+        "포상금 제도 운영 (공식 기준 확인 필요)"
+      ],
+      "caution": "공식 페이지에서 신고 절차/포상금 한도/심사 기준을 직접 확인하세요. 본 도구는 신고 접수를 자동화하지 않습니다."
+    },
+    {
+      "agencyId": "ippolice",
+      "agencyName": "지식재산침해 원스톱 신고상담센터",
+      "role": "온라인/오프라인 위조상품 및 지식재산권 침해 신고·상담 채널",
+      "officialUrl": "https://koipa.re.kr/ippolice/",
+      "label": "지식재산침해 원스톱 신고상담센터",
+      "scope": [
+        "온라인 위조상품 판매 게시물 신고 상담",
+        "오프라인 위조상품 유통 신고 상담",
+        "권리자 연결/안내"
+      ],
+      "caution": "권리자 검증/공식 절차 안내가 필요합니다. 자동 제출 기능은 제공하지 않습니다."
+    }
+  ],
+  "secondaryAgencies": [
+    {
+      "agencyId": "epeople",
+      "agencyName": "국민신문고 / 국민권익위원회",
+      "role": "일반 민원/공익신고 검토 채널 (위조상품 전문 채널은 별도 확인 필요)",
+      "officialUrl": "https://www.epeople.go.kr/",
+      "label": "국민신문고",
+      "scope": [
+        "일반 민원 접수",
+        "공익신고 검토"
+      ],
+      "caution": "위조상품 신고 전문 채널과는 분리되어 있으므로, 사안 성격에 따라 적절한 기관을 선택해야 합니다."
+    },
+    {
+      "agencyId": "local_authority",
+      "agencyName": "관할 지자체/수사기관",
+      "role": "오프라인 제조·유통 또는 현장 단속 관련 사안",
+      "officialUrl": null,
+      "label": "관할 지자체/수사기관",
+      "scope": [
+        "오프라인 제조/유통 신고",
+        "현장 단속 협조"
+      ],
+      "caution": "관할 지자체나 수사기관 안내를 별도 확인하세요."
+    }
+  ],
+  "evidenceRequirements": [
+    "판매게시글 공개 URL",
+    "동일 판매자 추정 증거 화면",
+    "위조상품 의심 증거 화면",
+    "판매자 표시 정보 (공개 영역만)",
+    "상품명 / 모델명",
+    "가격 표시 캡처",
+    "상품 이미지 (공개 영역만)",
+    "로고/상표 표시 부분 캡처",
+    "PDF 저장본",
+    "수집일시 (capturedAt)"
+  ],
+  "rewardNotes": [
+    "포상금 지급 여부는 공식 기준과 처리 결과(차단/삭제/시정조치 등)에 따라 달라집니다.",
+    "포상금 한도, 지급 요건, 신청 절차는 공식 기준을 직접 확인해야 합니다.",
+    "본 도구는 포상금 수령을 보장하지 않습니다."
+  ],
+  "officialReportingLinks": [
+    {
+      "agencyId": "kipo",
+      "agencyName": "특허청",
+      "label": "위조상품 신고포상금 제도",
+      "url": "https://www.kipo.go.kr/ko/kpoContentView.do?menuCd=SCD0200346",
+      "caution": "공식 페이지에서 신고 채널과 포상금 안내를 직접 확인하세요. 자동 로그인/자동 제출은 수행되지 않습니다."
+    },
+    {
+      "agencyId": "ippolice",
+      "agencyName": "지식재산침해 원스톱 신고상담센터",
+      "label": "지식재산침해 신고상담",
+      "url": "https://koipa.re.kr/ippolice/",
+      "caution": "권리자/관계기관 연결 안내를 받기 위한 상담 채널입니다."
+    }
+  ]
+}

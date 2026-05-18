@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "counterfeit_goods",
+  "category": "intellectual_property",
+  "lastReviewedAt": "2026-05-18",
+  "disclaimer": "이 룰셋은 온라인 위조상품 의심 후보 탐지를 위한 보조 자료이며, 위조 여부나 상표권 침해 여부를 확정하지 않는다. 매칭은 검토가 필요한 후보 표현을 의미하며, 최종 판단은 권리자/관계기관/사람의 검토에 따른다.",
+  "riskWeights": {
+    "HIGH": 25,
+    "MEDIUM": 12,
+    "LOW": 5,
+    "brandAndReplicaCombo": 25,
+    "secretContactCombo": 15,
+    "evidenceCompletenessBonus": 10,
+    "maxScore": 100
+  },
+  "brandTerms": [
+    "샤넬", "루이비통", "구찌", "프라다", "에르메스",
+    "디올", "버버리", "발렌시아가", "롤렉스", "오메가",
+    "나이키", "아디다스", "조던", "뉴발란스", "구찌급",
+    "샤넬급", "루이비통급"
+  ],
+  "counterfeitTerms": [
+    "레플리카", "미러급", "SA급", "S급", "정품급",
+    "1:1", "공장판", "병행 아닌 동일", "자체제작 로고", "각인 구현",
+    "로고 구현", "풀박스 구현", "정품 동일 퀄리티"
+  ],
+  "secretContactTerms": [
+    "카톡문의", "텔레문의", "1:1 문의", "DM문의", "오픈채팅 문의",
+    "단속 피해서", "비밀배송", "사진 보고 주문", "정품 문의 금지", "세관 문제 없음"
+  ],
+  "packagingTerms": [
+    "풀박스", "영수증 포함", "보증서 포함", "쇼핑백 포함",
+    "구성품 완비", "더스트백 포함", "케어카드 포함"
+  ],
+  "rules": [
+    { "id": "CF_H001", "keyword": "레플리카", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "정품 아님을 암시하는 표현", "examples": ["레플리카 가방", "레플리카 시계"], "matchType": "keyword" },
+    { "id": "CF_H002", "keyword": "미러급", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "정품과 동일 외관임을 암시하는 표현 (위조 가능성)", "examples": ["미러급 시계", "미러급 가방"], "matchType": "keyword" },
+    { "id": "CF_H003", "keyword": "SA급", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "위조상품 등급 표시로 통용되는 표현", "examples": ["SA급 가방"], "matchType": "keyword" },
+    { "id": "CF_H004", "keyword": "S급", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "위조상품 등급 표시로 통용되는 표현", "examples": ["S급 명품 가방"], "matchType": "keyword" },
+    { "id": "CF_H005", "keyword": "정품급", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "정품 아님을 사실상 인정하는 표현", "examples": ["정품급 운동화"], "matchType": "keyword" },
+    { "id": "CF_H006", "keyword": "1:1", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "정품과 1:1로 동일하게 만든다는 표현", "examples": ["1:1 가방", "1:1 시계"], "matchType": "keyword" },
+    { "id": "CF_H007", "keyword": "공장판", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "정식 유통이 아닌 공장 직판 표현", "examples": ["공장판 운동화"], "matchType": "keyword" },
+    { "id": "CF_H008", "keyword": "자체제작 로고", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "상표권자 동의 없이 로고 무단 사용 가능성", "examples": ["자체제작 로고 티셔츠"], "matchType": "keyword" },
+    { "id": "CF_H009", "keyword": "각인 구현", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "정품 각인을 모방 구현했다는 표현", "examples": ["로고 각인 구현"], "matchType": "keyword" },
+    { "id": "CF_H010", "keyword": "로고 구현", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "상표를 모방 구현했다는 표현", "examples": ["브랜드 로고 구현"], "matchType": "keyword" },
+    { "id": "CF_H011", "keyword": "풀박스 구현", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "정품 박스 외형 모방 표현", "examples": ["풀박스 구현 시계"], "matchType": "keyword" },
+    { "id": "CF_H012", "keyword": "정품 동일 퀄리티", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "정품과 동일 품질이라는 단정 표현으로 위조 가능성 시사", "examples": ["정품 동일 퀄리티 보증"], "matchType": "keyword" },
+    { "id": "CF_H013", "keyword": "샤넬급", "riskLevel": "HIGH", "weight": 25, "category": "brand_lookalike", "reason": "유명 브랜드 모방 등급 표현", "examples": ["샤넬급 가방"], "matchType": "keyword" },
+    { "id": "CF_H014", "keyword": "루이비통급", "riskLevel": "HIGH", "weight": 25, "category": "brand_lookalike", "reason": "유명 브랜드 모방 등급 표현", "examples": ["루이비통급 백"], "matchType": "keyword" },
+    { "id": "CF_H015", "keyword": "구찌급", "riskLevel": "HIGH", "weight": 25, "category": "brand_lookalike", "reason": "유명 브랜드 모방 등급 표현", "examples": ["구찌급 신발"], "matchType": "keyword" },
+    { "id": "CF_H016", "keyword": "롤렉스 미러급", "riskLevel": "HIGH", "weight": 25, "category": "brand_lookalike", "reason": "유명 시계 브랜드 위조 의심 표현", "examples": ["롤렉스 미러급 시계"], "matchType": "keyword" },
+    { "id": "CF_H017", "keyword": "나이키 정품급", "riskLevel": "HIGH", "weight": 25, "category": "brand_lookalike", "reason": "유명 운동화 브랜드 위조 의심 표현", "examples": ["나이키 정품급 운동화"], "matchType": "keyword" },
+    { "id": "CF_H018", "keyword": "단속 피해서", "riskLevel": "HIGH", "weight": 25, "category": "evasion_signal", "reason": "단속 회피 의도가 명시된 판매 표현", "examples": ["단속 피해서 비공개로"], "matchType": "keyword" },
+    { "id": "CF_H019", "keyword": "비밀배송", "riskLevel": "HIGH", "weight": 25, "category": "evasion_signal", "reason": "추적 회피용 배송 표현", "examples": ["비밀배송 가능"], "matchType": "keyword" },
+    { "id": "CF_H020", "keyword": "정품 문의 금지", "riskLevel": "HIGH", "weight": 25, "category": "evasion_signal", "reason": "정품 검증을 차단하는 판매자 표시", "examples": ["정품 문의 금지"], "matchType": "keyword" },
+
+    { "id": "CF_M001", "keyword": "명품 레플", "riskLevel": "MEDIUM", "weight": 12, "category": "counterfeit_expression", "reason": "명품 위조 표현 축약형", "examples": ["명품 레플 가방"], "matchType": "keyword" },
+    { "id": "CF_M002", "keyword": "브랜드 레플리카", "riskLevel": "MEDIUM", "weight": 12, "category": "counterfeit_expression", "reason": "브랜드 위조 표현", "examples": ["브랜드 레플리카 시계"], "matchType": "keyword" },
+    { "id": "CF_M003", "keyword": "병행 아닌 동일", "riskLevel": "MEDIUM", "weight": 12, "category": "counterfeit_expression", "reason": "병행수입이 아닌 동일 품질이라는 표현 (위조 가능성)", "examples": ["병행 아닌 동일 퀄리티"], "matchType": "keyword" },
+    { "id": "CF_M004", "keyword": "카톡문의", "riskLevel": "MEDIUM", "weight": 12, "category": "private_contact", "reason": "공개 페이지 외부에서만 가격/구성을 안내한다는 신호", "examples": ["가격은 카톡문의"], "matchType": "keyword" },
+    { "id": "CF_M005", "keyword": "텔레문의", "riskLevel": "MEDIUM", "weight": 12, "category": "private_contact", "reason": "비공개 채널 유도 신호", "examples": ["텔레문의 주세요"], "matchType": "keyword" },
+    { "id": "CF_M006", "keyword": "DM문의", "riskLevel": "MEDIUM", "weight": 12, "category": "private_contact", "reason": "공개 표시 외부 유도 신호", "examples": ["DM문의로만 안내"], "matchType": "keyword" },
+    { "id": "CF_M007", "keyword": "오픈채팅 문의", "riskLevel": "MEDIUM", "weight": 12, "category": "private_contact", "reason": "공개 표시 외부 유도 신호", "examples": ["오픈채팅 문의 환영"], "matchType": "keyword" },
+    { "id": "CF_M008", "keyword": "사진 보고 주문", "riskLevel": "MEDIUM", "weight": 12, "category": "private_contact", "reason": "공식 상품 페이지 없이 사진만으로 거래하는 방식", "examples": ["사진 보고 주문 가능"], "matchType": "keyword" },
+    { "id": "CF_M009", "keyword": "세관 문제 없음", "riskLevel": "MEDIUM", "weight": 12, "category": "evasion_signal", "reason": "통관/세관 우회를 시사하는 표현", "examples": ["세관 문제 없음 보장"], "matchType": "keyword" },
+    { "id": "CF_M010", "keyword": "정가 대비 초저가", "riskLevel": "MEDIUM", "weight": 12, "category": "pricing_signal", "reason": "정품 대비 비정상 저가 판매 신호", "examples": ["정가 대비 초저가 판매"], "matchType": "keyword" },
+    { "id": "CF_M011", "keyword": "풀박스", "riskLevel": "MEDIUM", "weight": 12, "category": "packaging_signal", "reason": "정품과 동일 구성품을 강조하는 표현 (위조 신호 강화)", "examples": ["풀박스 구성"], "matchType": "keyword" },
+    { "id": "CF_M012", "keyword": "영수증 포함", "riskLevel": "MEDIUM", "weight": 12, "category": "packaging_signal", "reason": "정품 인증 구성품을 모방한 표현", "examples": ["영수증 포함 판매"], "matchType": "keyword" },
+    { "id": "CF_M013", "keyword": "보증서 포함", "riskLevel": "MEDIUM", "weight": 12, "category": "packaging_signal", "reason": "정품 보증서 모방 가능성", "examples": ["보증서 포함"], "matchType": "keyword" },
+    { "id": "CF_M014", "keyword": "쇼핑백 포함", "riskLevel": "MEDIUM", "weight": 12, "category": "packaging_signal", "reason": "정품 매장 쇼핑백 모방 가능성", "examples": ["쇼핑백 포함 배송"], "matchType": "keyword" },
+    { "id": "CF_M015", "keyword": "더스트백 포함", "riskLevel": "MEDIUM", "weight": 12, "category": "packaging_signal", "reason": "정품 더스트백 모방 가능성", "examples": ["더스트백 포함"], "matchType": "keyword" },
+    { "id": "CF_M016", "keyword": "케어카드 포함", "riskLevel": "MEDIUM", "weight": 12, "category": "packaging_signal", "reason": "정품 케어카드 모방 가능성", "examples": ["케어카드 포함"], "matchType": "keyword" },
+    { "id": "CF_M017", "keyword": "샤넬", "riskLevel": "MEDIUM", "weight": 12, "category": "brand_mention", "reason": "유명 브랜드 단순 언급 — 위조 표현과 결합 시 위험 신호 증가", "examples": ["샤넬 스타일"], "matchType": "keyword" },
+    { "id": "CF_M018", "keyword": "루이비통", "riskLevel": "MEDIUM", "weight": 12, "category": "brand_mention", "reason": "유명 브랜드 단순 언급 — 위조 표현과 결합 시 위험 신호 증가", "examples": ["루이비통 패턴"], "matchType": "keyword" },
+    { "id": "CF_M019", "keyword": "롤렉스", "riskLevel": "MEDIUM", "weight": 12, "category": "brand_mention", "reason": "유명 브랜드 단순 언급 — 위조 표현과 결합 시 위험 신호 증가", "examples": ["롤렉스 스타일"], "matchType": "keyword" },
+    { "id": "CF_M020", "keyword": "나이키 정품", "riskLevel": "MEDIUM", "weight": 12, "category": "brand_mention", "reason": "유명 브랜드 정품 표시 — 위조 등급과 결합 시 위험 신호 증가", "examples": ["나이키 정품"], "matchType": "keyword" },
+
+    { "id": "CF_L001", "keyword": "구성품 완비", "riskLevel": "LOW", "weight": 5, "category": "packaging_signal", "reason": "정품 구성 모방 가능성 (단독으로는 약함)", "examples": ["구성품 완비"], "matchType": "keyword" },
+    { "id": "CF_L002", "keyword": "1:1 제작", "riskLevel": "LOW", "weight": 5, "category": "counterfeit_expression", "reason": "정품 동일 제작 표현 (단독으로는 약함)", "examples": ["1:1 제작"], "matchType": "keyword" },
+    { "id": "CF_L003", "keyword": "정품 동일", "riskLevel": "LOW", "weight": 5, "category": "counterfeit_expression", "reason": "정품 동일 표현 (문맥 확인 필요)", "examples": ["정품 동일 마감"], "matchType": "keyword" },
+    { "id": "CF_L004", "keyword": "프리미엄급", "riskLevel": "LOW", "weight": 5, "category": "marketing_signal", "reason": "고급 표현 (단독으로는 위조와 무관)", "examples": ["프리미엄급 제품"], "matchType": "keyword" },
+    { "id": "CF_L005", "keyword": "한정판", "riskLevel": "LOW", "weight": 5, "category": "marketing_signal", "reason": "정품 한정판을 사칭할 수 있는 표현", "examples": ["한정판 모델"], "matchType": "keyword" },
+    { "id": "CF_L006", "keyword": "직구", "riskLevel": "LOW", "weight": 5, "category": "pricing_signal", "reason": "해외직구 표현 (위조와 무관할 수 있음, 문맥 확인 필요)", "examples": ["직구 상품"], "matchType": "keyword" },
+    { "id": "CF_L007", "keyword": "병행수입", "riskLevel": "LOW", "weight": 5, "category": "pricing_signal", "reason": "병행수입 표현 (정품일 수 있음, 단독으로는 약함)", "examples": ["병행수입 상품"], "matchType": "keyword" },
+    { "id": "CF_L008", "keyword": "샘플", "riskLevel": "LOW", "weight": 5, "category": "marketing_signal", "reason": "정품 샘플 사칭 가능성 (문맥 확인 필요)", "examples": ["샘플 판매"], "matchType": "keyword" },
+    { "id": "CF_L009", "keyword": "B급", "riskLevel": "LOW", "weight": 5, "category": "counterfeit_expression", "reason": "위조상품 등급 표시로 통용 가능 (문맥 확인 필요)", "examples": ["B급 상품"], "matchType": "keyword" },
+    { "id": "CF_L010", "keyword": "A급", "riskLevel": "LOW", "weight": 5, "category": "counterfeit_expression", "reason": "위조상품 등급 표시로 통용 가능 (문맥 확인 필요)", "examples": ["A급 상품"], "matchType": "keyword" },
+
+    { "id": "CF_C001", "keyword": "브랜드+위조표현 동시 등장", "riskLevel": "HIGH", "weight": 25, "category": "brand_replica_combo", "reason": "유명 브랜드명과 레플리카/미러급/SA급/S급/1:1/정품급/공장판 등이 같은 문장에 동시 등장하는 경우 위조 가능성 증가", "examples": ["샤넬 미러급", "롤렉스 1:1"], "matchType": "combo", "pattern": "(샤넬|루이비통|구찌|프라다|에르메스|디올|버버리|발렌시아가|롤렉스|오메가|나이키|아디다스|조던|뉴발란스)[^\\n\\.]{0,40}(레플리카|미러급|SA급|S급|정품급|1:1|공장판)" },
+    { "id": "CF_C002", "keyword": "비공개 채널 + 거래 유도 동시 등장", "riskLevel": "HIGH", "weight": 15, "category": "secret_contact_combo", "reason": "공개 페이지에서 비공개 채널로 거래 유도 (단속 회피 신호)", "examples": ["가격은 카톡문의 주세요"], "matchType": "combo", "pattern": "(카톡|텔레|DM|오픈채팅)[^\\n\\.]{0,20}(문의|주문|구매|가격)" },
+    { "id": "CF_C003", "keyword": "정품 보증 모방 표현", "riskLevel": "MEDIUM", "weight": 12, "category": "packaging_combo", "reason": "보증서/영수증/쇼핑백/더스트백 등 정품 구성품 모방 표현", "examples": ["보증서 + 쇼핑백 포함"], "matchType": "combo", "pattern": "(보증서|영수증|쇼핑백|더스트백|케어카드)[^\\n\\.]{0,20}(포함|동봉|구성)" },
+    { "id": "CF_C004", "keyword": "단속/세관 회피 표현", "riskLevel": "HIGH", "weight": 25, "category": "evasion_combo", "reason": "단속 회피 / 세관 우회 신호", "examples": ["단속 피해서 비밀배송"], "matchType": "combo", "pattern": "(단속|세관|통관)[^\\n\\.]{0,20}(피해|우회|문제\\s*없)" }
+  ]
+}

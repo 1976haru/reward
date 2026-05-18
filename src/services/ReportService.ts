@@ -133,6 +133,10 @@ export class ReportService {
   // ---------- 신고서 본문 생성 ----------
 
   private buildMarkdown(input: ReportDraftInput, warnings: string[]): string {
+    // 위조상품 모듈은 별도 템플릿 사용 (false_ad 의 보건/광고 문구와 섞이지 않게 분리)
+    if (input.moduleId === "counterfeit_goods") {
+      return this.buildCounterfeitMarkdown(input, warnings);
+    }
     const title = sanitizeReportText(input.title ?? input.productName ?? input.caseId, warnings);
     const url = sanitizeReportText(input.url ?? "", warnings);
     const productName = sanitizeReportText(input.productName ?? "", warnings) || "(미식별)";
@@ -283,6 +287,139 @@ export class ReportService {
     lines.push(`---`);
     lines.push(`자동 신고는 수행하지 않습니다. 본 초안은 사람 검토·수정 후 사용자가 직접 외부 신고기관에 제출하는 자료입니다.`);
 
+    return lines.join("\n");
+  }
+
+  // ---------- 위조상품 신고서 초안 (체크리스트 24) ----------
+  private buildCounterfeitMarkdown(input: ReportDraftInput, warnings: string[]): string {
+    const title = sanitizeReportText(input.title ?? input.productName ?? input.caseId, warnings);
+    const url = sanitizeReportText(input.url ?? "", warnings) || "(미기록)";
+    const productName = sanitizeReportText(input.productName ?? "", warnings) || "(미식별)";
+    const captured = sanitizeReportText(input.capturedAt ?? input.evidence?.capturedAt ?? "", warnings) || "(미기록)";
+    const agency = sanitizeReportText(
+      input.agencyCandidate ?? "특허청 / 지식재산침해 원스톱 신고상담센터",
+      warnings
+    );
+    const sellerInfo =
+      (input.sellerCandidates ?? []).map((s) => sanitizeReportText(s, warnings)).join(" / ")
+      || "(공개 표시 정보 확인 필요 — 판매자 개인정보는 저장하지 않습니다)";
+
+    const priorityScore = typeof input.priorityScore === "number" ? input.priorityScore : null;
+    const priorityLabel = sanitizeReportText(input.priorityLabel ?? "", warnings) || "(미계산)";
+
+    const matches = (input.ruleMatches ?? []).slice(0, 30);
+    const counterfeitPhrases = matches
+      .map((m) => escapeMd(sanitizeReportText(m.sentence ?? m.keyword, warnings)))
+      .slice(0, 10).join(" / ") || "(매치된 룰 없음)";
+    const matchRows = matches.length
+      ? matches.map((m, i) =>
+          `| ${i + 1} | ${escapeMd(sanitizeReportText(m.sentence ?? m.keyword, warnings))} | ${escapeMd(m.riskLevel)} | ${escapeMd(m.category ?? "")} | ${escapeMd(sanitizeReportText(m.reason, warnings))} |`
+        ).join("\n")
+      : "| - | - | - | - | 매치된 룰이 없습니다. |";
+
+    const evidenceFiles = input.evidence?.files ?? [];
+    const evidenceRows = evidenceFiles.length
+      ? evidenceFiles.map((f, i) => `| ${i + 1} | ${escapeMd(f.name)} | ${escapeMd(f.mimeType)} (${f.size}B) | \`${escapeMd((f.sha256 ?? "").slice(0, 16))}…\` |`).join("\n")
+      : "| - | - | 증거 패키지가 아직 생성되지 않았습니다. 신고 전 캡처/PDF 저장을 권장합니다. | - |";
+
+    const scoring = input.scoringResult ?? null;
+    const scoringComps = scoring
+      ? scoring.components.map((c) => `- ${c.label}: ${c.score}/${c.maxPoints}`).join("\n")
+      : "- (점수 미계산)";
+    const recActions = scoring?.recommendedNextActions ?? [];
+    const recList = recActions.length
+      ? recActions.map((a) => `- ${sanitizeReportText(a, warnings)}`).join("\n")
+      : "- (없음)";
+
+    const lines: string[] = [];
+    lines.push(`# 위조상품 온라인 판매 의심 신고 후보 검토 요청서 초안`);
+    lines.push("");
+    lines.push(`> 본 문서는 **자동 신고서가 아닙니다.** 사람이 검토·수정 후 공식 신고 창구에 직접 제출하는 보조 자료입니다.`);
+    lines.push(`> 본 문서는 **위조 여부를 확정하지 않습니다.** 권리자 감정과 관계기관 판단이 별도로 필요합니다. 포상금 지급을 보장하지 않습니다.`);
+    lines.push("");
+    lines.push(`## 1. 제목`);
+    lines.push("");
+    lines.push(`위조상품 온라인 판매 의심 검토 요청 — ${title}`);
+    lines.push("");
+    lines.push(`## 2. 신고 후보 요약`);
+    lines.push("");
+    lines.push(`- 신고 후보 유형: 위조상품 온라인 판매 의심`);
+    lines.push(`- 원본 URL: ${url}`);
+    lines.push(`- 수집일시: ${captured}`);
+    lines.push(`- 상품명/모델명: ${productName}`);
+    lines.push(`- 판매자 표시 정보 (공개 영역만): ${sellerInfo}`);
+    lines.push(`- 신고처 후보: ${agency}`);
+    lines.push(`- 신고 후보 우선순위 점수: ${priorityScore != null ? `${priorityScore}/100 (${priorityLabel})` : "(미계산)"}`);
+    lines.push(`- 상태: ${sanitizeReportText(input.status ?? "DRAFT", warnings)}`);
+    lines.push(`- 주의: 본 문서는 자동 신고서가 아니라 사람이 검토·수정 후 제출할 수 있는 초안입니다.`);
+    lines.push("");
+    lines.push(`## 3. 위조상품 의심 정황`);
+    lines.push("");
+    lines.push(`- 위조 의심 문구 (상위): ${counterfeitPhrases}`);
+    lines.push(`- 정품 아님을 암시하는 표현, 정품 구성품 모방 표현, 비공개 채널 유도 신호 등에 해당하는 표현이 게시글 내에서 관찰되었습니다.`);
+    lines.push(`- 다음 표는 RuleAgent가 검토 후보로 분류한 표현입니다. 위조 확정이 아니라 관계기관 검토 요청 대상입니다.`);
+    lines.push("");
+    lines.push(`| No | 문구 | 위험도 | 카테고리 | 검토 필요 사유 |`);
+    lines.push(`|----|------|--------|----------|----------------|`);
+    lines.push(matchRows);
+    lines.push("");
+    lines.push(`## 4. 증거 자료 목록`);
+    lines.push("");
+    lines.push(`| No | 파일명 | 유형 | 해시(앞 16자) |`);
+    lines.push(`|----|--------|------|----------------|`);
+    lines.push(evidenceRows);
+    lines.push("");
+    lines.push(`첨부 가능 자료: 화면 캡처 (screenshot.png), PDF 저장본 (page.pdf), HTML 원본 (page.html), 텍스트 추출본 (page.txt), manifest.json, metadata.json`);
+    lines.push("");
+    lines.push(`## 5. 신고처 후보`);
+    lines.push("");
+    lines.push(`- 특허청 (위조상품 신고포상금 안내)`);
+    lines.push(`  https://www.kipo.go.kr/ko/kpoContentView.do?menuCd=SCD0200346`);
+    lines.push(`- 지식재산침해 원스톱 신고상담센터`);
+    lines.push(`  https://koipa.re.kr/ippolice/`);
+    lines.push(`- 사안에 따라 관할 지자체 / 수사기관`);
+    lines.push("");
+    lines.push(`구체적 신고 채널·포상금 지급 여부·한도·신청 절차는 공식 기준과 처리 결과에 따라 달라질 수 있으므로 각 기관 공식 페이지를 직접 확인하세요.`);
+    lines.push("");
+    lines.push(`## 6. 신고 전 사람 검토 체크리스트`);
+    lines.push("");
+    lines.push(`- [ ] 원본 URL이 공개 페이지인지 확인`);
+    lines.push(`- [ ] 권리자/상표 표시가 명확한지 확인`);
+    lines.push(`- [ ] 판매게시글 URL 저장 여부`);
+    lines.push(`- [ ] 동일 판매자 추정 증거 확인`);
+    lines.push(`- [ ] 위조상품 의심 증거 화면 확보`);
+    lines.push(`- [ ] 가격/구성품 캡처 확보`);
+    lines.push(`- [ ] 비공개 채팅방/판매자 개인정보가 포함되지 않았는지 확인`);
+    lines.push(`- [ ] 공식 기준 안내 확인`);
+    lines.push(`- [ ] 포상금 지급을 단정·약속하는 표현이 없는지 확인`);
+    lines.push(`- [ ] 최종 제출 문구를 사람이 직접 검토`);
+    lines.push("");
+    lines.push(`## 7. 신고 후보 우선순위 점수 (참고)`);
+    lines.push("");
+    lines.push(scoringComps);
+    lines.push("");
+    lines.push(`### 다음 행동 추천`);
+    lines.push("");
+    lines.push(recList);
+    lines.push("");
+    lines.push(`> 본 점수는 사람이 먼저 검토할 후보의 우선순위를 위한 참고 점수이며, 위조 확정·법 위반 확정·포상금 지급 가능성을 의미하지 않습니다.`);
+    lines.push("");
+    lines.push(`## 8. 중립 신고 문구 예시`);
+    lines.push("");
+    lines.push(`다음 온라인 판매게시글에서 위조상품 또는 상표권 침해가 의심되는 표현과 상품 표시가 확인되어 관계기관의 검토를 요청드립니다.`);
+    lines.push("");
+    lines.push(`본 신고는 위조 여부를 단정하는 것이 아니라 판매게시글과 증거자료를 근거로 확인을 요청하는 취지입니다.`);
+    lines.push("");
+    lines.push(`## 9. 피해야 할 표현`);
+    lines.push("");
+    lines.push(`- 위조 확정 / 침해 확정 단정 표현`);
+    lines.push(`- 범죄자 / 사기꾼 단정 표현`);
+    lines.push(`- 무조건 처벌 요구`);
+    lines.push(`- 포상금 지급 요구·지급 단정`);
+    lines.push(`- 판매자 개인 식별 정보 (휴대전화/이메일/주소 등)`);
+    lines.push("");
+    lines.push(`---`);
+    lines.push(`자동 신고는 수행하지 않습니다. 본 초안은 사람 검토·수정 후 사용자가 직접 공식 신고 창구에 제출하는 자료입니다.`);
     return lines.join("\n");
   }
 

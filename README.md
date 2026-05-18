@@ -240,6 +240,26 @@ API:
 
 자세한 명세는 [`docs/dashboard.md`](./docs/dashboard.md).
 
+## Counterfeit Goods Module (위조상품 의심 모듈)
+
+1차 모듈 `false_ad` 구조를 복사해 추가한 2차 분야 모듈입니다. 공개 판매게시글에서 **위조상품 의심 후보**를 탐지하며, **위조 여부를 확정하지 않습니다.** 권리자 감정과 관계기관 판단을 대체하지 않으며, 자동 신고/자동 로그인/비공개 채팅방 수집/판매자 개인정보 추적은 수행하지 않습니다.
+
+- `moduleId`: `counterfeit_goods` (slug: `counterfeit-goods`, status: `ready`)
+- 룰셋 54+ (HIGH 20 / MEDIUM 20 / LOW 10 / combo 4) — `src/modules/counterfeit-goods/keywords.json`
+- 점수 (총 100): counterfeitExpression 35 / brand 15 / commerce 15 / evidence 20 / sellerPattern 10 / extraction 5
+- 신고처 후보: 특허청 위조상품 신고포상금 안내, 지식재산침해 원스톱 신고상담센터
+- 포상금 수령을 보장하지 않으며, 공식 기준은 각 기관 공식 페이지에서 직접 확인해야 합니다.
+
+API:
+
+- `GET /api/rules/counterfeit_goods`
+- `POST /api/detect/rules { "moduleId": "counterfeit_goods", ... }`
+- `GET /api/discovery/topics?moduleId=counterfeit_goods`
+- `POST /api/scout/discover { "moduleId": "counterfeit_goods", ... }`
+- Report draft 생성 시 `moduleId=counterfeit_goods` 가 들어가면 위조상품 템플릿이 사용됩니다.
+
+자세한 명세는 [`docs/counterfeit_module.md`](./docs/counterfeit_module.md).
+
 ## Search Collector / Scout Agent
 
 The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.
