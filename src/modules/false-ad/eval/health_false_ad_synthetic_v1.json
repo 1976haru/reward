@@ -1,0 +1,1924 @@
+{
+  "schemaVersion": "1.0.0",
+  "evalSetId": "health_false_ad_synthetic_v1",
+  "moduleId": "false_ad",
+  "name": "건강기능식품 허위·과대광고 합성 평가셋 v1",
+  "description": "체크리스트 22를 위해 만든 가상 광고 문구 평가셋. 실제 업체/개인정보는 포함하지 않는다. RuleAgent/ScoringAgent의 Precision/Recall/F1/Accuracy 측정을 위한 200건 (위반 100/정상 100).",
+  "language": "ko",
+  "synthetic": true,
+  "source": "synthetic_generator_v1",
+  "createdAt": "2026-05-18T00:00:00.000Z",
+  "notes": [
+    "모든 상품명/문구는 가상의 합성 데이터입니다.",
+    "실제 업체명/판매자/개인정보는 포함하지 않습니다.",
+    "평가 결과는 내부 품질 측정용이며, 실제 신고 판단을 대체하지 않습니다.",
+    "평가 결과로 룰/프롬프트/점수를 자동 변경하지 않습니다."
+  ],
+  "samples": [
+    {
+      "id": "sample_v001",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J 건강식품는 당뇨 완치에 도움을 주며, 꾸준히 섭취하면 혈당이 정상화됩니다. 약 없이도 가능합니다.",
+      "expectedKeywords": [
+        "당뇨 완치"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v002",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I는 고혈압 치료 효과가 있으며, 복용 후 혈압이 즉시 정상으로 돌아옵니다.",
+      "expectedKeywords": [
+        "고혈압 치료"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v003",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E 건강식품는 관절염 완치를 약속드립니다. 임상 결과 100% 효과를 확인했습니다.",
+      "expectedKeywords": [
+        "관절염 완치"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v004",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_PREVENTION",
+      "productName": "헬시 콜레스테롤 K",
+      "text": "헬시 콜레스테롤 K는 암 예방 효과가 입증되었으며, 꾸준히 드시면 종양 발생 위험이 사라집니다.",
+      "expectedKeywords": [
+        "암 예방"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v005",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_PREVENTION",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A는 치매 예방에 탁월합니다. 3개월 복용으로 인지 기능 저하를 막을 수 있습니다.",
+      "expectedKeywords": [
+        "치매 예방"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v006",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DRUG_SUBSTITUTION",
+      "productName": "조인트 밸런스 B",
+      "text": "조인트 밸런스 B는 혈압약 대체가 가능합니다. 의사 처방 없이도 안전하게 드실 수 있습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "혈압약 대체"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v007",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DRUG_SUBSTITUTION",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A 영양제는 약 대신 먹는 자연 해결책입니다. 병원에 갈 필요 없이 가정에서 관리하세요.",
+      "expectedKeywords": [
+        "약 대신"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v008",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "EXAGGERATED_EFFECT",
+      "productName": "조인트 밸런스 B",
+      "text": "조인트 밸런스 B는 기적의 효과를 약속드립니다. 단 7일 만에 100% 효과를 체감할 수 있습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "기적의 효과",
+        "100% 효과"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v009",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "EXAGGERATED_EFFECT",
+      "productName": "프로 다이어트 H",
+      "text": "프로 다이어트 H 복용으로 면역력이 1000% 강해집니다. 한 통이면 평생 건강을 보장합니다.",
+      "expectedKeywords": [
+        "면역력 1000%"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v010",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DETOX_OVERSTATEMENT",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D는 체내 독소 배출을 완벽하게 해결합니다. 간과 신장의 모든 유해물질을 제거해 줍니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "독소 배출"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v011",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DETOX_OVERSTATEMENT",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F는 완벽 해독 효과로 모든 질병의 원인인 노폐물을 한 번에 제거합니다.",
+      "expectedKeywords": [
+        "완벽 해독"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v012",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "TESTIMONIAL_OVERSTATEMENT",
+      "productName": "데일리 비타민 C",
+      "text": "구매 후기: 데일리 비타민 C 영양제를 먹고 당뇨가 완치되었어요. 약 끊고 일상에 복귀했습니다.",
+      "expectedKeywords": [
+        "완치되었어요"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v013",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "TESTIMONIAL_OVERSTATEMENT",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C로 부작용 없이 치료되었다는 후기가 쏟아지고 있습니다. 모든 환자에게 추천합니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "부작용 없이 치료"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v014",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DIET_OVERSTATEMENT",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 체지방 100% 분해를 약속드립니다. 운동 없이도 30일에 10kg 감량 가능합니다.",
+      "expectedKeywords": [
+        "체지방 100%"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v015",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DIET_OVERSTATEMENT",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I는 먹기만 해도 살이 빠지는 마법의 보조제입니다. 식단 조절 없이 다이어트 성공. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "살이 빠지는"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v016",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "INFLAMMATION_TUMOR",
+      "productName": "프로 다이어트 H",
+      "text": "프로 다이어트 H는 만성 염증을 완전 제거합니다. 류마티스, 자가면역질환에도 효과적입니다.",
+      "expectedKeywords": [
+        "염증 완전 제거"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v017",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "INFLAMMATION_TUMOR",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C 임상에서 종양 감소가 확인되었습니다. 환자 95%가 호전을 경험했습니다.",
+      "expectedKeywords": [
+        "종양 감소"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v018",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D는 콜레스테롤 정상화를 보장합니다. 스타틴 계열 약을 끊을 수 있습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "콜레스테롤 정상화"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v019",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "퓨어 콜라겐 G",
+      "text": "퓨어 콜라겐 G 건강기능식품 복용 후 혈당이 즉시 떨어집니다. 식후 혈당 관리가 완벽해집니다.",
+      "expectedKeywords": [
+        "혈당 즉시"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v020",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F는 혈압이 즉시 정상으로 돌아오는 효과를 제공합니다. 의약품과 동일한 작용입니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "혈압이 즉시"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v021",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J 건강기능식품는 당뇨 완치에 도움을 주며, 꾸준히 섭취하면 혈당이 정상화됩니다. 약 없이도 가능합니다.",
+      "expectedKeywords": [
+        "당뇨 완치"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v022",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J는 고혈압 치료 효과가 있으며, 복용 후 혈압이 즉시 정상으로 돌아옵니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "고혈압 치료"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v023",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "프로 다이어트 H",
+      "text": "프로 다이어트 H 영양제는 관절염 완치를 약속드립니다. 임상 결과 100% 효과를 확인했습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "관절염 완치"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v024",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_PREVENTION",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 암 예방 효과가 입증되었으며, 꾸준히 드시면 종양 발생 위험이 사라집니다.",
+      "expectedKeywords": [
+        "암 예방"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v025",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_PREVENTION",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C는 치매 예방에 탁월합니다. 3개월 복용으로 인지 기능 저하를 막을 수 있습니다.",
+      "expectedKeywords": [
+        "치매 예방"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v026",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DRUG_SUBSTITUTION",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L는 혈압약 대체가 가능합니다. 의사 처방 없이도 안전하게 드실 수 있습니다.",
+      "expectedKeywords": [
+        "혈압약 대체"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v027",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DRUG_SUBSTITUTION",
+      "productName": "프로 다이어트 H",
+      "text": "프로 다이어트 H 건강식품는 약 대신 먹는 자연 해결책입니다. 병원에 갈 필요 없이 가정에서 관리하세요. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "약 대신"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v028",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "EXAGGERATED_EFFECT",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J는 기적의 효과를 약속드립니다. 단 7일 만에 100% 효과를 체감할 수 있습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "기적의 효과",
+        "100% 효과"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v029",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "EXAGGERATED_EFFECT",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D 복용으로 면역력이 1000% 강해집니다. 한 통이면 평생 건강을 보장합니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "면역력 1000%"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v030",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DETOX_OVERSTATEMENT",
+      "productName": "헬시 콜레스테롤 K",
+      "text": "헬시 콜레스테롤 K는 체내 독소 배출을 완벽하게 해결합니다. 간과 신장의 모든 유해물질을 제거해 줍니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "독소 배출"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v031",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DETOX_OVERSTATEMENT",
+      "productName": "조인트 밸런스 B",
+      "text": "조인트 밸런스 B는 완벽 해독 효과로 모든 질병의 원인인 노폐물을 한 번에 제거합니다.",
+      "expectedKeywords": [
+        "완벽 해독"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v032",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "TESTIMONIAL_OVERSTATEMENT",
+      "productName": "이뮨 부스터 E",
+      "text": "구매 후기: 이뮨 부스터 E 건강기능식품를 먹고 당뇨가 완치되었어요. 약 끊고 일상에 복귀했습니다.",
+      "expectedKeywords": [
+        "완치되었어요"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v033",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "TESTIMONIAL_OVERSTATEMENT",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A로 부작용 없이 치료되었다는 후기가 쏟아지고 있습니다. 모든 환자에게 추천합니다.",
+      "expectedKeywords": [
+        "부작용 없이 치료"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v034",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DIET_OVERSTATEMENT",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C는 체지방 100% 분해를 약속드립니다. 운동 없이도 30일에 10kg 감량 가능합니다.",
+      "expectedKeywords": [
+        "체지방 100%"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v035",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DIET_OVERSTATEMENT",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I는 먹기만 해도 살이 빠지는 마법의 보조제입니다. 식단 조절 없이 다이어트 성공.",
+      "expectedKeywords": [
+        "살이 빠지는"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v036",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "INFLAMMATION_TUMOR",
+      "productName": "조인트 밸런스 B",
+      "text": "조인트 밸런스 B는 만성 염증을 완전 제거합니다. 류마티스, 자가면역질환에도 효과적입니다.",
+      "expectedKeywords": [
+        "염증 완전 제거"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v037",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "INFLAMMATION_TUMOR",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E 임상에서 종양 감소가 확인되었습니다. 환자 95%가 호전을 경험했습니다.",
+      "expectedKeywords": [
+        "종양 감소"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v038",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 콜레스테롤 정상화를 보장합니다. 스타틴 계열 약을 끊을 수 있습니다.",
+      "expectedKeywords": [
+        "콜레스테롤 정상화"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v039",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "퓨어 콜라겐 G",
+      "text": "퓨어 콜라겐 G 건강기능식품 복용 후 혈당이 즉시 떨어집니다. 식후 혈당 관리가 완벽해집니다.",
+      "expectedKeywords": [
+        "혈당 즉시"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v040",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F는 혈압이 즉시 정상으로 돌아오는 효과를 제공합니다. 의약품과 동일한 작용입니다.",
+      "expectedKeywords": [
+        "혈압이 즉시"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v041",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A 건강기능식품는 당뇨 완치에 도움을 주며, 꾸준히 섭취하면 혈당이 정상화됩니다. 약 없이도 가능합니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "당뇨 완치"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v042",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L는 고혈압 치료 효과가 있으며, 복용 후 혈압이 즉시 정상으로 돌아옵니다.",
+      "expectedKeywords": [
+        "고혈압 치료"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v043",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I 건강기능식품는 관절염 완치를 약속드립니다. 임상 결과 100% 효과를 확인했습니다.",
+      "expectedKeywords": [
+        "관절염 완치"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v044",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_PREVENTION",
+      "productName": "프로 다이어트 H",
+      "text": "프로 다이어트 H는 암 예방 효과가 입증되었으며, 꾸준히 드시면 종양 발생 위험이 사라집니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "암 예방"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v045",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_PREVENTION",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F는 치매 예방에 탁월합니다. 3개월 복용으로 인지 기능 저하를 막을 수 있습니다.",
+      "expectedKeywords": [
+        "치매 예방"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v046",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DRUG_SUBSTITUTION",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C는 혈압약 대체가 가능합니다. 의사 처방 없이도 안전하게 드실 수 있습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "혈압약 대체"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v047",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DRUG_SUBSTITUTION",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I 건강기능식품는 약 대신 먹는 자연 해결책입니다. 병원에 갈 필요 없이 가정에서 관리하세요.",
+      "expectedKeywords": [
+        "약 대신"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v048",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "EXAGGERATED_EFFECT",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 기적의 효과를 약속드립니다. 단 7일 만에 100% 효과를 체감할 수 있습니다.",
+      "expectedKeywords": [
+        "기적의 효과",
+        "100% 효과"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v049",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "EXAGGERATED_EFFECT",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I 복용으로 면역력이 1000% 강해집니다. 한 통이면 평생 건강을 보장합니다.",
+      "expectedKeywords": [
+        "면역력 1000%"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v050",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DETOX_OVERSTATEMENT",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L는 체내 독소 배출을 완벽하게 해결합니다. 간과 신장의 모든 유해물질을 제거해 줍니다.",
+      "expectedKeywords": [
+        "독소 배출"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v051",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DETOX_OVERSTATEMENT",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 완벽 해독 효과로 모든 질병의 원인인 노폐물을 한 번에 제거합니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "완벽 해독"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v052",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "TESTIMONIAL_OVERSTATEMENT",
+      "productName": "조인트 밸런스 B",
+      "text": "구매 후기: 조인트 밸런스 B 헬스 보조제를 먹고 당뇨가 완치되었어요. 약 끊고 일상에 복귀했습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "완치되었어요"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v053",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "TESTIMONIAL_OVERSTATEMENT",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I로 부작용 없이 치료되었다는 후기가 쏟아지고 있습니다. 모든 환자에게 추천합니다.",
+      "expectedKeywords": [
+        "부작용 없이 치료"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v054",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DIET_OVERSTATEMENT",
+      "productName": "헬시 콜레스테롤 K",
+      "text": "헬시 콜레스테롤 K는 체지방 100% 분해를 약속드립니다. 운동 없이도 30일에 10kg 감량 가능합니다.",
+      "expectedKeywords": [
+        "체지방 100%"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v055",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DIET_OVERSTATEMENT",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 먹기만 해도 살이 빠지는 마법의 보조제입니다. 식단 조절 없이 다이어트 성공. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "살이 빠지는"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v056",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "INFLAMMATION_TUMOR",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 만성 염증을 완전 제거합니다. 류마티스, 자가면역질환에도 효과적입니다.",
+      "expectedKeywords": [
+        "염증 완전 제거"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v057",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "INFLAMMATION_TUMOR",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J 임상에서 종양 감소가 확인되었습니다. 환자 95%가 호전을 경험했습니다.",
+      "expectedKeywords": [
+        "종양 감소"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v058",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C는 콜레스테롤 정상화를 보장합니다. 스타틴 계열 약을 끊을 수 있습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "콜레스테롤 정상화"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v059",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L 헬스 보조제 복용 후 혈당이 즉시 떨어집니다. 식후 혈당 관리가 완벽해집니다.",
+      "expectedKeywords": [
+        "혈당 즉시"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v060",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L는 혈압이 즉시 정상으로 돌아오는 효과를 제공합니다. 의약품과 동일한 작용입니다.",
+      "expectedKeywords": [
+        "혈압이 즉시"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v061",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C 헬스 보조제는 당뇨 완치에 도움을 주며, 꾸준히 섭취하면 혈당이 정상화됩니다. 약 없이도 가능합니다.",
+      "expectedKeywords": [
+        "당뇨 완치"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v062",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A는 고혈압 치료 효과가 있으며, 복용 후 혈압이 즉시 정상으로 돌아옵니다.",
+      "expectedKeywords": [
+        "고혈압 치료"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v063",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A 기능성 식품는 관절염 완치를 약속드립니다. 임상 결과 100% 효과를 확인했습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "관절염 완치"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v064",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_PREVENTION",
+      "productName": "프로 다이어트 H",
+      "text": "프로 다이어트 H는 암 예방 효과가 입증되었으며, 꾸준히 드시면 종양 발생 위험이 사라집니다.",
+      "expectedKeywords": [
+        "암 예방"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v065",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_PREVENTION",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D는 치매 예방에 탁월합니다. 3개월 복용으로 인지 기능 저하를 막을 수 있습니다.",
+      "expectedKeywords": [
+        "치매 예방"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v066",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DRUG_SUBSTITUTION",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 혈압약 대체가 가능합니다. 의사 처방 없이도 안전하게 드실 수 있습니다.",
+      "expectedKeywords": [
+        "혈압약 대체"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v067",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DRUG_SUBSTITUTION",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D 기능성 식품는 약 대신 먹는 자연 해결책입니다. 병원에 갈 필요 없이 가정에서 관리하세요.",
+      "expectedKeywords": [
+        "약 대신"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v068",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "EXAGGERATED_EFFECT",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 기적의 효과를 약속드립니다. 단 7일 만에 100% 효과를 체감할 수 있습니다.",
+      "expectedKeywords": [
+        "기적의 효과",
+        "100% 효과"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v069",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "EXAGGERATED_EFFECT",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A 복용으로 면역력이 1000% 강해집니다. 한 통이면 평생 건강을 보장합니다.",
+      "expectedKeywords": [
+        "면역력 1000%"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v070",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DETOX_OVERSTATEMENT",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I는 체내 독소 배출을 완벽하게 해결합니다. 간과 신장의 모든 유해물질을 제거해 줍니다.",
+      "expectedKeywords": [
+        "독소 배출"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v071",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DETOX_OVERSTATEMENT",
+      "productName": "퓨어 콜라겐 G",
+      "text": "퓨어 콜라겐 G는 완벽 해독 효과로 모든 질병의 원인인 노폐물을 한 번에 제거합니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "완벽 해독"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v072",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "TESTIMONIAL_OVERSTATEMENT",
+      "productName": "퓨어 콜라겐 G",
+      "text": "구매 후기: 퓨어 콜라겐 G 건강식품를 먹고 당뇨가 완치되었어요. 약 끊고 일상에 복귀했습니다.",
+      "expectedKeywords": [
+        "완치되었어요"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v073",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "TESTIMONIAL_OVERSTATEMENT",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J로 부작용 없이 치료되었다는 후기가 쏟아지고 있습니다. 모든 환자에게 추천합니다.",
+      "expectedKeywords": [
+        "부작용 없이 치료"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v074",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DIET_OVERSTATEMENT",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I는 체지방 100% 분해를 약속드립니다. 운동 없이도 30일에 10kg 감량 가능합니다.",
+      "expectedKeywords": [
+        "체지방 100%"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v075",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DIET_OVERSTATEMENT",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L는 먹기만 해도 살이 빠지는 마법의 보조제입니다. 식단 조절 없이 다이어트 성공.",
+      "expectedKeywords": [
+        "살이 빠지는"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v076",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "INFLAMMATION_TUMOR",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L는 만성 염증을 완전 제거합니다. 류마티스, 자가면역질환에도 효과적입니다.",
+      "expectedKeywords": [
+        "염증 완전 제거"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v077",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "INFLAMMATION_TUMOR",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D 임상에서 종양 감소가 확인되었습니다. 환자 95%가 호전을 경험했습니다.",
+      "expectedKeywords": [
+        "종양 감소"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v078",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I는 콜레스테롤 정상화를 보장합니다. 스타틴 계열 약을 끊을 수 있습니다.",
+      "expectedKeywords": [
+        "콜레스테롤 정상화"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v079",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E 건강기능식품 복용 후 혈당이 즉시 떨어집니다. 식후 혈당 관리가 완벽해집니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "혈당 즉시"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v080",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F는 혈압이 즉시 정상으로 돌아오는 효과를 제공합니다. 의약품과 동일한 작용입니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "혈압이 즉시"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v081",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L 건강식품는 당뇨 완치에 도움을 주며, 꾸준히 섭취하면 혈당이 정상화됩니다. 약 없이도 가능합니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "당뇨 완치"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v082",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D는 고혈압 치료 효과가 있으며, 복용 후 혈압이 즉시 정상으로 돌아옵니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "고혈압 치료"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v083",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_TREATMENT",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C 헬스 보조제는 관절염 완치를 약속드립니다. 임상 결과 100% 효과를 확인했습니다.",
+      "expectedKeywords": [
+        "관절염 완치"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v084",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_PREVENTION",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A는 암 예방 효과가 입증되었으며, 꾸준히 드시면 종양 발생 위험이 사라집니다.",
+      "expectedKeywords": [
+        "암 예방"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v085",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DISEASE_PREVENTION",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A는 치매 예방에 탁월합니다. 3개월 복용으로 인지 기능 저하를 막을 수 있습니다.",
+      "expectedKeywords": [
+        "치매 예방"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v086",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DRUG_SUBSTITUTION",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A는 혈압약 대체가 가능합니다. 의사 처방 없이도 안전하게 드실 수 있습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "혈압약 대체"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v087",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DRUG_SUBSTITUTION",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J 건강기능식품는 약 대신 먹는 자연 해결책입니다. 병원에 갈 필요 없이 가정에서 관리하세요.",
+      "expectedKeywords": [
+        "약 대신"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v088",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "EXAGGERATED_EFFECT",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A는 기적의 효과를 약속드립니다. 단 7일 만에 100% 효과를 체감할 수 있습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "기적의 효과",
+        "100% 효과"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v089",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "EXAGGERATED_EFFECT",
+      "productName": "조인트 밸런스 B",
+      "text": "조인트 밸런스 B 복용으로 면역력이 1000% 강해집니다. 한 통이면 평생 건강을 보장합니다.",
+      "expectedKeywords": [
+        "면역력 1000%"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v090",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DETOX_OVERSTATEMENT",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D는 체내 독소 배출을 완벽하게 해결합니다. 간과 신장의 모든 유해물질을 제거해 줍니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "독소 배출"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v091",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DETOX_OVERSTATEMENT",
+      "productName": "헬시 콜레스테롤 K",
+      "text": "헬시 콜레스테롤 K는 완벽 해독 효과로 모든 질병의 원인인 노폐물을 한 번에 제거합니다.",
+      "expectedKeywords": [
+        "완벽 해독"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v092",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "TESTIMONIAL_OVERSTATEMENT",
+      "productName": "데일리 비타민 C",
+      "text": "구매 후기: 데일리 비타민 C 건강기능식품를 먹고 당뇨가 완치되었어요. 약 끊고 일상에 복귀했습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "완치되었어요"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v093",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "TESTIMONIAL_OVERSTATEMENT",
+      "productName": "조인트 밸런스 B",
+      "text": "조인트 밸런스 B로 부작용 없이 치료되었다는 후기가 쏟아지고 있습니다. 모든 환자에게 추천합니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "부작용 없이 치료"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v094",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DIET_OVERSTATEMENT",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F는 체지방 100% 분해를 약속드립니다. 운동 없이도 30일에 10kg 감량 가능합니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "체지방 100%"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v095",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "DIET_OVERSTATEMENT",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 먹기만 해도 살이 빠지는 마법의 보조제입니다. 식단 조절 없이 다이어트 성공. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "살이 빠지는"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v096",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "INFLAMMATION_TUMOR",
+      "productName": "조인트 밸런스 B",
+      "text": "조인트 밸런스 B는 만성 염증을 완전 제거합니다. 류마티스, 자가면역질환에도 효과적입니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "염증 완전 제거"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v097",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "INFLAMMATION_TUMOR",
+      "productName": "조인트 밸런스 B",
+      "text": "조인트 밸런스 B 임상에서 종양 감소가 확인되었습니다. 환자 95%가 호전을 경험했습니다. 정가 49,800원, 무료 배송. 일반 식품이므로 의학적 효과를 보장하지 않습니다.",
+      "expectedKeywords": [
+        "종양 감소"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v098",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "헬시 콜레스테롤 K",
+      "text": "헬시 콜레스테롤 K는 콜레스테롤 정상화를 보장합니다. 스타틴 계열 약을 끊을 수 있습니다.",
+      "expectedKeywords": [
+        "콜레스테롤 정상화"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v099",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F 헬스 보조제 복용 후 혈당이 즉시 떨어집니다. 식후 혈당 관리가 완벽해집니다.",
+      "expectedKeywords": [
+        "혈당 즉시"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_v100",
+      "label": "VIOLATION_CANDIDATE",
+      "category": "BP_BS_CHOL",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J는 혈압이 즉시 정상으로 돌아오는 효과를 제공합니다. 의약품과 동일한 작용입니다.",
+      "expectedKeywords": [
+        "혈압이 즉시"
+      ],
+      "notes": "synthetic — 가상의 위반 의심 광고 문구"
+    },
+    {
+      "id": "sample_n001",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E 건강식품는 일상의 건강 유지에 도움을 줄 수 있는 보조제입니다. 균형 잡힌 식단과 함께 섭취해 보세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n002",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C는 활기찬 하루를 시작하는 분들을 위해 설계된 일반 건강식품입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n003",
+      "label": "NORMAL",
+      "category": "FUNCTIONAL_INGREDIENT",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E의 주요 원료는 바나바잎 추출물 600mg과 여주분말 200mg입니다. 자세한 함량은 영양정보를 참고하세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n004",
+      "label": "NORMAL",
+      "category": "FUNCTIONAL_INGREDIENT",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J에는 식약처 인정 기능성 원료가 포함되어 있으며, 일반적인 영양 보충을 목적으로 합니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n005",
+      "label": "NORMAL",
+      "category": "USAGE_WARNING",
+      "productName": "조인트 밸런스 B",
+      "text": "조인트 밸런스 B 섭취 방법: 1일 1회 2캡슐, 식후 30분 이내 드세요. 권장 섭취량을 지켜 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n006",
+      "label": "NORMAL",
+      "category": "USAGE_WARNING",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E 섭취 시 주의사항: 임산부, 수유부, 만성질환자는 전문가와 상담 후 섭취하세요. 알레르기 체질은 원료를 확인해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n007",
+      "label": "NORMAL",
+      "category": "GENERIC_REVIEW",
+      "productName": "데일리 비타민 C",
+      "text": "구매 후기: 데일리 비타민 C를 한 달간 꾸준히 먹어보고 있습니다. 컨디션 관리에 참고가 되어 만족합니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n008",
+      "label": "NORMAL",
+      "category": "GENERIC_REVIEW",
+      "productName": "데일리 비타민 C",
+      "text": "구매 후기: 데일리 비타민 C 포장이 깔끔하고 섭취가 편합니다. 효과는 개인차가 있을 수 있어 보입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n009",
+      "label": "NORMAL",
+      "category": "PRICE_SHIPPING",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F는 30정 39,800원, 60정 69,800원으로 구성됩니다. 3만원 이상 무료 배송이 적용됩니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n010",
+      "label": "NORMAL",
+      "category": "PRICE_SHIPPING",
+      "productName": "프로 다이어트 H",
+      "text": "프로 다이어트 H 상품은 일반 택배로 발송되며, 평일 오후 2시 이전 주문 시 당일 출고됩니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n011",
+      "label": "NORMAL",
+      "category": "EXPERT_CONSULT",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A는 일반 건강기능식품이며, 질환이 있으신 분은 의사나 약사와 상담 후 섭취하시기 바랍니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n012",
+      "label": "NORMAL",
+      "category": "EXPERT_CONSULT",
+      "productName": "퓨어 콜라겐 G",
+      "text": "혈당 관리가 필요한 분은 전문가와 상담 후 퓨어 콜라겐 G 섭취 여부를 결정해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n013",
+      "label": "NORMAL",
+      "category": "NUTRITION_INFO",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D 1일 섭취량(2캡슐) 기준 열량 8kcal, 탄수화물 1g, 단백질 0.5g, 지방 0.3g 입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n014",
+      "label": "NORMAL",
+      "category": "NUTRITION_INFO",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A 영양정보는 포장지 후면에 표기된 내용을 참고해 주시고, 일반 식품으로 활용해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n015",
+      "label": "NORMAL",
+      "category": "SELLER_INFO",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A 판매자: 예시건강(주) · 사업자 정보는 상품 상세 페이지 하단을 참고해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n016",
+      "label": "NORMAL",
+      "category": "SELLER_INFO",
+      "productName": "퓨어 콜라겐 G",
+      "text": "퓨어 콜라겐 G는 식약처 신고 절차를 거친 일반 건강기능식품 카테고리에 속합니다. 광고 표현은 보수적으로 유지합니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n017",
+      "label": "NORMAL",
+      "category": "EXCHANGE_RETURN",
+      "productName": "이뮨 부스터 E",
+      "text": "교환/반품 안내: 단순 변심은 수령 후 7일 이내 가능합니다. 식품 특성상 개봉 후 교환은 제한될 수 있습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n018",
+      "label": "NORMAL",
+      "category": "EXCHANGE_RETURN",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J 환불 정책은 일반 식품 기준을 따릅니다. 자세한 사항은 고객센터 안내 페이지를 확인해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n019",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "헬시 콜레스테롤 K",
+      "text": "헬시 콜레스테롤 K는 일상에서 관절 건강 유지에 관심 있는 분들이 참고할 수 있는 일반 건강식품입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n020",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 피로감을 느끼는 일상에서 영양 보충을 보조하는 일반 식품입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n021",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E 건강기능식품는 일상의 건강 유지에 도움을 줄 수 있는 보조제입니다. 균형 잡힌 식단과 함께 섭취해 보세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n022",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J는 활기찬 하루를 시작하는 분들을 위해 설계된 일반 건강식품입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n023",
+      "label": "NORMAL",
+      "category": "FUNCTIONAL_INGREDIENT",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J의 주요 원료는 바나바잎 추출물 600mg과 여주분말 200mg입니다. 자세한 함량은 영양정보를 참고하세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n024",
+      "label": "NORMAL",
+      "category": "FUNCTIONAL_INGREDIENT",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L에는 식약처 인정 기능성 원료가 포함되어 있으며, 일반적인 영양 보충을 목적으로 합니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n025",
+      "label": "NORMAL",
+      "category": "USAGE_WARNING",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D 섭취 방법: 1일 1회 2캡슐, 식후 30분 이내 드세요. 권장 섭취량을 지켜 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n026",
+      "label": "NORMAL",
+      "category": "USAGE_WARNING",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I 섭취 시 주의사항: 임산부, 수유부, 만성질환자는 전문가와 상담 후 섭취하세요. 알레르기 체질은 원료를 확인해 주세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n027",
+      "label": "NORMAL",
+      "category": "GENERIC_REVIEW",
+      "productName": "오메가3 그린 I",
+      "text": "구매 후기: 오메가3 그린 I를 한 달간 꾸준히 먹어보고 있습니다. 컨디션 관리에 참고가 되어 만족합니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n028",
+      "label": "NORMAL",
+      "category": "GENERIC_REVIEW",
+      "productName": "디톡스 클렌즈 F",
+      "text": "구매 후기: 디톡스 클렌즈 F 포장이 깔끔하고 섭취가 편합니다. 효과는 개인차가 있을 수 있어 보입니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n029",
+      "label": "NORMAL",
+      "category": "PRICE_SHIPPING",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D는 30정 39,800원, 60정 69,800원으로 구성됩니다. 3만원 이상 무료 배송이 적용됩니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n030",
+      "label": "NORMAL",
+      "category": "PRICE_SHIPPING",
+      "productName": "헬시 콜레스테롤 K",
+      "text": "헬시 콜레스테롤 K 상품은 일반 택배로 발송되며, 평일 오후 2시 이전 주문 시 당일 출고됩니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n031",
+      "label": "NORMAL",
+      "category": "EXPERT_CONSULT",
+      "productName": "퓨어 콜라겐 G",
+      "text": "퓨어 콜라겐 G는 일반 건강기능식품이며, 질환이 있으신 분은 의사나 약사와 상담 후 섭취하시기 바랍니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n032",
+      "label": "NORMAL",
+      "category": "EXPERT_CONSULT",
+      "productName": "오메가3 그린 I",
+      "text": "혈당 관리가 필요한 분은 전문가와 상담 후 오메가3 그린 I 섭취 여부를 결정해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n033",
+      "label": "NORMAL",
+      "category": "NUTRITION_INFO",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C 1일 섭취량(2캡슐) 기준 열량 8kcal, 탄수화물 1g, 단백질 0.5g, 지방 0.3g 입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n034",
+      "label": "NORMAL",
+      "category": "NUTRITION_INFO",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F 영양정보는 포장지 후면에 표기된 내용을 참고해 주시고, 일반 식품으로 활용해 주세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n035",
+      "label": "NORMAL",
+      "category": "SELLER_INFO",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I 판매자: 예시건강(주) · 사업자 정보는 상품 상세 페이지 하단을 참고해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n036",
+      "label": "NORMAL",
+      "category": "SELLER_INFO",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J는 식약처 신고 절차를 거친 일반 건강기능식품 카테고리에 속합니다. 광고 표현은 보수적으로 유지합니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n037",
+      "label": "NORMAL",
+      "category": "EXCHANGE_RETURN",
+      "productName": "디톡스 클렌즈 F",
+      "text": "교환/반품 안내: 단순 변심은 수령 후 7일 이내 가능합니다. 식품 특성상 개봉 후 교환은 제한될 수 있습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n038",
+      "label": "NORMAL",
+      "category": "EXCHANGE_RETURN",
+      "productName": "프로 다이어트 H",
+      "text": "프로 다이어트 H 환불 정책은 일반 식품 기준을 따릅니다. 자세한 사항은 고객센터 안내 페이지를 확인해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n039",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "헬시 콜레스테롤 K",
+      "text": "헬시 콜레스테롤 K는 일상에서 관절 건강 유지에 관심 있는 분들이 참고할 수 있는 일반 건강식품입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n040",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F는 피로감을 느끼는 일상에서 영양 보충을 보조하는 일반 식품입니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n041",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F 영양제는 일상의 건강 유지에 도움을 줄 수 있는 보조제입니다. 균형 잡힌 식단과 함께 섭취해 보세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n042",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C는 활기찬 하루를 시작하는 분들을 위해 설계된 일반 건강식품입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n043",
+      "label": "NORMAL",
+      "category": "FUNCTIONAL_INGREDIENT",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I의 주요 원료는 바나바잎 추출물 600mg과 여주분말 200mg입니다. 자세한 함량은 영양정보를 참고하세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n044",
+      "label": "NORMAL",
+      "category": "FUNCTIONAL_INGREDIENT",
+      "productName": "퓨어 콜라겐 G",
+      "text": "퓨어 콜라겐 G에는 식약처 인정 기능성 원료가 포함되어 있으며, 일반적인 영양 보충을 목적으로 합니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n045",
+      "label": "NORMAL",
+      "category": "USAGE_WARNING",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D 섭취 방법: 1일 1회 2캡슐, 식후 30분 이내 드세요. 권장 섭취량을 지켜 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n046",
+      "label": "NORMAL",
+      "category": "USAGE_WARNING",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F 섭취 시 주의사항: 임산부, 수유부, 만성질환자는 전문가와 상담 후 섭취하세요. 알레르기 체질은 원료를 확인해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n047",
+      "label": "NORMAL",
+      "category": "GENERIC_REVIEW",
+      "productName": "데일리 비타민 C",
+      "text": "구매 후기: 데일리 비타민 C를 한 달간 꾸준히 먹어보고 있습니다. 컨디션 관리에 참고가 되어 만족합니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n048",
+      "label": "NORMAL",
+      "category": "GENERIC_REVIEW",
+      "productName": "오메가3 그린 I",
+      "text": "구매 후기: 오메가3 그린 I 포장이 깔끔하고 섭취가 편합니다. 효과는 개인차가 있을 수 있어 보입니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n049",
+      "label": "NORMAL",
+      "category": "PRICE_SHIPPING",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F는 30정 39,800원, 60정 69,800원으로 구성됩니다. 3만원 이상 무료 배송이 적용됩니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n050",
+      "label": "NORMAL",
+      "category": "PRICE_SHIPPING",
+      "productName": "프로 다이어트 H",
+      "text": "프로 다이어트 H 상품은 일반 택배로 발송되며, 평일 오후 2시 이전 주문 시 당일 출고됩니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n051",
+      "label": "NORMAL",
+      "category": "EXPERT_CONSULT",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A는 일반 건강기능식품이며, 질환이 있으신 분은 의사나 약사와 상담 후 섭취하시기 바랍니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n052",
+      "label": "NORMAL",
+      "category": "EXPERT_CONSULT",
+      "productName": "이뮨 부스터 E",
+      "text": "혈당 관리가 필요한 분은 전문가와 상담 후 이뮨 부스터 E 섭취 여부를 결정해 주세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n053",
+      "label": "NORMAL",
+      "category": "NUTRITION_INFO",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F 1일 섭취량(2캡슐) 기준 열량 8kcal, 탄수화물 1g, 단백질 0.5g, 지방 0.3g 입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n054",
+      "label": "NORMAL",
+      "category": "NUTRITION_INFO",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J 영양정보는 포장지 후면에 표기된 내용을 참고해 주시고, 일반 식품으로 활용해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n055",
+      "label": "NORMAL",
+      "category": "SELLER_INFO",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E 판매자: 예시건강(주) · 사업자 정보는 상품 상세 페이지 하단을 참고해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n056",
+      "label": "NORMAL",
+      "category": "SELLER_INFO",
+      "productName": "퓨어 콜라겐 G",
+      "text": "퓨어 콜라겐 G는 식약처 신고 절차를 거친 일반 건강기능식품 카테고리에 속합니다. 광고 표현은 보수적으로 유지합니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n057",
+      "label": "NORMAL",
+      "category": "EXCHANGE_RETURN",
+      "productName": "비타라이프 멀티 L",
+      "text": "교환/반품 안내: 단순 변심은 수령 후 7일 이내 가능합니다. 식품 특성상 개봉 후 교환은 제한될 수 있습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n058",
+      "label": "NORMAL",
+      "category": "EXCHANGE_RETURN",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D 환불 정책은 일반 식품 기준을 따릅니다. 자세한 사항은 고객센터 안내 페이지를 확인해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n059",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J는 일상에서 관절 건강 유지에 관심 있는 분들이 참고할 수 있는 일반 건강식품입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n060",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 피로감을 느끼는 일상에서 영양 보충을 보조하는 일반 식품입니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n061",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E 헬스 보조제는 일상의 건강 유지에 도움을 줄 수 있는 보조제입니다. 균형 잡힌 식단과 함께 섭취해 보세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n062",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I는 활기찬 하루를 시작하는 분들을 위해 설계된 일반 건강식품입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n063",
+      "label": "NORMAL",
+      "category": "FUNCTIONAL_INGREDIENT",
+      "productName": "데일리 비타민 C",
+      "text": "데일리 비타민 C의 주요 원료는 바나바잎 추출물 600mg과 여주분말 200mg입니다. 자세한 함량은 영양정보를 참고하세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n064",
+      "label": "NORMAL",
+      "category": "FUNCTIONAL_INGREDIENT",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E에는 식약처 인정 기능성 원료가 포함되어 있으며, 일반적인 영양 보충을 목적으로 합니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n065",
+      "label": "NORMAL",
+      "category": "USAGE_WARNING",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D 섭취 방법: 1일 1회 2캡슐, 식후 30분 이내 드세요. 권장 섭취량을 지켜 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n066",
+      "label": "NORMAL",
+      "category": "USAGE_WARNING",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E 섭취 시 주의사항: 임산부, 수유부, 만성질환자는 전문가와 상담 후 섭취하세요. 알레르기 체질은 원료를 확인해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n067",
+      "label": "NORMAL",
+      "category": "GENERIC_REVIEW",
+      "productName": "조인트 밸런스 B",
+      "text": "구매 후기: 조인트 밸런스 B를 한 달간 꾸준히 먹어보고 있습니다. 컨디션 관리에 참고가 되어 만족합니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n068",
+      "label": "NORMAL",
+      "category": "GENERIC_REVIEW",
+      "productName": "이뮨 부스터 E",
+      "text": "구매 후기: 이뮨 부스터 E 포장이 깔끔하고 섭취가 편합니다. 효과는 개인차가 있을 수 있어 보입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n069",
+      "label": "NORMAL",
+      "category": "PRICE_SHIPPING",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A는 30정 39,800원, 60정 69,800원으로 구성됩니다. 3만원 이상 무료 배송이 적용됩니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n070",
+      "label": "NORMAL",
+      "category": "PRICE_SHIPPING",
+      "productName": "퓨어 콜라겐 G",
+      "text": "퓨어 콜라겐 G 상품은 일반 택배로 발송되며, 평일 오후 2시 이전 주문 시 당일 출고됩니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n071",
+      "label": "NORMAL",
+      "category": "EXPERT_CONSULT",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A는 일반 건강기능식품이며, 질환이 있으신 분은 의사나 약사와 상담 후 섭취하시기 바랍니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n072",
+      "label": "NORMAL",
+      "category": "EXPERT_CONSULT",
+      "productName": "조인트 밸런스 B",
+      "text": "혈당 관리가 필요한 분은 전문가와 상담 후 조인트 밸런스 B 섭취 여부를 결정해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n073",
+      "label": "NORMAL",
+      "category": "NUTRITION_INFO",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J 1일 섭취량(2캡슐) 기준 열량 8kcal, 탄수화물 1g, 단백질 0.5g, 지방 0.3g 입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n074",
+      "label": "NORMAL",
+      "category": "NUTRITION_INFO",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F 영양정보는 포장지 후면에 표기된 내용을 참고해 주시고, 일반 식품으로 활용해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n075",
+      "label": "NORMAL",
+      "category": "SELLER_INFO",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L 판매자: 예시건강(주) · 사업자 정보는 상품 상세 페이지 하단을 참고해 주세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n076",
+      "label": "NORMAL",
+      "category": "SELLER_INFO",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I는 식약처 신고 절차를 거친 일반 건강기능식품 카테고리에 속합니다. 광고 표현은 보수적으로 유지합니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n077",
+      "label": "NORMAL",
+      "category": "EXCHANGE_RETURN",
+      "productName": "굿나잇 허브 D",
+      "text": "교환/반품 안내: 단순 변심은 수령 후 7일 이내 가능합니다. 식품 특성상 개봉 후 교환은 제한될 수 있습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n078",
+      "label": "NORMAL",
+      "category": "EXCHANGE_RETURN",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A 환불 정책은 일반 식품 기준을 따릅니다. 자세한 사항은 고객센터 안내 페이지를 확인해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n079",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "프로 다이어트 H",
+      "text": "프로 다이어트 H는 일상에서 관절 건강 유지에 관심 있는 분들이 참고할 수 있는 일반 건강식품입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n080",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "이뮨 부스터 E",
+      "text": "이뮨 부스터 E는 피로감을 느끼는 일상에서 영양 보충을 보조하는 일반 식품입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n081",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D 영양제는 일상의 건강 유지에 도움을 줄 수 있는 보조제입니다. 균형 잡힌 식단과 함께 섭취해 보세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n082",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "퓨어 콜라겐 G",
+      "text": "퓨어 콜라겐 G는 활기찬 하루를 시작하는 분들을 위해 설계된 일반 건강식품입니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n083",
+      "label": "NORMAL",
+      "category": "FUNCTIONAL_INGREDIENT",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I의 주요 원료는 바나바잎 추출물 600mg과 여주분말 200mg입니다. 자세한 함량은 영양정보를 참고하세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n084",
+      "label": "NORMAL",
+      "category": "FUNCTIONAL_INGREDIENT",
+      "productName": "퓨어 콜라겐 G",
+      "text": "퓨어 콜라겐 G에는 식약처 인정 기능성 원료가 포함되어 있으며, 일반적인 영양 보충을 목적으로 합니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n085",
+      "label": "NORMAL",
+      "category": "USAGE_WARNING",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J 섭취 방법: 1일 1회 2캡슐, 식후 30분 이내 드세요. 권장 섭취량을 지켜 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n086",
+      "label": "NORMAL",
+      "category": "USAGE_WARNING",
+      "productName": "프리미엄 혈당 케어 A",
+      "text": "프리미엄 혈당 케어 A 섭취 시 주의사항: 임산부, 수유부, 만성질환자는 전문가와 상담 후 섭취하세요. 알레르기 체질은 원료를 확인해 주세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n087",
+      "label": "NORMAL",
+      "category": "GENERIC_REVIEW",
+      "productName": "이뮨 부스터 E",
+      "text": "구매 후기: 이뮨 부스터 E를 한 달간 꾸준히 먹어보고 있습니다. 컨디션 관리에 참고가 되어 만족합니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n088",
+      "label": "NORMAL",
+      "category": "GENERIC_REVIEW",
+      "productName": "굿나잇 허브 D",
+      "text": "구매 후기: 굿나잇 허브 D 포장이 깔끔하고 섭취가 편합니다. 효과는 개인차가 있을 수 있어 보입니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n089",
+      "label": "NORMAL",
+      "category": "PRICE_SHIPPING",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D는 30정 39,800원, 60정 69,800원으로 구성됩니다. 3만원 이상 무료 배송이 적용됩니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n090",
+      "label": "NORMAL",
+      "category": "PRICE_SHIPPING",
+      "productName": "오메가3 그린 I",
+      "text": "오메가3 그린 I 상품은 일반 택배로 발송되며, 평일 오후 2시 이전 주문 시 당일 출고됩니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n091",
+      "label": "NORMAL",
+      "category": "EXPERT_CONSULT",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F는 일반 건강기능식품이며, 질환이 있으신 분은 의사나 약사와 상담 후 섭취하시기 바랍니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n092",
+      "label": "NORMAL",
+      "category": "EXPERT_CONSULT",
+      "productName": "비타라이프 멀티 L",
+      "text": "혈당 관리가 필요한 분은 전문가와 상담 후 비타라이프 멀티 L 섭취 여부를 결정해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n093",
+      "label": "NORMAL",
+      "category": "NUTRITION_INFO",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F 1일 섭취량(2캡슐) 기준 열량 8kcal, 탄수화물 1g, 단백질 0.5g, 지방 0.3g 입니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n094",
+      "label": "NORMAL",
+      "category": "NUTRITION_INFO",
+      "productName": "비타라이프 멀티 L",
+      "text": "비타라이프 멀티 L 영양정보는 포장지 후면에 표기된 내용을 참고해 주시고, 일반 식품으로 활용해 주세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n095",
+      "label": "NORMAL",
+      "category": "SELLER_INFO",
+      "productName": "조인트 밸런스 B",
+      "text": "조인트 밸런스 B 판매자: 예시건강(주) · 사업자 정보는 상품 상세 페이지 하단을 참고해 주세요.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n096",
+      "label": "NORMAL",
+      "category": "SELLER_INFO",
+      "productName": "굿나잇 허브 D",
+      "text": "굿나잇 허브 D는 식약처 신고 절차를 거친 일반 건강기능식품 카테고리에 속합니다. 광고 표현은 보수적으로 유지합니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n097",
+      "label": "NORMAL",
+      "category": "EXCHANGE_RETURN",
+      "productName": "퓨어 콜라겐 G",
+      "text": "교환/반품 안내: 단순 변심은 수령 후 7일 이내 가능합니다. 식품 특성상 개봉 후 교환은 제한될 수 있습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n098",
+      "label": "NORMAL",
+      "category": "EXCHANGE_RETURN",
+      "productName": "디톡스 클렌즈 F",
+      "text": "디톡스 클렌즈 F 환불 정책은 일반 식품 기준을 따릅니다. 자세한 사항은 고객센터 안내 페이지를 확인해 주세요. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n099",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J는 일상에서 관절 건강 유지에 관심 있는 분들이 참고할 수 있는 일반 건강식품입니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    },
+    {
+      "id": "sample_n100",
+      "label": "NORMAL",
+      "category": "GENERAL_HEALTH",
+      "productName": "리커버리 슬립 J",
+      "text": "리커버리 슬립 J는 피로감을 느끼는 일상에서 영양 보충을 보조하는 일반 식품입니다. 본 제품은 일반 식품이며, 질병의 예방·치료를 목적으로 하지 않습니다.",
+      "notes": "synthetic — 가상의 정상 광고/안내 문구"
+    }
+  ]
+}

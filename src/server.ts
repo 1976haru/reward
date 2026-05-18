@@ -19,6 +19,7 @@ import { schedulerRouter } from "./routes/scheduler.js";
 import { schedulerService } from "./services/scheduler/SchedulerService.js";
 import { dedupeRouter } from "./routes/dedupe.js";
 import { feedbackRouter, caseFeedbackRouter } from "./routes/feedback.js";
+import { evalRouter } from "./routes/eval.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -29,7 +30,8 @@ await Promise.all([
   ensureDir(config.evidenceDir),
   ensureDir(config.reportsDir),
   ensureDir(path.join(config.dataDir, "raw")),
-  ensureDir(config.feedback.dir)
+  ensureDir(config.feedback.dir),
+  ensureDir(path.join(config.eval.dir, "runs"))
 ]);
 
 app.use(cors());
@@ -128,6 +130,9 @@ app.use("/api/cases", casesRouter);
 
 // Feedback DB (체크리스트 21) — 전체 목록/통계/개선 후보
 app.use("/api/feedback", feedbackRouter);
+
+// Eval Set (체크리스트 22) — 합성 평가셋 기반 품질 측정. LLM 호출 기본 비활성, 외부 신고 미수행.
+app.use("/api/eval", evalRouter);
 
 // Candidate Discovery
 app.use("/api/discovery", discoveryRouter);

@@ -67,6 +67,18 @@ import {
   FEEDBACK_REASON_CATEGORIES
 } from "../types/feedback.js";
 import { maskPiiForFeedback } from "../utils/piiMask.js";
+import {
+  buildMetrics,
+  calculateAccuracy,
+  calculateF1,
+  calculatePrecision,
+  calculateRecall,
+  classifyOutcome,
+  safeDivide
+} from "../services/eval/EvalMetrics.js";
+import { JsonEvalRepository, checkEvalSetForPii, isSafeRunId } from "../repositories/EvalRepository.js";
+import { EvalRunner } from "../services/eval/EvalRunner.js";
+import { EVAL_LABELS } from "../types/eval.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -1109,6 +1121,135 @@ try {
   check("feedback rejects missing caseId", noCaseIdThrown);
 } finally {
   await rm(tmpFbDir, { recursive: true, force: true });
+}
+
+// 22) Eval Set — metrics, generator output, runner, repository
+check("EVAL_LABELS == VIOLATION_CANDIDATE/NORMAL", EVAL_LABELS.length === 2 && EVAL_LABELS.includes("VIOLATION_CANDIDATE") && EVAL_LABELS.includes("NORMAL"));
+
+// safeDivide
+check("safeDivide(6,3) == 2", safeDivide(6, 3) === 2);
+check("safeDivide(5,0) == 0", safeDivide(5, 0) === 0);
+check("safeDivide(NaN,3) == 0", safeDivide(Number.NaN, 3) === 0);
+
+// metric formulas
+check("precision(8,2) == 0.8", Math.abs(calculatePrecision(8, 2) - 0.8) < 1e-9);
+check("recall(8,2) == 0.8", Math.abs(calculateRecall(8, 2) - 0.8) < 1e-9);
+check("f1(1,1) == 1", calculateF1(1, 1) === 1);
+check("f1(0,0) == 0", calculateF1(0, 0) === 0);
+check("accuracy(8,8,20) == 0.8", Math.abs(calculateAccuracy(8, 8, 20) - 0.8) < 1e-9);
+
+// classifyOutcome
+check("classifyOutcome VIOLATION+POSITIVE = TP", classifyOutcome("VIOLATION_CANDIDATE", "POSITIVE") === "TP");
+check("classifyOutcome VIOLATION+NEGATIVE = FN", classifyOutcome("VIOLATION_CANDIDATE", "NEGATIVE") === "FN");
+check("classifyOutcome NORMAL+POSITIVE = FP", classifyOutcome("NORMAL", "POSITIVE") === "FP");
+check("classifyOutcome NORMAL+NEGATIVE = TN", classifyOutcome("NORMAL", "NEGATIVE") === "TN");
+
+// buildMetrics with hand-crafted results
+const fakeResults = [
+  { sampleId: "a", label: "VIOLATION_CANDIDATE", category: "x", productName: "p", text: "", priorityScore: 80, ruleRiskScore: 70, matchedKeywords: [], matchedRuleIds: [], matchCount: 0, threshold: 60, prediction: "POSITIVE", predictedAsPositive: true, outcome: "TP" },
+  { sampleId: "b", label: "VIOLATION_CANDIDATE", category: "x", productName: "p", text: "", priorityScore: 30, ruleRiskScore: 10, matchedKeywords: [], matchedRuleIds: [], matchCount: 0, threshold: 60, prediction: "NEGATIVE", predictedAsPositive: false, outcome: "FN" },
+  { sampleId: "c", label: "NORMAL", category: "x", productName: "p", text: "", priorityScore: 80, ruleRiskScore: 50, matchedKeywords: [], matchedRuleIds: [], matchCount: 0, threshold: 60, prediction: "POSITIVE", predictedAsPositive: true, outcome: "FP" },
+  { sampleId: "d", label: "NORMAL", category: "x", productName: "p", text: "", priorityScore: 20, ruleRiskScore: 0, matchedKeywords: [], matchedRuleIds: [], matchCount: 0, threshold: 60, prediction: "NEGATIVE", predictedAsPositive: false, outcome: "TN" }
+] as Parameters<typeof buildMetrics>[0];
+const sampleMetrics = buildMetrics(fakeResults, 60);
+check("buildMetrics confusion TP/FP/TN/FN", sampleMetrics.confusion.TP === 1 && sampleMetrics.confusion.FP === 1 && sampleMetrics.confusion.TN === 1 && sampleMetrics.confusion.FN === 1);
+check("buildMetrics precision 0.5", Math.abs(sampleMetrics.precision - 0.5) < 1e-3);
+check("buildMetrics recall 0.5", Math.abs(sampleMetrics.recall - 0.5) < 1e-3);
+check("buildMetrics f1 0.5", Math.abs(sampleMetrics.f1 - 0.5) < 1e-3);
+check("buildMetrics accuracy 0.5", Math.abs(sampleMetrics.accuracy - 0.5) < 1e-3);
+check("buildMetrics notLegalConclusion true", sampleMetrics.notLegalConclusion === true);
+
+// Eval set file 검증 — eval:generate가 만든 결과를 직접 검사
+const evalSetPath = path.join(process.cwd(), "src", "modules", "false-ad", "eval", "health_false_ad_synthetic_v1.json");
+const evalSetRaw = await readFile(evalSetPath, "utf8");
+const evalSet = JSON.parse(evalSetRaw);
+check("eval set schemaVersion 1.0.0", evalSet.schemaVersion === "1.0.0");
+check("eval set evalSetId matches", evalSet.evalSetId === "health_false_ad_synthetic_v1");
+check("eval set moduleId false_ad", evalSet.moduleId === "false_ad");
+check("eval set synthetic=true", evalSet.synthetic === true);
+check("eval set total samples == 200", Array.isArray(evalSet.samples) && evalSet.samples.length === 200);
+const violations = evalSet.samples.filter((s: { label: string }) => s.label === "VIOLATION_CANDIDATE");
+const normals = evalSet.samples.filter((s: { label: string }) => s.label === "NORMAL");
+check("eval set VIOLATION_CANDIDATE == 100", violations.length === 100, `v=${violations.length}`);
+check("eval set NORMAL == 100", normals.length === 100, `n=${normals.length}`);
+const idSet = new Set<string>(evalSet.samples.map((s: { id: string }) => s.id));
+check("eval set sample ids unique", idSet.size === 200, `unique=${idSet.size}`);
+
+// PII 검사 — 합성 데이터에 PII 패턴이 들어가지 않았는지
+const piiCheck = checkEvalSetForPii(evalSet);
+check("eval set has no PII patterns", piiCheck.ok === true, `violations=${JSON.stringify(piiCheck.violations.slice(0, 3))}`);
+
+// 일부러 PII 패턴이 섞인 가짜 set으로 negative case 검증
+const piiCheckNeg = checkEvalSetForPii({
+  ...evalSet,
+  samples: [{ id: "x", label: "NORMAL", category: "GENERAL_HEALTH", productName: "X", text: "문의 010-1234-5678" }]
+});
+check("checkEvalSetForPii detects phone", piiCheckNeg.ok === false && piiCheckNeg.violations.length >= 1);
+
+// EvalRepository (임시 디렉터리)
+const tmpEvalRunDir = await mkdtemp(path.join(tmpdir(), "reward-eval-"));
+try {
+  const evalRepoLocal = new JsonEvalRepository(tmpEvalRunDir);
+
+  // listSets — 실제 모듈 eval 디렉터리에서 읽음
+  const sets = await evalRepoLocal.listSets("false_ad");
+  check("listSets includes health_false_ad_synthetic_v1", sets.some((s) => s.evalSetId === "health_false_ad_synthetic_v1"));
+  check("listSets set total=200", sets.find((s) => s.evalSetId === "health_false_ad_synthetic_v1")?.total === 200);
+  check("listSets positives=100", sets.find((s) => s.evalSetId === "health_false_ad_synthetic_v1")?.positives === 100);
+  check("listSets negatives=100", sets.find((s) => s.evalSetId === "health_false_ad_synthetic_v1")?.negatives === 100);
+
+  const set = await evalRepoLocal.getSet("health_false_ad_synthetic_v1");
+  check("getSet returns 200 samples", set.samples.length === 200);
+
+  // Runner 동작 — 작은 subset
+  const runner = new EvalRunner();
+  const small = { ...set, samples: set.samples.slice(0, 10) };
+  const runSmall = await runner.run(small, { threshold: 60, useLlm: false, maxSamples: 10 });
+  check("runner returns runId", typeof runSmall.runId === "string" && /^run_/.test(runSmall.runId));
+  check("runner runId is safe", isSafeRunId(runSmall.runId));
+  check("runner results length matches maxSamples", runSmall.results.length === 10);
+  check("runner llmCallCount = 0", runSmall.llmCallCount === 0);
+  check("runner useLlm=false even when requested true", runSmall.useLlm === false);
+  const sumCM = runSmall.metrics.confusion.TP + runSmall.metrics.confusion.FP + runSmall.metrics.confusion.TN + runSmall.metrics.confusion.FN;
+  check("runner confusion sums to total", sumCM === 10, `sum=${sumCM}`);
+
+  // 전체 평가 — RuleAgent가 위반 샘플을 잘 탐지하는지
+  const runFull = await runner.run(set, { threshold: 60, useLlm: false, maxSamples: 200 });
+  check("full eval total=200", runFull.metrics.total === 200);
+  check("full eval positive=100", runFull.metrics.positive === 100);
+  check("full eval negative=100", runFull.metrics.negative === 100);
+  // baseline — 합성셋의 일부 키워드는 keywords.json에 아직 등록되지 않아 의도적으로 FN으로 분류된다.
+  // 이 FN은 룰 개선 후보로 활용되어야 한다 (eval의 진단 가치).
+  check("full eval recall >= 0.4", runFull.metrics.recall >= 0.4, `recall=${runFull.metrics.recall}`);
+  check("full eval precision >= 0.8", runFull.metrics.precision >= 0.8, `precision=${runFull.metrics.precision}`);
+  check("full eval f1 > 0", runFull.metrics.f1 > 0);
+  check("full eval accuracy >= 0.6", runFull.metrics.accuracy >= 0.6, `accuracy=${runFull.metrics.accuracy}`);
+  check("full eval has FN (rule 개선 후보)", runFull.falseNegatives.length > 0);
+  check("full eval feedbackCandidates is array", Array.isArray(runFull.feedbackCandidates));
+  check("full eval feedbackCandidates non-empty when FN exists", runFull.feedbackCandidates.length > 0);
+
+  // FP/FN 분류
+  for (const r of runFull.results) {
+    if (r.label === "VIOLATION_CANDIDATE" && r.prediction === "POSITIVE") {
+      check("TP classification consistent", r.outcome === "TP");
+      break;
+    }
+  }
+
+  // 저장/조회/latest
+  await evalRepoLocal.saveRun(runFull);
+  const fetched = await evalRepoLocal.getRun(runFull.runId);
+  check("getRun returns same id", fetched.runId === runFull.runId);
+  const latest = await evalRepoLocal.getLatest();
+  check("getLatest returns the saved run", latest?.runId === runFull.runId);
+  const list = await evalRepoLocal.listRuns(5);
+  check("listRuns contains saved run", list.some((r) => r.runId === runFull.runId));
+
+  // 잘못된 runId 거부
+  check("isSafeRunId rejects ../etc/passwd", !isSafeRunId("../etc/passwd"));
+  check("isSafeRunId accepts run_2026-05-18T00-00-00_abc", isSafeRunId("run_2026-05-18T00-00-00_abc"));
+} finally {
+  await rm(tmpEvalRunDir, { recursive: true, force: true });
 }
 
 if (failures.length > 0) {

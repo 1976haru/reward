@@ -147,6 +147,13 @@ const state = {
     selectedDecision: "REJECT",
     caseFeedbacks: [],
     stats: null
+  },
+  eval: {
+    sets: [],
+    selectedSetId: null,
+    threshold: 60,
+    latest: null,
+    lastRunId: null
   }
 };
 
@@ -170,12 +177,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   state.queue.sort = readLS(LS_KEYS.queueSort, "priority") || "priority";
   bindScheduler();
   bindFeedback();
+  bindEval();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
   await loadSchedulerStatus();
   await loadFeedbackMeta();
   await loadFeedbackStats();
+  await loadEvalSets();
+  await loadEvalLatest();
 });
 
 function bindScheduler() {
@@ -1633,6 +1643,144 @@ async function loadCaseFeedbacks(caseId) {
     const data = await res.json();
     if (data && data.ok) state.feedback.caseFeedbacks = data.items || [];
   } catch { /* ignore */ }
+}
+
+// ---------- Eval Dashboard (체크리스트 22) ----------
+function bindEval() {
+  const runBtn = document.getElementById("evalRunBtn");
+  const refreshBtn = document.getElementById("evalRefreshBtn");
+  const fpFnBtn = document.getElementById("evalFpFnBtn");
+  if (runBtn) runBtn.addEventListener("click", onEvalRun);
+  if (refreshBtn) refreshBtn.addEventListener("click", loadEvalLatest);
+  if (fpFnBtn) fpFnBtn.addEventListener("click", onEvalShowFpFn);
+}
+
+async function loadEvalSets() {
+  try {
+    const res = await fetch("/api/eval/sets");
+    const data = await res.json();
+    if (!data.ok) return;
+    state.eval.sets = data.sets || [];
+    state.eval.selectedSetId = data.defaultEvalSetId || (state.eval.sets[0] && state.eval.sets[0].evalSetId) || null;
+    state.eval.threshold = data.defaultThreshold ?? 60;
+    const sel = document.getElementById("evalSetSelect");
+    if (sel) {
+      sel.innerHTML = state.eval.sets.map((s) =>
+        `<option value="${escapeAttr(s.evalSetId)}" ${s.evalSetId === state.eval.selectedSetId ? "selected" : ""}>${escapeHtml(s.name)} (${s.total})</option>`
+      ).join("");
+    }
+    const thInput = document.getElementById("evalThreshold");
+    if (thInput) thInput.value = state.eval.threshold;
+  } catch (err) {
+    console.warn("loadEvalSets failed", err);
+  }
+}
+
+async function loadEvalLatest() {
+  const root = document.getElementById("evalDashboard");
+  if (!root) return;
+  try {
+    const res = await fetch("/api/eval/latest");
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "latest failed");
+    state.eval.latest = data.latest;
+    if (data.latest && data.latest.runId) state.eval.lastRunId = data.latest.runId;
+    renderEvalDashboard(root);
+  } catch (err) {
+    root.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderEvalDashboard(root) {
+  const r = state.eval.latest;
+  if (!r) {
+    root.innerHTML = `<p class="muted">아직 평가 실행 결과가 없습니다. 위에서 "평가 실행"을 눌러 첫 결과를 만들어 보세요.</p>`;
+    return;
+  }
+  const m = r.metrics || {};
+  const cm = m.confusion || { TP: 0, FP: 0, TN: 0, FN: 0 };
+  const cards = [
+    { label: "Precision", value: (m.precision ?? 0).toFixed(3), cls: "ok" },
+    { label: "Recall", value: (m.recall ?? 0).toFixed(3), cls: "ok" },
+    { label: "F1", value: (m.f1 ?? 0).toFixed(3), cls: "ok" },
+    { label: "Accuracy", value: (m.accuracy ?? 0).toFixed(3), cls: "ok" },
+    { label: "TP", value: cm.TP, cls: "ok" },
+    { label: "FP", value: cm.FP, cls: "warn" },
+    { label: "TN", value: cm.TN, cls: "muted" },
+    { label: "FN", value: cm.FN, cls: "danger" }
+  ];
+  const cardsHtml = cards.map((c) => `
+    <div class="evi-item" style="text-align:center;padding:8px 10px;">
+      <div class="label" style="font-size:11px;">${escapeHtml(c.label)}</div>
+      <div class="value" style="font-size:18px;">${escapeHtml(String(c.value))}</div>
+    </div>
+  `).join("");
+
+  root.innerHTML = `
+    <p class="muted" style="font-size:12px;margin-bottom:6px;">⚠ ${escapeHtml(r.safetyNotice || "평가셋은 내부 품질 측정용입니다.")}</p>
+    <p class="muted" style="margin-bottom:6px;">
+      평가셋: <strong>${escapeHtml(r.evalSetId)}</strong> ·
+      샘플 ${m.total ?? 0}건 (P ${m.positive ?? 0}/N ${m.negative ?? 0}) ·
+      threshold ${m.threshold ?? r.threshold} ·
+      ran ${escapeHtml(r.ranAt || "")} ·
+      runId <code>${escapeHtml(r.runId)}</code>
+    </p>
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));">${cardsHtml}</div>
+  `;
+}
+
+async function onEvalRun(e) {
+  e?.preventDefault?.();
+  const root = document.getElementById("evalDashboard");
+  if (!root) return;
+  const setSel = document.getElementById("evalSetSelect");
+  const thInput = document.getElementById("evalThreshold");
+  const evalSetId = setSel ? setSel.value : state.eval.selectedSetId;
+  const threshold = thInput ? Number(thInput.value) : state.eval.threshold;
+  root.innerHTML = '<p class="muted">평가 실행 중... (LLM 미호출, Rule + Score 기반)</p>';
+  try {
+    const res = await fetch("/api/eval/run", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ evalSetId, threshold, useLlm: false })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    state.eval.latest = data.run;
+    state.eval.lastRunId = data.run?.runId || null;
+    renderEvalDashboard(root);
+  } catch (err) {
+    root.innerHTML = `<div class="code">평가 실행 실패: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function onEvalShowFpFn() {
+  const root = document.getElementById("evalFpFn");
+  const r = state.eval.latest;
+  if (!root) return;
+  if (!r) { root.innerHTML = '<p class="muted">먼저 평가를 실행하거나 최신 결과를 불러오세요.</p>'; return; }
+  const fps = (r.falsePositives || []).slice(0, 10);
+  const fns = (r.falseNegatives || []).slice(0, 10);
+  const renderItem = (s) => `
+    <li>
+      <code>${escapeHtml(s.sampleId)}</code> · 점수 ${s.priorityScore} · 카테고리 ${escapeHtml(s.category)} ·
+      매치 ${s.matchCount} (${(s.matchedKeywords || []).slice(0, 4).map(escapeHtml).join(", ") || "—"})
+      <div class="muted" style="font-size:12px;">${escapeHtml((s.text || "").slice(0, 120))}${(s.text || "").length > 120 ? "..." : ""}</div>
+    </li>`;
+  const fpHtml = fps.length ? fps.map(renderItem).join("") : '<li class="muted">FP 없음</li>';
+  const fnHtml = fns.length ? fns.map(renderItem).join("") : '<li class="muted">FN 없음</li>';
+  const fcs = (r.feedbackCandidates || []).slice(0, 6).map((c) =>
+    `<li><code>${escapeHtml(c.sampleId)}</code> · ${escapeHtml((c.feedbackReasonCategories || []).join(", "))}<br/><span class="muted" style="font-size:12px;">${escapeHtml(c.suggestedImprovement)}</span></li>`
+  ).join("");
+  root.innerHTML = `
+    <h4 style="margin:8px 0 4px;">False Positives (오탐, 상위 ${fps.length}개)</h4>
+    <ul style="font-size:13px;">${fpHtml}</ul>
+    <h4 style="margin:8px 0 4px;">False Negatives (미탐, 상위 ${fns.length}개)</h4>
+    <ul style="font-size:13px;">${fnHtml}</ul>
+    <h4 style="margin:8px 0 4px;">개선 후보 (사람 검토용)</h4>
+    <ul style="font-size:13px;">${fcs || '<li class="muted">개선 후보 없음</li>'}</ul>
+    <p class="muted" style="font-size:12px;">⚠ 개선 후보는 자동으로 Feedback DB에 저장되지 않습니다. 사람이 검토한 뒤 Feedback DB에 반영해야 합니다.</p>
+  `;
 }
 
 // ---------- Modal ----------

@@ -198,6 +198,31 @@ API:
 
 자세한 명세는 [`docs/feedback_db.md`](./docs/feedback_db.md).
 
+## Eval Set (품질 평가)
+
+합성 평가셋(VIOLATION 100 / NORMAL 100, 총 200건)으로 **RuleAgent + ScoringAgent**의 Precision/Recall/F1/Accuracy를 측정하는 내부 품질 평가 도구입니다. **실제 신고 판단을 대체하지 않으며**, 평가 결과로 룰/프롬프트/점수를 자동 변경하지 않습니다.
+
+- 기본 평가셋: `health_false_ad_synthetic_v1` (모든 상품명/문구는 가상)
+- LLM 호출 기본 비활성 (`EVAL_USE_LLM=false`) — `npm test` 에서 외부 네트워크 호출 없음
+- 평가 실행 결과(`data/eval/runs/*.json`)는 gitignored. 평가셋 JSON 자체는 코드 성격이므로 커밋
+- FP/FN 은 `feedbackCandidates[]` 로 응답되며, 사람이 검토 후 Feedback DB 에 반영
+
+생성/실행:
+
+```bash
+npm run eval:generate
+curl -X POST http://localhost:3001/api/eval/run -H 'content-type: application/json' \
+  -d '{"evalSetId":"health_false_ad_synthetic_v1","threshold":60,"useLlm":false}'
+```
+
+API:
+
+- `GET /api/eval/sets`, `GET /api/eval/sets/:id`
+- `POST /api/eval/run`, `GET /api/eval/runs`, `GET /api/eval/runs/:id`, `GET /api/eval/latest`
+- `GET /api/eval/runs/:id/feedback-candidates`
+
+자세한 명세는 [`docs/eval_set.md`](./docs/eval_set.md).
+
 ## Search Collector / Scout Agent
 
 The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.

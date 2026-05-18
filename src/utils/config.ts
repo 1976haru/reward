@@ -62,5 +62,14 @@ export const config = {
   feedback: {
     dir: process.env.FEEDBACK_DIR ?? path.join(dataDir, "feedback"),
     useDb: parseBool(process.env.FEEDBACK_USE_DB, false)
+  },
+  eval: {
+    dir: process.env.EVAL_DIR ?? path.join(dataDir, "eval"),
+    defaultSet: process.env.EVAL_DEFAULT_SET ?? "health_false_ad_synthetic_v1",
+    threshold: Number.isFinite(Number(process.env.EVAL_THRESHOLD))
+      ? Number(process.env.EVAL_THRESHOLD)
+      : 60,
+    useLlm: parseBool(process.env.EVAL_USE_LLM, false),
+    maxSamples: Number(process.env.EVAL_MAX_SAMPLES ?? 200)
   }
 };
