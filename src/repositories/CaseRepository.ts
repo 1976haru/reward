@@ -19,6 +19,7 @@ import {
   sanitizeString,
   LIMITS
 } from "../utils/validation.js";
+import { maskText } from "../services/privacy/MaskingService.js";
 
 export interface CaseListQuery {
   status?: CaseStatus;
@@ -116,6 +117,9 @@ export class JsonCaseRepository implements ICaseRepository {
     const riskLevel = input.riskLevel
       ? sanitizeString(input.riskLevel, LIMITS.riskLevel)
       : riskLevelFromScore(score);
+    // 사람이 입력한 memo / summary 는 저장 전 개인정보 마스킹 (체크리스트 28)
+    const memoMasked = input.memo ? maskText(input.memo, { enabled: true }).masked : input.memo;
+    const summaryMasked = input.summary ? maskText(input.summary, { enabled: true }).masked : input.summary;
     const created: RewardCase = {
       id,
       moduleId: input.moduleId,
@@ -128,8 +132,8 @@ export class JsonCaseRepository implements ICaseRepository {
       riskScore: score,
       riskLevel,
       agencyCandidate: sanitizeString(input.agencyCandidate, LIMITS.agencyCandidate),
-      summary: sanitizeString(input.summary, LIMITS.summary),
-      memo: sanitizeString(input.memo, LIMITS.memo),
+      summary: sanitizeString(summaryMasked, LIMITS.summary),
+      memo: sanitizeString(memoMasked, LIMITS.memo),
       rewardCaution: sanitizeString(input.rewardCaution, LIMITS.rewardCaution),
       ruleHits: [],
       aiFinding: {

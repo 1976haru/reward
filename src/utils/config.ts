@@ -79,5 +79,22 @@ export const config = {
     maxOutputChars: Number(process.env.TRACE_MAX_OUTPUT_CHARS ?? 2000),
     maskSensitive: parseBool(process.env.TRACE_MASK_SENSITIVE, true),
     storeFullPrompt: parseBool(process.env.TRACE_STORE_FULL_PROMPT, false)
+  },
+  privacy: {
+    maskingEnabled: parseBool(process.env.PRIVACY_MASKING_ENABLED, true),
+    scanDirs: (process.env.PRIVACY_SCAN_DIRS ?? dataDir)
+      .split(",").map((s) => s.trim()).filter(Boolean),
+    dryRun: parseBool(process.env.PRIVACY_DRY_RUN, true),
+    retentionDays: {
+      default: Number(process.env.PRIVACY_RETENTION_DAYS ?? 90),
+      trace: Number(process.env.PRIVACY_TRACE_RETENTION_DAYS ?? 30),
+      evidence: Number(process.env.PRIVACY_EVIDENCE_RETENTION_DAYS ?? 90),
+      report: Number(process.env.PRIVACY_REPORT_RETENTION_DAYS ?? 90),
+      feedback: Number(process.env.PRIVACY_FEEDBACK_RETENTION_DAYS ?? 180),
+      case: Number(process.env.PRIVACY_CASE_RETENTION_DAYS ?? 180),
+      raw: Number(process.env.PRIVACY_RAW_RETENTION_DAYS ?? 30),
+      scheduler: Number(process.env.PRIVACY_SCHEDULER_RETENTION_DAYS ?? 90),
+      scout: Number(process.env.PRIVACY_SCOUT_RETENTION_DAYS ?? 90)
+    }
   }
 };

@@ -246,6 +246,32 @@
           <div id="traceList" class="muted">불러오는 중...</div>
         </section>
 
+        <!-- 8g. 개인정보 보호 / 삭제 (체크리스트 28) -->
+        <section class="card" id="privacyCard">
+          <h2>개인정보 보호 / 삭제</h2>
+          <p class="section-hint">
+            본 도구는 신고 후보 탐지·증거정리·신고서 초안 생성용입니다.
+            <strong>개인정보를 적극적으로 수집하지 않으며</strong>, 저장된 개인정보성 문자열은
+            마스킹 또는 삭제 가능합니다. 본 결과는 보수적 정규식 기반으로
+            <strong>오탐 가능성이 있어 삭제 전 사람 검토가 필요합니다.</strong>
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <button class="primary" type="button" id="privacyScanBtn">개인정보 스캔 실행 (data/)</button>
+            <button class="ghost" type="button" id="privacyPolicyBtn">정책 보기</button>
+            <button class="ghost" type="button" id="privacyRetentionBtn">보존기간 초과 파일 (dry-run)</button>
+          </div>
+          <div id="privacySummary" class="muted" style="margin-bottom:8px;"></div>
+          <div id="privacyScanResult" class="muted">아직 스캔을 실행하지 않았습니다.</div>
+
+          <h4 class="ops-section-title">텍스트 마스킹 테스트</h4>
+          <p class="muted" style="font-size:12px;">아래 입력창에 가짜 텍스트를 넣어 마스킹 결과를 확인해 보세요. 입력값은 저장되지 않습니다.</p>
+          <textarea id="privacyMaskInput" placeholder="예) 연락처 010-1234-5678, 이메일 test@example.com, 키 sk-test12345678901234" style="min-height:60px;"></textarea>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <button class="primary" type="button" id="privacyMaskBtn">마스킹 실행 (저장 안 함)</button>
+          </div>
+          <div id="privacyMaskResult" class="muted" style="margin-top:6px;"></div>
+        </section>
+
         <!-- 9. Scheduler -->
         <section class="card">
           <h2>정기 수집 스케줄러</h2>

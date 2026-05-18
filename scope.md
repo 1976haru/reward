@@ -37,6 +37,20 @@
 수집 대상 사이트의 이용약관, robots.txt, 요청 빈도 제한을 존중한다.
 불필요한 개인정보는 저장하지 않는다.
 
+### 4.1 개인정보 최소화 (체크리스트 28)
+
+- 비공개자료 수집 금지 (로그인 페이지 / 비공개 채팅방 / 비공개 SNS 게시글 / 회원 전용 자료)
+- 개인정보 수집 최소화 — 필요 없는 개인정보는 저장하지 않는다
+- 로그/피드백/리포트/Case 메모 등 사람이 입력한 텍스트는 **저장 전 마스킹 우선** (`MaskingService`)
+- 증거 원본(`data/evidence/`)에 개인정보가 포함될 가능성이 있으면 `POST /api/privacy/scan` 으로 스캔 후 삭제/마스킹 검토
+- 마스킹 토큰: `[masked-email]`, `[masked-phone]`, `[masked-id]`, `[masked-secret]`, `[masked-auth]`, `[masked-cookie]`, `[masked-account]`, `[masked-ip]`, `[masked-address]`
+- 삭제 기능은 **dry-run 기본**이며 `dryRun: false` + `confirmDelete: true` 가 둘 다 필요
+- `src/`, `public/`, `docs/`, `.env`, `.gitkeep`, `node_modules/`, `dist/` 는 본 도구의 삭제 API 로 절대 삭제되지 않는다
+- 자동 영구 삭제 기능은 제공하지 않는다 — 운영자 명시적 요청만으로 작동
+- 본 정책은 개인정보보호 법령에 대한 **법률 자문을 대체하지 않는다**
+
+자세한 정책: [`docs/privacy_policy.md`](./docs/privacy_policy.md)
+
 수집 가능한 자료 기준
 - 누구나 로그인 없이 접근 가능한 공개 웹페이지
 - 정부·지자체·공공기관이 공개한 공시·공공데이터

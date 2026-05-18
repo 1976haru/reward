@@ -25,6 +25,7 @@ import { subsidyRouter } from "./routes/subsidy.js";
 import { bidsRouter } from "./routes/bids.js";
 import { tracesRouter, caseTracesRouter } from "./routes/traces.js";
 import { traceMiddleware } from "./middleware/traceMiddleware.js";
+import { privacyRouter } from "./routes/privacy.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -154,6 +155,9 @@ app.use("/api/bids", bidsRouter);
 // Trace Log (체크리스트 27) — 내부 감사·디버깅. 개인정보·API 키·전체 prompt 미저장.
 app.use("/api/traces", tracesRouter);
 app.use("/api/cases", caseTracesRouter);
+
+// Privacy / Data Minimization (체크리스트 28) — scan / mask / delete (기본 dryRun) / retention / policy.
+app.use("/api/privacy", privacyRouter);
 
 // Candidate Discovery
 app.use("/api/discovery", discoveryRouter);

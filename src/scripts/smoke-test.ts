@@ -110,6 +110,10 @@ import { TraceLogger, createTraceId, createRunId } from "../services/trace/Trace
 import { maskSensitive, maskString, truncate } from "../services/trace/maskSensitive.js";
 import { withAgentTrace } from "../services/trace/TraceContext.js";
 import { TRACE_EVENT_TYPES, TRACE_SEVERITIES } from "../types/trace.js";
+import { detectSensitive } from "../services/privacy/SensitiveDataDetector.js";
+import { maskText, maskEmail, maskPhone, maskRrn, maskApiKey, maskBearer, maskJwt } from "../services/privacy/MaskingService.js";
+import { getRetentionPolicies, applyRetention } from "../services/privacy/RetentionPolicy.js";
+import { SENSITIVE_DATA_TYPES, MASK_TOKENS } from "../types/privacy.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -1876,6 +1880,85 @@ try {
 } finally {
   await rm(tmpTraceDir, { recursive: true, force: true });
 }
+
+// 28) Privacy / Data Minimization — detector, masker, retention
+check("SENSITIVE_DATA_TYPES count", SENSITIVE_DATA_TYPES.length === 10);
+check("MASK_TOKENS has EMAIL/PHONE/KOREAN_RRN", typeof MASK_TOKENS.EMAIL === "string" && typeof MASK_TOKENS.PHONE === "string" && typeof MASK_TOKENS.KOREAN_RRN === "string");
+
+// 탐지기 — 이메일/전화/주민번호/API 키/JWT/Bearer
+const findingsEmail = detectSensitive("contact me at foo@bar.com please");
+check("detectSensitive finds EMAIL", findingsEmail.some((f) => f.type === "EMAIL" && f.confidence === "HIGH"));
+const findingsPhone = detectSensitive("연락처 010-1234-5678 입니다");
+check("detectSensitive finds PHONE", findingsPhone.some((f) => f.type === "PHONE" && f.confidence === "HIGH"));
+const findingsRrn = detectSensitive("주민번호 901231-1234567");
+check("detectSensitive finds KOREAN_RRN", findingsRrn.some((f) => f.type === "KOREAN_RRN" && f.confidence === "HIGH"));
+const findingsApi = detectSensitive("OPENAI_API_KEY=sk-test_abcdefghijklmnop1234");
+check("detectSensitive finds API_KEY", findingsApi.some((f) => f.type === "API_KEY" && f.confidence === "HIGH"));
+const findingsBearer = detectSensitive("Authorization: Bearer abcdefghijklmnopqrstuvwxyz1234567890");
+check("detectSensitive finds AUTH_HEADER (Bearer)", findingsBearer.some((f) => f.type === "AUTH_HEADER" && f.confidence === "HIGH"));
+const jwtSample = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcdefghijklmnopqrstuvwxyz0123456789";
+const findingsJwt = detectSensitive("token=" + jwtSample);
+check("detectSensitive finds TOKEN (JWT)", findingsJwt.some((f) => f.type === "TOKEN" && f.confidence === "HIGH"));
+
+// 키 이름 기반 — JSON 직렬화 secret
+const jsonSecret = `{"api_key": "AIzaSyDxyzabcdefghijklmno1234567890ab", "cookie": "session=abcdef"}`;
+const findingsJson = detectSensitive(jsonSecret);
+check("detectSensitive JSON api_key/cookie key match",
+  findingsJson.some((f) => f.type === "API_KEY") && findingsJson.some((f) => f.type === "COOKIE" || f.type === "API_KEY"));
+
+// excerpt 가 원본 매치값을 그대로 노출하지 않음
+check("excerpt does NOT contain raw email value",
+  !findingsEmail.some((f) => (f.excerpt ?? "").includes("foo@bar.com")));
+check("excerpt does NOT contain raw secret",
+  !findingsApi.some((f) => (f.excerpt ?? "").includes("sk-test_abcdefghijklmnop1234")));
+
+// maskText — 통합 마스킹
+const mt = maskText("연락처 010-1234-5678, 이메일 test@example.com, 키 sk-test_abcdefghijklmnop1234, 주민번호 901231-1234567");
+check("maskText changed=true", mt.changed === true);
+check("maskText masks email", mt.masked.includes("[masked-email]"));
+check("maskText masks phone", mt.masked.includes("[masked-phone]"));
+check("maskText masks rrn", mt.masked.includes("[masked-id]"));
+check("maskText masks api key", mt.masked.includes("[masked-secret]"));
+check("maskText findings array non-empty", Array.isArray(mt.findings) && mt.findings.length >= 4);
+check("maskText byType has multiple types", Object.keys(mt.byType).length >= 4);
+check("maskText safetyNotice mentions 오탐", /오탐/.test(mt.safetyNotice));
+
+// 개별 마스킹 헬퍼
+check("maskEmail standalone", maskEmail("foo@bar.com").includes("[masked-email]"));
+check("maskPhone standalone", maskPhone("010-1234-5678").includes("[masked-phone]"));
+check("maskRrn standalone", maskRrn("901231-1234567").includes("[masked-id]"));
+check("maskApiKey standalone", maskApiKey("sk-test_abcdefghijklmnop1234").includes("[masked-secret]"));
+check("maskBearer standalone", maskBearer("Bearer abcdefghijklmnopqrstuvwxyz1234567890").includes("[masked-auth]"));
+check("maskJwt standalone", maskJwt(jwtSample).includes("[masked-secret]"));
+
+// maskText disabled 모드
+const noChange = maskText("test@example.com", { enabled: false });
+check("maskText disabled returns unchanged", noChange.changed === false && noChange.masked === "test@example.com");
+
+// 일반 텍스트는 변경 없음
+const clean = maskText("그냥 평범한 텍스트입니다.");
+check("maskText leaves clean text unchanged", clean.changed === false);
+
+// RetentionPolicy
+const policies = getRetentionPolicies();
+check("retention policies has 8 categories", policies.length === 8);
+const cats = policies.map((p) => p.category);
+check("retention includes trace/evidence/report/feedback/case/raw/scheduler/scout",
+  ["trace", "evidence", "report", "feedback", "case", "raw", "scheduler", "scout"].every((c) => cats.includes(c as never)));
+const traceP = policies.find((p) => p.category === "trace");
+check("trace policy days = 30", traceP?.days === 30);
+const feedP = policies.find((p) => p.category === "feedback");
+check("feedback policy days = 180", feedP?.days === 180);
+
+// applyRetention dry-run — 실제 삭제 없음, 결과 구조만 검증
+const retReport = await applyRetention({ dryRun: true });
+check("retention report dryRun=true", retReport.dryRun === true);
+check("retention report deleted is empty in dryRun", retReport.deleted.length === 0);
+check("retention report has policies", retReport.policies.length === 8);
+check("retention report safetyNotice present", typeof retReport.safetyNotice === "string");
+
+// 삭제 안전장치 — 직접 호출 대신 라우터 안전 로직을 단위 테스트로 검증
+// (별도 isPathSafeForDelete 노출 없으므로 검증은 API 통합에서 수행)
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

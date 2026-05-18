@@ -174,6 +174,12 @@ const state = {
     events: [],
     summary: null,
     filters: { agentName: "", severity: "", eventType: "", caseId: "" }
+  },
+  privacy: {
+    scan: null,
+    policy: null,
+    retention: null,
+    lastMask: null
   }
 };
 
@@ -202,6 +208,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindSubsidy();
   bindBids();
   bindTrace();
+  bindPrivacy();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -1674,6 +1681,175 @@ async function loadCaseFeedbacks(caseId) {
     const data = await res.json();
     if (data && data.ok) state.feedback.caseFeedbacks = data.items || [];
   } catch { /* ignore */ }
+}
+
+// ---------- 개인정보 보호 / 삭제 (체크리스트 28) ----------
+function bindPrivacy() {
+  const scanBtn = document.getElementById("privacyScanBtn");
+  if (scanBtn) scanBtn.addEventListener("click", runPrivacyScan);
+  const policyBtn = document.getElementById("privacyPolicyBtn");
+  if (policyBtn) policyBtn.addEventListener("click", loadPrivacyPolicy);
+  const retBtn = document.getElementById("privacyRetentionBtn");
+  if (retBtn) retBtn.addEventListener("click", runRetentionDryRun);
+  const maskBtn = document.getElementById("privacyMaskBtn");
+  if (maskBtn) maskBtn.addEventListener("click", runPrivacyMask);
+}
+
+async function runPrivacyScan() {
+  const sumRoot = document.getElementById("privacySummary");
+  const root = document.getElementById("privacyScanResult");
+  if (root) root.innerHTML = '<p class="muted">스캔 중... (data/ 하위 텍스트 파일)</p>';
+  try {
+    const res = await fetch("/api/privacy/scan", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    state.privacy.scan = data.result;
+    renderPrivacyScan(root, sumRoot, data.result);
+  } catch (err) {
+    if (root) root.innerHTML = `<div class="code">스캔 실패: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderPrivacyScan(root, sumRoot, r) {
+  if (!r) return;
+  const cards = [
+    { label: "총 파일", value: r.totalFiles ?? 0, cls: "muted" },
+    { label: "스캔됨", value: r.scannedFiles ?? 0, cls: "muted" },
+    { label: "skip됨", value: r.skippedFiles ?? 0, cls: "muted" },
+    { label: "위험 파일", value: r.filesWithFindings ?? 0, cls: (r.filesWithFindings || 0) > 0 ? "warn" : "muted" },
+    { label: "총 finding", value: r.totalFindings ?? 0, cls: (r.totalFindings || 0) > 0 ? "warn" : "muted" }
+  ];
+  const cardsHtml = cards.map((c) =>
+    `<div class="evi-item" style="text-align:center;padding:8px 10px;">
+      <div class="label" style="font-size:11px;">${escapeHtml(c.label)}</div>
+      <div class="value" style="font-size:18px;">${escapeHtml(String(c.value))}</div>
+    </div>`
+  ).join("");
+
+  const byType = r.byType || {};
+  const typePills = Object.entries(byType)
+    .filter(([, c]) => Number(c) > 0)
+    .sort((a, b) => Number(b[1]) - Number(a[1]))
+    .map(([t, c]) => `<span class="badge warn" style="margin-right:6px;">${escapeHtml(t)} ${c}</span>`)
+    .join("");
+
+  const riskFiles = (r.riskFiles || []).slice(0, 15);
+  const rowsHtml = riskFiles.length
+    ? riskFiles.map((f) => {
+        const topPills = (f.topFindings || []).slice(0, 5).map((tf) =>
+          `<span class="badge ${tf.confidence === 'HIGH' ? 'danger' : tf.confidence === 'MEDIUM' ? 'warn' : 'muted'}" title="${escapeAttr(tf.recommendedAction || '')}">${escapeHtml(tf.type)} (${escapeHtml(tf.confidence)})</span>`
+        ).join(" ");
+        return `
+          <div class="ops-top-row">
+            <div class="ops-top-rank" style="font-size:13px;">${f.findingsCount}</div>
+            <div class="ops-top-main">
+              <div class="ops-top-title" style="font-size:13px;font-family:monospace;">${escapeHtml(f.filePath)}</div>
+              <div class="muted" style="font-size:12px;">${escapeHtml(f.fileType)} · ${Math.round((f.byteSize || 0) / 1024)} KB</div>
+              <div style="margin-top:4px;">${topPills}</div>
+            </div>
+          </div>
+        `;
+      }).join("")
+    : '<p class="muted">위험 파일이 발견되지 않았습니다.</p>';
+
+  if (sumRoot) {
+    sumRoot.innerHTML = `
+      <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));">${cardsHtml}</div>
+      <div style="margin-top:6px;">${typePills || ''}</div>
+      <p class="muted" style="font-size:12px;margin-top:6px;">⚠ ${escapeHtml(r.safetyNotice || '')}</p>
+    `;
+  }
+  root.innerHTML = `<h4 class="ops-section-title">위험 파일 (상위 ${riskFiles.length}개)</h4><div class="ops-top-list">${rowsHtml}</div>`;
+}
+
+async function loadPrivacyPolicy() {
+  const root = document.getElementById("privacyScanResult");
+  try {
+    const res = await fetch("/api/privacy/policy");
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    state.privacy.policy = data.policy;
+    const p = data.policy;
+    const rows = (p.retentionPolicies || []).map((r) =>
+      `<li><code>${escapeHtml(r.category)}</code> · ${r.days}일 · ${escapeHtml(r.dir)} · ${escapeHtml(r.description)}</li>`
+    ).join("");
+    if (root) root.innerHTML = `
+      <h4 class="ops-section-title">개인정보 정책</h4>
+      <p class="muted" style="font-size:12.5px;">
+        masking enabled: <code>${p.maskingEnabled}</code> · dryRun 기본값: <code>${p.dryRunDefault}</code> ·
+        scan dirs: <code>${(p.scanDirs || []).join(", ")}</code>
+      </p>
+      <h5 style="margin:8px 0 4px;">보존기간 정책</h5>
+      <ul style="font-size:12.5px;">${rows}</ul>
+      <p class="muted" style="font-size:12px;">⚠ ${escapeHtml(data.safetyNotice || '')}</p>
+    `;
+  } catch (err) {
+    if (root) root.innerHTML = `<div class="code">정책 로드 실패: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function runRetentionDryRun() {
+  const root = document.getElementById("privacyScanResult");
+  if (root) root.innerHTML = '<p class="muted">보존기간 초과 파일 dry-run 중...</p>';
+  try {
+    const res = await fetch("/api/privacy/retention/apply", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ dryRun: true })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    state.privacy.retention = data.report;
+    const r = data.report;
+    const rows = (r.expired || []).slice(0, 30).map((e) =>
+      `<li><code>${escapeHtml(e.category)}</code> · ${e.ageDays}일 경과 · ${Math.round(e.byteSize / 1024)} KB · <code>${escapeHtml(e.filePath)}</code></li>`
+    ).join("");
+    if (root) root.innerHTML = `
+      <h4 class="ops-section-title">보존기간 초과 파일 (dry-run)</h4>
+      <p class="muted" style="font-size:12.5px;">dryRun=${r.dryRun} · 총 ${r.expired.length}건 · 삭제: ${r.deleted.length}건</p>
+      <ul style="font-size:12px;">${rows || '<li class="muted">초과 파일 없음</li>'}</ul>
+      <p class="muted" style="font-size:12px;">⚠ 실제 삭제는 운영자가 명시적으로 수행해야 합니다. 본 UI 는 dry-run 결과만 표시합니다.</p>
+    `;
+  } catch (err) {
+    if (root) root.innerHTML = `<div class="code">retention 실행 실패: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function runPrivacyMask() {
+  const inputEl = document.getElementById("privacyMaskInput");
+  const root = document.getElementById("privacyMaskResult");
+  const text = inputEl?.value || "";
+  if (!text.trim()) {
+    if (root) root.innerHTML = '<p class="muted">텍스트를 입력하세요.</p>';
+    return;
+  }
+  try {
+    const res = await fetch("/api/privacy/mask", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    state.privacy.lastMask = data.result;
+    const r = data.result;
+    const byType = r.byType || {};
+    const pills = Object.entries(byType).map(([t, c]) =>
+      `<span class="badge warn" style="margin-right:4px;">${escapeHtml(t)} ${c}</span>`
+    ).join("");
+    if (root) root.innerHTML = `
+      <p class="muted" style="font-size:12px;">변경됨: <code>${r.changed}</code> · finding: ${r.findings.length}개 ${pills}</p>
+      <h5 style="margin:6px 0 4px;">마스킹 결과</h5>
+      <pre class="code" style="white-space:pre-wrap;font-size:12px;">${escapeHtml(r.masked)}</pre>
+      <p class="muted" style="font-size:12px;">⚠ ${escapeHtml(r.safetyNotice || '')}</p>
+    `;
+  } catch (err) {
+    if (root) root.innerHTML = `<div class="code">마스킹 실패: ${escapeHtml(err.message)}</div>`;
+  }
 }
 
 // ---------- Trace Log (체크리스트 27) ----------

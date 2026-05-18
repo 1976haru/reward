@@ -329,6 +329,26 @@ UI: "Agent 실행 추적 / 감사로그" 카드 + Agent/Severity/EventType/CaseI
 
 자세한 명세는 [`docs/trace_log.md`](./docs/trace_log.md).
 
+## Privacy and Data Minimization
+
+본 프로젝트는 개인정보를 적극적으로 수집하지 않으며, 저장된 개인정보성 문자열은 마스킹/삭제 가능합니다. **본 도구는 개인정보보호 법령 검토를 대체하지 않습니다.**
+
+- 탐지 유형: EMAIL / PHONE / KOREAN_RRN / ACCOUNT_NUMBER / API_KEY / TOKEN / AUTH_HEADER / COOKIE / IP_ADDRESS / ADDRESS_LIKE
+- 마스킹: `[masked-email]`, `[masked-phone]`, `[masked-id]`, `[masked-secret]`, `[masked-auth]`, ...
+- 보존기간: trace 30일 / evidence·report 90일 / feedback·case 180일 (`.env` 로 조정)
+- 삭제: **기본 `PRIVACY_DRY_RUN=true`**. 실제 삭제는 `dryRun: false` + `confirmDelete: true` 둘 다 필요. `data/` 하위 화이트리스트 디렉터리만 허용. `src/`, `public/`, `docs/`, `.env`, `.gitkeep` 삭제 절대 불가
+- CaseRepository.create 가 memo/summary 를 저장 전 자동 마스킹
+
+API:
+
+- `GET /api/privacy/policy`
+- `POST /api/privacy/mask`
+- `POST /api/privacy/scan`
+- `POST /api/privacy/delete`
+- `POST /api/privacy/retention/apply`
+
+자세한 명세는 [`docs/privacy_policy.md`](./docs/privacy_policy.md).
+
 ## Search Collector / Scout Agent
 
 The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.
