@@ -127,6 +127,18 @@
           <div id="caseList" class="muted">불러오는 중...</div>
         </section>
 
+        <!-- 8b. Feedback DB 통계 (체크리스트 21) -->
+        <section class="card" id="feedbackStatsCard">
+          <h2>검토 피드백 통계 (Feedback DB)</h2>
+          <p class="section-hint">검토자가 입력한 반려/오탐 사유를 누적해서 룰·프롬프트·점수 개선 근거로 사용합니다. 피드백은 자동으로 룰을 변경하지 않습니다.</p>
+          <div id="feedbackStats" class="muted">불러오는 중...</div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+            <button class="ghost" type="button" id="feedbackStatsRefreshBtn">새로고침</button>
+            <button class="ghost" type="button" id="feedbackImprovementsBtn">개선 후보 보기</button>
+          </div>
+          <div id="feedbackImprovements" class="muted" style="margin-top:8px;"></div>
+        </section>
+
         <!-- 9. Scheduler -->
         <section class="card">
           <h2>정기 수집 스케줄러</h2>

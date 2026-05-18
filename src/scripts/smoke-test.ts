@@ -61,6 +61,12 @@ import {
   validateKeywordConfig,
   getKeywordConfigSummary
 } from "../modules/false-ad/keywordLoader.js";
+import { JsonFeedbackRepository } from "../repositories/FeedbackRepository.js";
+import {
+  FEEDBACK_DECISIONS,
+  FEEDBACK_REASON_CATEGORIES
+} from "../types/feedback.js";
+import { maskPiiForFeedback } from "../utils/piiMask.js";
 
 const failures: string[] = [];
 function check(name: string, cond: boolean, detail?: string) {
@@ -970,6 +976,140 @@ const batch = eng.dedupeBatch([
 ]);
 check("batch dedupe rate > 0", batch.summary.duplicateRate > 0, `rate=${batch.summary.duplicateRate}`);
 check("batch kept < total", batch.summary.kept < batch.summary.total);
+
+// 21) Feedback DB — types, repository, PII masking, stats, improvements
+check("FEEDBACK_DECISIONS has 7 codes", FEEDBACK_DECISIONS.length === 7);
+check("FEEDBACK_REASON_CATEGORIES has 15 codes", FEEDBACK_REASON_CATEGORIES.length === 15);
+check("FEEDBACK_DECISIONS includes FALSE_POSITIVE", (FEEDBACK_DECISIONS as readonly string[]).includes("FALSE_POSITIVE"));
+check("FEEDBACK_REASON_CATEGORIES includes RULE_FALSE_POSITIVE", (FEEDBACK_REASON_CATEGORIES as readonly string[]).includes("RULE_FALSE_POSITIVE"));
+
+// PII 마스킹
+const pii1 = maskPiiForFeedback("contact foo@bar.com or 010-1234-5678 please");
+check("piiMask masks email", pii1.masked.includes("[masked-email]"));
+check("piiMask masks phone", pii1.masked.includes("[masked-phone]"));
+check("piiMask changed=true", pii1.changed === true);
+const pii2 = maskPiiForFeedback("그냥 일반 메모입니다.");
+check("piiMask leaves clean text unchanged", pii2.changed === false && pii2.masked === "그냥 일반 메모입니다.");
+const pii3 = maskPiiForFeedback("주민번호 901231-1234567");
+check("piiMask masks rrn", pii3.masked.includes("[masked-id]"));
+
+// FeedbackRepository — 임시 디렉터리에서 동작 검증
+const tmpFbDir = await mkdtemp(path.join(tmpdir(), "reward-feedback-"));
+try {
+  const fbRepo = new JsonFeedbackRepository(tmpFbDir);
+
+  // 빈 상태
+  const emptyList = await fbRepo.list();
+  check("feedback empty list total=0", emptyList.total === 0);
+  const emptyStats = await fbRepo.stats();
+  check("feedback empty stats total=0", emptyStats.total === 0);
+  check("feedback empty stats has byDecision keys", typeof emptyStats.byDecision === "object");
+
+  // 생성 — RULE_FALSE_POSITIVE 다수
+  const c1 = await fbRepo.create({
+    caseId: "smoke_case_1",
+    decision: "REJECT",
+    reasonCategories: ["RULE_FALSE_POSITIVE", "NO_PROHIBITED_CLAIM"],
+    reviewerName: "tester",
+    memo: "일반 건강관리 표현으로 보임. 연락처 010-1234-5678",
+    relatedRuleIds: ["H004"],
+    relatedKeywords: ["당뇨 완치"],
+    suggestedRuleChanges: ["문맥 예외 보강"],
+    moduleId: "false_ad"
+  });
+  check("feedback created id format", /^fb_/.test(c1.feedback.id));
+  check("feedback PII masked memo", typeof c1.feedback.memo === "string" && c1.feedback.memo.includes("[masked-phone]"));
+  check("feedback piiMasked=true", c1.piiMasked === true && c1.feedback.piiMasked === true);
+  check("feedback decision saved", c1.feedback.decision === "REJECT");
+  check("feedback reasonCategories saved", c1.feedback.reasonCategories.length === 2);
+  check("feedback safetyNotice present", typeof c1.feedback.safetyNotice === "string" && c1.feedback.safetyNotice.length > 0);
+
+  // 추가로 5건의 RULE_FALSE_POSITIVE H004 — topRule 검증
+  for (let i = 0; i < 5; i++) {
+    await fbRepo.create({
+      caseId: `smoke_case_${i + 2}`,
+      decision: "FALSE_POSITIVE",
+      reasonCategories: ["RULE_FALSE_POSITIVE"],
+      relatedRuleIds: ["H004"],
+      relatedKeywords: ["당뇨 완치"]
+    });
+  }
+  // LLM_OVERSTATED 2건
+  for (let i = 0; i < 2; i++) {
+    await fbRepo.create({
+      caseId: `smoke_llm_${i}`,
+      decision: "REJECT",
+      reasonCategories: ["LLM_OVERSTATED"],
+      llmIssueNotes: "과장된 해석"
+    });
+  }
+  // SCORE_TOO_HIGH 1건
+  await fbRepo.create({
+    caseId: "smoke_score_1",
+    decision: "REJECT",
+    reasonCategories: ["SCORE_TOO_HIGH"],
+    scoringIssueNotes: "rule 1건만 매치"
+  });
+  // EVIDENCE_INSUFFICIENT 1건
+  await fbRepo.create({
+    caseId: "smoke_ev_1",
+    decision: "NEEDS_MORE_EVIDENCE",
+    reasonCategories: ["EVIDENCE_INSUFFICIENT"]
+  });
+
+  const stats = await fbRepo.stats();
+  check("feedback total = 10", stats.total === 10, `total=${stats.total}`);
+  check("feedback byDecision REJECT >= 4", (stats.byDecision["REJECT"] ?? 0) >= 4);
+  check("feedback byReasonCategory RULE_FALSE_POSITIVE >= 6", (stats.byReasonCategory["RULE_FALSE_POSITIVE"] ?? 0) >= 6);
+  const topRule = stats.topRuleFalsePositiveIds[0];
+  check("feedback topRuleFalsePositiveIds[0] is H004", topRule && topRule.ruleId === "H004", `top=${JSON.stringify(topRule)}`);
+  check("feedback topRule count >= 6", topRule && topRule.count >= 6, `top=${JSON.stringify(topRule)}`);
+  const topKw = stats.topKeywordFalsePositives[0];
+  check("feedback topKeyword '당뇨 완치'", topKw && topKw.keyword === "당뇨 완치", `top=${JSON.stringify(topKw)}`);
+  check("feedback evidenceIssueCounts.EVIDENCE_INSUFFICIENT >= 1", stats.evidenceIssueCounts.EVIDENCE_INSUFFICIENT >= 1);
+
+  // listByCaseId
+  const byCase = await fbRepo.listByCaseId("smoke_case_1");
+  check("listByCaseId returns 1 for smoke_case_1", byCase.length === 1);
+
+  // 필터 검증
+  const filtered = await fbRepo.list({ reasonCategory: "LLM_OVERSTATED" });
+  check("filter reasonCategory LLM_OVERSTATED returns 2", filtered.total === 2, `total=${filtered.total}`);
+  const filteredRule = await fbRepo.list({ ruleId: "H004" });
+  check("filter ruleId H004 returns >= 6", filteredRule.total >= 6, `total=${filteredRule.total}`);
+  const filteredDec = await fbRepo.list({ decision: "FALSE_POSITIVE" });
+  check("filter decision FALSE_POSITIVE returns 5", filteredDec.total === 5, `total=${filteredDec.total}`);
+
+  // improvements 리포트
+  const imp = await fbRepo.improvements();
+  check("improvements ruleImprovements non-empty", imp.ruleImprovements.length >= 1);
+  check("improvements ruleId is H004", imp.ruleImprovements[0]?.ruleId === "H004");
+  check("improvements promptImprovements has LLM_OVERSTATED", imp.promptImprovements.some((p) => p.issue === "LLM_OVERSTATED"));
+  check("improvements scoringImprovements has SCORE_TOO_HIGH", imp.scoringImprovements.some((p) => p.issue === "SCORE_TOO_HIGH"));
+  check("improvements evidenceImprovements has EVIDENCE_INSUFFICIENT", imp.evidenceImprovements.some((p) => p.issue === "EVIDENCE_INSUFFICIENT"));
+
+  // 잘못된 decision 거부
+  let badDecisionThrown = false;
+  try {
+    // @ts-expect-error intentional bad decision
+    await fbRepo.create({ caseId: "x", decision: "INVALID" });
+  } catch {
+    badDecisionThrown = true;
+  }
+  check("feedback rejects invalid decision", badDecisionThrown);
+
+  // caseId 누락 거부
+  let noCaseIdThrown = false;
+  try {
+    // @ts-expect-error intentional missing caseId
+    await fbRepo.create({ decision: "REJECT" });
+  } catch {
+    noCaseIdThrown = true;
+  }
+  check("feedback rejects missing caseId", noCaseIdThrown);
+} finally {
+  await rm(tmpFbDir, { recursive: true, force: true });
+}
 
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");

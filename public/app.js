@@ -140,7 +140,14 @@ const state = {
   selectedTopicIds: new Set(),
   candidates: [],
   queue: { items: [], summary: null, statusFilter: "ALL", sort: "priority" },
-  queueDetail: null
+  queueDetail: null,
+  feedback: {
+    meta: null,
+    selectedReasons: new Set(),
+    selectedDecision: "REJECT",
+    caseFeedbacks: [],
+    stats: null
+  }
 };
 
 const LS_KEYS = { queueTab: "rewardAgent.queueTab", queueSort: "rewardAgent.queueSort" };
@@ -162,10 +169,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   state.queue.statusFilter = readLS(LS_KEYS.queueTab, "ALL") || "ALL";
   state.queue.sort = readLS(LS_KEYS.queueSort, "priority") || "priority";
   bindScheduler();
+  bindFeedback();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
   await loadSchedulerStatus();
+  await loadFeedbackMeta();
+  await loadFeedbackStats();
 });
 
 function bindScheduler() {
@@ -1073,10 +1083,20 @@ function renderQueueDetail(d) {
       <span id="queueNoteStatus" class="muted" style="font-size:12px;"></span>
     </div>
 
+    <div id="feedbackFormBox" style="margin-top:10px;"></div>
+
     <h4 style="margin:10px 0 4px;">최근 로그</h4>
     <ul style="font-size:12.5px;">${logs || "<li class='muted'>로그 없음</li>"}</ul>
   `;
   loadApprovalGateLinks(c.moduleId);
+  // 피드백 입력 영역
+  state.feedback.selectedReasons = new Set();
+  // 기본 결정값을 case 상태로 추정
+  if (c.status === "HOLD") state.feedback.selectedDecision = "HOLD";
+  else if (c.status === "APPROVED") state.feedback.selectedDecision = "APPROVE";
+  else state.feedback.selectedDecision = "REJECT";
+  loadCaseFeedbacks(c.id).then(renderFeedbackForm);
+  renderFeedbackForm();
 }
 
 async function loadApprovalGateLinks(moduleId) {
@@ -1357,6 +1377,262 @@ async function analyzeCandidate(candidateId, btn) {
     btn.disabled = false;
     btn.textContent = "분석하기";
   }
+}
+
+// ---------- Feedback DB (체크리스트 21) ----------
+function bindFeedback() {
+  const refreshBtn = document.getElementById("feedbackStatsRefreshBtn");
+  if (refreshBtn) refreshBtn.addEventListener("click", () => loadFeedbackStats());
+  const impBtn = document.getElementById("feedbackImprovementsBtn");
+  if (impBtn) impBtn.addEventListener("click", () => loadFeedbackImprovements());
+
+  // 모달 내부 폼은 delegated handlers — renderQueueDetail이 매번 새로 그림
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.matches("[data-fb-reason]")) {
+      e.preventDefault();
+      const code = t.getAttribute("data-fb-reason");
+      if (state.feedback.selectedReasons.has(code)) state.feedback.selectedReasons.delete(code);
+      else state.feedback.selectedReasons.add(code);
+      renderFeedbackForm();
+    }
+    if (t.id === "feedbackSaveBtn") {
+      e.preventDefault();
+      onFeedbackSave();
+    }
+    if (t.matches("[data-fb-decision]")) {
+      e.preventDefault();
+      state.feedback.selectedDecision = t.getAttribute("data-fb-decision");
+      renderFeedbackForm();
+    }
+  });
+}
+
+async function loadFeedbackMeta() {
+  try {
+    const res = await fetch("/api/feedback/meta");
+    const data = await res.json();
+    if (data && data.ok) state.feedback.meta = data;
+  } catch { /* ignore */ }
+}
+
+async function loadFeedbackStats() {
+  const root = document.getElementById("feedbackStats");
+  if (!root) return;
+  try {
+    const res = await fetch("/api/feedback/stats");
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "feedback stats failed");
+    state.feedback.stats = data.stats;
+    renderFeedbackStats(root, data);
+  } catch (err) {
+    root.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderFeedbackStats(root, data) {
+  const s = data.stats || {};
+  const dec = s.byDecision || {};
+  const rc = s.byReasonCategory || {};
+  const evIss = s.evidenceIssueCounts || {};
+  const topRules = (s.topRuleFalsePositiveIds || []).slice(0, 5);
+  const topKws = (s.topKeywordFalsePositives || []).slice(0, 5);
+
+  const cards = [
+    { label: "총 피드백", value: s.total ?? 0, cls: "muted" },
+    { label: "오탐 (FALSE_POSITIVE)", value: dec.FALSE_POSITIVE ?? 0, cls: "warn" },
+    { label: "증거부족", value: evIss.EVIDENCE_INSUFFICIENT ?? 0, cls: "warn" },
+    { label: "중복", value: dec.DUPLICATE ?? 0, cls: "muted" },
+    { label: "보류", value: dec.HOLD ?? 0, cls: "muted" },
+    { label: "폐기", value: dec.REJECT ?? 0, cls: "danger" }
+  ];
+  const cardsHtml = cards.map((c) => `
+    <div class="evi-item" style="text-align:center;padding:8px 10px;">
+      <div class="label" style="font-size:11px;">${escapeHtml(c.label)}</div>
+      <div class="value" style="font-size:18px;">${escapeHtml(String(c.value))}</div>
+    </div>
+  `).join("");
+
+  const rulesHtml = topRules.length
+    ? topRules.map((r) => `<li><code>${escapeHtml(r.ruleId)}</code> · 오탐 ${r.count}건</li>`).join("")
+    : '<li class="muted">아직 오탐 데이터가 없습니다.</li>';
+  const kwsHtml = topKws.length
+    ? topKws.map((k) => `<li>${escapeHtml(k.keyword)} · ${k.count}건</li>`).join("")
+    : '<li class="muted">아직 오탐 키워드가 없습니다.</li>';
+
+  root.innerHTML = `
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));">${cardsHtml}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">
+      <div>
+        <h4 style="margin:4px 0;">가장 많이 오탐된 Rule ID</h4>
+        <ul style="font-size:12.5px;">${rulesHtml}</ul>
+      </div>
+      <div>
+        <h4 style="margin:4px 0;">가장 많이 오탐된 키워드</h4>
+        <ul style="font-size:12.5px;">${kwsHtml}</ul>
+      </div>
+    </div>
+    <p class="muted" style="font-size:12px;margin-top:6px;">⚠ ${escapeHtml(data.safetyNotice || "피드백은 자동으로 룰을 변경하지 않습니다.")}</p>
+  `;
+}
+
+async function loadFeedbackImprovements() {
+  const root = document.getElementById("feedbackImprovements");
+  if (!root) return;
+  root.innerHTML = '<p class="muted">불러오는 중...</p>';
+  try {
+    const res = await fetch("/api/feedback/improvements");
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "improvements failed");
+    const r = (data.ruleImprovements || []).map((x) =>
+      `<li><code>${escapeHtml(x.ruleId)}</code> · 오탐 ${x.falsePositiveCount}건 — ${escapeHtml(x.recommendation)}</li>`).join("");
+    const p = (data.promptImprovements || []).map((x) =>
+      `<li>${escapeHtml(x.issue)} · ${x.count}건 — ${escapeHtml(x.recommendation)}</li>`).join("");
+    const sc = (data.scoringImprovements || []).map((x) =>
+      `<li>${escapeHtml(x.issue)} · ${x.count}건 — ${escapeHtml(x.recommendation)}</li>`).join("");
+    const ev = (data.evidenceImprovements || []).map((x) =>
+      `<li>${escapeHtml(x.issue)} · ${x.count}건 — ${escapeHtml(x.recommendation)}</li>`).join("");
+    root.innerHTML = `
+      <p class="muted">${escapeHtml(data.message || "")}</p>
+      <h4 style="margin:6px 0;">룰 개선 후보</h4>
+      <ul style="font-size:12.5px;">${r || '<li class="muted">없음</li>'}</ul>
+      <h4 style="margin:6px 0;">프롬프트 개선 후보</h4>
+      <ul style="font-size:12.5px;">${p || '<li class="muted">없음</li>'}</ul>
+      <h4 style="margin:6px 0;">점수 개선 후보</h4>
+      <ul style="font-size:12.5px;">${sc || '<li class="muted">없음</li>'}</ul>
+      <h4 style="margin:6px 0;">증거 개선 후보</h4>
+      <ul style="font-size:12.5px;">${ev || '<li class="muted">없음</li>'}</ul>
+      <p class="muted" style="font-size:12px;margin-top:6px;">⚠ ${escapeHtml(data.safetyNotice || "자동 변경이 아닙니다.")}</p>
+    `;
+  } catch (err) {
+    root.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderFeedbackForm() {
+  const root = document.getElementById("feedbackFormBox");
+  if (!root) return;
+  const meta = state.feedback.meta;
+  const decisions = (meta && meta.decisions) || [];
+  const cats = (meta && meta.reasonCategories) || [];
+  const selectedDecision = state.feedback.selectedDecision;
+
+  const decisionBtns = decisions.map((d) => {
+    const active = d.code === selectedDecision;
+    return `<button type="button" class="badge ${active ? 'ok' : 'muted'}" data-fb-decision="${escapeAttr(d.code)}" style="border:0;cursor:pointer;padding:6px 10px;font-weight:700;">${escapeHtml(d.label)}</button>`;
+  }).join(" ");
+
+  const reasonBtns = cats.map((c) => {
+    const active = state.feedback.selectedReasons.has(c.code);
+    return `<button type="button" class="badge ${active ? 'ok' : 'muted'}" data-fb-reason="${escapeAttr(c.code)}" title="${escapeAttr(c.description)}" style="border:0;cursor:pointer;padding:6px 10px;font-weight:700;">${escapeHtml(c.label)}</button>`;
+  }).join(" ");
+
+  const fbList = (state.feedback.caseFeedbacks || []).slice(0, 5).map((f) => {
+    const ts = escapeHtml(f.createdAt || "");
+    const dec = escapeHtml(f.decision || "");
+    const reasons = (f.reasonCategories || []).join(", ");
+    const memo = f.memo ? `<div class="muted" style="font-size:12px;">${escapeHtml(f.memo)}</div>` : "";
+    const pii = f.piiMasked ? '<span class="badge warn" style="margin-left:6px;">PII 마스킹</span>' : "";
+    return `<li><strong>${dec}</strong> · <span class="muted">${ts}</span>${pii}<br/><span class="muted" style="font-size:12px;">${escapeHtml(reasons)}</span>${memo}</li>`;
+  }).join("");
+
+  root.innerHTML = `
+    <h4 style="margin:10px 0 4px;">검토 피드백</h4>
+    <p class="muted" style="font-size:12px;">⚠ 피드백은 자동으로 룰을 변경하지 않습니다. 사람이 검토할 개선 근거로 누적됩니다. 메모에 개인정보가 들어오면 자동 마스킹됩니다.</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;"><span class="muted" style="font-size:12px;align-self:center;">결정:</span> ${decisionBtns}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;"><span class="muted" style="font-size:12px;align-self:center;">반려/오탐 사유:</span> ${reasonBtns}</div>
+    <label style="font-size:12px;">검토자 메모 (필요 시)</label>
+    <textarea id="feedbackMemo" placeholder="해당 후보를 왜 폐기/보류/오탐 처리했는지 적어주세요. (이메일/전화번호/주민번호는 자동 마스킹됩니다.)" style="min-height:60px;"></textarea>
+    <label style="font-size:12px;">관련 룰 ID (콤마 구분, 선택)</label>
+    <input id="feedbackRuleIds" type="text" placeholder="예: H004, M011" />
+    <label style="font-size:12px;">관련 키워드 (콤마 구분, 선택)</label>
+    <input id="feedbackKeywords" type="text" placeholder="예: 당뇨 완치, 혈압약 대체" />
+    <label style="font-size:12px;">LLM 판단 오류 메모 (선택)</label>
+    <input id="feedbackLlmNotes" type="text" placeholder="LLM이 과장/축소했다면 한 줄로" />
+    <label style="font-size:12px;">점수 오류 메모 (선택)</label>
+    <input id="feedbackScoringNotes" type="text" placeholder="점수가 과대평가되었다면 한 줄로" />
+    <label style="font-size:12px;">개선 제안 (룰 / 프롬프트 / 점수 — 콤마 구분, 선택)</label>
+    <input id="feedbackSuggestRule" type="text" placeholder="룰 개선 제안" />
+    <input id="feedbackSuggestPrompt" type="text" placeholder="프롬프트 개선 제안" style="margin-top:4px;" />
+    <input id="feedbackSuggestScoring" type="text" placeholder="점수 개선 제안" style="margin-top:4px;" />
+    <div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
+      <button class="primary" type="button" id="feedbackSaveBtn" style="padding:8px 12px;font-size:13px;">피드백 저장</button>
+      <span id="feedbackSaveStatus" class="muted" style="font-size:12px;"></span>
+    </div>
+    <h5 style="margin:10px 0 4px;">이 Case의 최근 피드백</h5>
+    <ul style="font-size:12.5px;">${fbList || "<li class='muted'>아직 피드백 없음</li>"}</ul>
+  `;
+}
+
+function splitCsv(s) {
+  if (!s) return [];
+  return String(s).split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
+}
+
+async function onFeedbackSave() {
+  const d = state.queueDetail;
+  if (!d || !d.case) return;
+  const caseId = d.case.id;
+  const memo = (document.getElementById("feedbackMemo")?.value || "").trim();
+  const ruleIds = splitCsv(document.getElementById("feedbackRuleIds")?.value);
+  const keywords = splitCsv(document.getElementById("feedbackKeywords")?.value);
+  const llmNotes = (document.getElementById("feedbackLlmNotes")?.value || "").trim();
+  const scoringNotes = (document.getElementById("feedbackScoringNotes")?.value || "").trim();
+  const suggestRule = splitCsv(document.getElementById("feedbackSuggestRule")?.value);
+  const suggestPrompt = splitCsv(document.getElementById("feedbackSuggestPrompt")?.value);
+  const suggestScoring = splitCsv(document.getElementById("feedbackSuggestScoring")?.value);
+  const reviewer = document.getElementById("queueReviewerName")?.value || undefined;
+
+  const reasonCategories = Array.from(state.feedback.selectedReasons);
+  const status = document.getElementById("feedbackSaveStatus");
+
+  const payload = {
+    decision: state.feedback.selectedDecision || "REJECT",
+    reasonCategories,
+    reviewerName: reviewer,
+    memo: memo || undefined,
+    relatedRuleIds: ruleIds,
+    relatedKeywords: keywords,
+    llmIssueNotes: llmNotes || undefined,
+    scoringIssueNotes: scoringNotes || undefined,
+    suggestedRuleChanges: suggestRule,
+    suggestedPromptChanges: suggestPrompt,
+    suggestedScoringChanges: suggestScoring,
+    caseStatusAtFeedback: d.case.status
+  };
+
+  try {
+    if (status) status.textContent = "저장 중...";
+    const res = await fetch(`/api/cases/${encodeURIComponent(caseId)}/feedback`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    if (status) {
+      status.textContent = data.piiMasked
+        ? `저장됨. 개인정보 ${Object.values(data.piiHits || {}).reduce((a,b)=>a+b,0)}개 마스킹됨.`
+        : "저장됨.";
+    }
+    // 초기화
+    state.feedback.selectedReasons.clear();
+    document.getElementById("feedbackMemo").value = "";
+    await loadCaseFeedbacks(caseId);
+    await loadFeedbackStats();
+    renderFeedbackForm();
+  } catch (err) {
+    if (status) status.textContent = "저장 실패: " + err.message;
+  }
+}
+
+async function loadCaseFeedbacks(caseId) {
+  try {
+    const res = await fetch(`/api/cases/${encodeURIComponent(caseId)}/feedback`);
+    const data = await res.json();
+    if (data && data.ok) state.feedback.caseFeedbacks = data.items || [];
+  } catch { /* ignore */ }
 }
 
 // ---------- Modal ----------

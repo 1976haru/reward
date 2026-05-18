@@ -58,5 +58,9 @@ export const config = {
     retryAttempts: Number(process.env.SCHEDULER_RETRY_ATTEMPTS ?? 2),
     retryDelayMs: Number(process.env.SCHEDULER_RETRY_DELAY_MS ?? 2000),
     maxRunLog: Number(process.env.SCHEDULER_MAX_RUN_LOG ?? 200)
+  },
+  feedback: {
+    dir: process.env.FEEDBACK_DIR ?? path.join(dataDir, "feedback"),
+    useDb: parseBool(process.env.FEEDBACK_USE_DB, false)
   }
 };

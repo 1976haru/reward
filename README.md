@@ -180,6 +180,24 @@ API:
 
 자세한 명세는 [`docs/scheduler.md`](./docs/scheduler.md).
 
+## Feedback DB (검토 피드백)
+
+검토자가 AI 후보를 **승인/보류/폐기/오탐**으로 분류한 사유를 누적해 룰/프롬프트/점수 개선의 근거로 쓰는 내부 저장소입니다. **자동으로 룰/프롬프트/점수를 변경하지 않으며**, 모든 변경은 사람이 별도 체크리스트에서 반영합니다.
+
+- 결정 코드: `APPROVE / HOLD / REJECT / NEEDS_MORE_EVIDENCE / DUPLICATE / NOT_RELEVANT / FALSE_POSITIVE`
+- 사유 카테고리: `NO_PROHIBITED_CLAIM`, `RULE_FALSE_POSITIVE`, `LLM_OVERSTATED`, `SCORE_TOO_HIGH`, `EVIDENCE_INSUFFICIENT` 등 15종
+- 저장소: `data/feedback/feedback.json` (gitignored). `FEEDBACK_USE_DB=true` 여도 Prisma 미연결 시 JSON 폴백
+- 메모/노트에 포함된 이메일/전화번호/주민번호 형태는 저장 전 자동 마스킹
+
+API:
+
+- `POST /api/cases/:caseId/feedback`
+- `GET /api/cases/:caseId/feedback`
+- `GET /api/feedback`, `GET /api/feedback/stats`, `GET /api/feedback/improvements`
+- `GET /api/feedback/meta`
+
+자세한 명세는 [`docs/feedback_db.md`](./docs/feedback_db.md).
+
 ## Search Collector / Scout Agent
 
 The Scout Agent discovers candidate URLs from approved sources (Mock / Naver Search API / OpenAI Web Search placeholder / RSS placeholder / Manual Seed) and queues them into the Review pipeline.

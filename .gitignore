@@ -14,6 +14,7 @@ data/raw/*
 data/candidates/*
 data/scheduler/*
 data/dedupe/*
+data/feedback/*
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
@@ -21,3 +22,4 @@ data/dedupe/*
 !data/candidates/.gitkeep
 !data/scheduler/.gitkeep
 !data/dedupe/.gitkeep
+!data/feedback/.gitkeep

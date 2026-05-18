@@ -18,6 +18,7 @@ import { scoutRouter } from "./routes/scout.js";
 import { schedulerRouter } from "./routes/scheduler.js";
 import { schedulerService } from "./services/scheduler/SchedulerService.js";
 import { dedupeRouter } from "./routes/dedupe.js";
+import { feedbackRouter, caseFeedbackRouter } from "./routes/feedback.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -27,7 +28,8 @@ await Promise.all([
   ensureDir(path.join(config.dataDir, "cases")),
   ensureDir(config.evidenceDir),
   ensureDir(config.reportsDir),
-  ensureDir(path.join(config.dataDir, "raw"))
+  ensureDir(path.join(config.dataDir, "raw")),
+  ensureDir(config.feedback.dir)
 ]);
 
 app.use(cors());
@@ -117,8 +119,15 @@ app.post("/api/cases/analyze", async (req, res) => {
   }
 });
 
+// Case 별 피드백 (체크리스트 21) — POST/GET /api/cases/:caseId/feedback
+// 반드시 casesRouter 보다 먼저 마운트 — /api/cases/:id 와 충돌하지 않게.
+app.use("/api/cases", caseFeedbackRouter);
+
 // Case 관리 REST API (분석 라우트 뒤에 마운트 — /analyze 가 router의 /:id 와 충돌하지 않게)
 app.use("/api/cases", casesRouter);
+
+// Feedback DB (체크리스트 21) — 전체 목록/통계/개선 후보
+app.use("/api/feedback", feedbackRouter);
 
 // Candidate Discovery
 app.use("/api/discovery", discoveryRouter);
