@@ -213,8 +213,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindEval();
   bindHomeNotice();
   bindDashboard();
+  bindGuideQa();
   // 공지 카드는 항상 보여야 하므로 boot 시 fallback 으로 먼저 그려둔다.
   renderNotices(null);
+  // 가이드도 fetch 실패 대비해 boot 시 fallback 카드를 먼저 그려둔다.
+  renderGuideQa(null);
   bindSubsidy();
   bindBids();
   bindTrace();
@@ -229,6 +232,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadEvalSets();
   await loadEvalLatest();
   await loadDashboardSummary();
+  await loadGuideQa();
   await loadTraceData();
   await loadOutcomeMeta();
   await loadOutcomeData();
@@ -2527,6 +2531,169 @@ function renderNotices(data) {
     `;
   }).join("");
   root.innerHTML = `<div class="notice-grid">${html}</div>`;
+}
+
+// ---------- Guide / Q&A (실전 재점검 03) ----------
+const GUIDE_FALLBACK_HTML = `
+  <div class="guide-card guide-fallback">
+    <p class="muted">가이드를 불러오지 못했습니다. 실전 신고 전 공식 기준과 공지사항을 확인하세요. 공익레이더는 자동 신고를 수행하지 않으며, 포상금 수령을 보장하지 않습니다.</p>
+  </div>
+`;
+
+function bindGuideQa() {
+  const btn = document.getElementById("guideQaRefreshBtn");
+  if (btn) btn.addEventListener("click", loadGuideQa);
+  // FAQ 아코디언 토글
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    const q = t.closest && t.closest("[data-faq-toggle]");
+    if (!q) return;
+    e.preventDefault();
+    const item = q.closest(".faq-item");
+    if (item) item.classList.toggle("open");
+  });
+}
+
+async function loadGuideQa() {
+  const root = document.getElementById("guideQaPanel");
+  if (!root) return;
+  try {
+    const res = await fetch("/api/guide/qa");
+    const data = await res.json();
+    if (!data.ok || !data.guide) throw new Error(data.message || "guide failed");
+    renderGuideQa(data.guide);
+  } catch (err) {
+    root.innerHTML = GUIDE_FALLBACK_HTML + `<p class="muted" style="margin-top:8px;font-size:12px;">[debug] ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderFirstRunSteps(steps) {
+  const items = (steps || []).map((s) => `
+    <li class="guide-step">
+      <div class="guide-step-num">${s.step}</div>
+      <div class="guide-step-body">
+        <div class="guide-step-title">${escapeHtml(s.title || "")}</div>
+        <div class="guide-step-detail">${escapeHtml(s.detail || "")}</div>
+        ${s.anchor ? `<a class="guide-step-anchor" href="${escapeAttr(s.anchor)}">바로가기 →</a>` : ""}
+      </div>
+    </li>
+  `).join("");
+  return `<ol class="guide-steps">${items}</ol>`;
+}
+
+function renderModuleGuides(modules) {
+  if (!Array.isArray(modules) || modules.length === 0) {
+    return '<p class="muted">등록된 모듈 가이드가 없습니다.</p>';
+  }
+  const cards = modules.map((m) => {
+    const list = (arr, label) => `
+      <div class="module-guide-block">
+        <div class="module-guide-block-label">${escapeHtml(label)}</div>
+        <ul class="module-guide-list">
+          ${(arr || []).map((x) => `<li>${escapeHtml(x)}</li>`).join("") || '<li class="muted">—</li>'}
+        </ul>
+      </div>
+    `;
+    const links = (m.officialLinks || []).map((l) => `
+      <a class="module-guide-link" href="${escapeAttr(l.url)}" target="_blank" rel="noopener noreferrer">
+        ${escapeHtml(l.label || l.url)} ↗
+      </a>
+    `).join("");
+    return `
+      <div class="module-guide-card" data-module-id="${escapeAttr(m.moduleId || "")}">
+        <h4 class="module-guide-title">${escapeHtml(m.displayName || m.moduleId || "")}</h4>
+        <div class="module-guide-grid">
+          ${list(m.whatToCollect, "수집 대상")}
+          ${list(m.whereToReport, "신고처")}
+          ${list(m.evidence, "필요한 증거")}
+          ${list(m.rewardGuide, "포상/보상 공식 기준 (수령 보장 없음)")}
+        </div>
+        ${links ? `<div class="module-guide-links">${links}</div>` : ""}
+      </div>
+    `;
+  }).join("");
+  return `<div class="module-guide-grid-outer">${cards}</div>`;
+}
+
+function renderOfficialLinks(links) {
+  if (!Array.isArray(links) || links.length === 0) {
+    return '<p class="muted">공식 링크가 없습니다.</p>';
+  }
+  return `
+    <div class="official-link-grid">
+      ${links.map((l) => `
+        <div class="official-link-card">
+          <a href="${escapeAttr(l.url)}" target="_blank" rel="noopener noreferrer" class="official-link-label">${escapeHtml(l.label || l.url)} ↗</a>
+          <p class="official-link-caution">${escapeHtml(l.caution || "공식 기준은 변경될 수 있으므로 실전 신고 전 재확인하세요.")}</p>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderFaqs(faqs) {
+  if (!Array.isArray(faqs) || faqs.length === 0) {
+    return '<p class="muted">FAQ 가 없습니다.</p>';
+  }
+  return `
+    <ul class="faq-list">
+      ${faqs.map((f) => `
+        <li class="faq-item" data-faq-id="${escapeAttr(f.id || "")}">
+          <button type="button" class="faq-question" data-faq-toggle="1">
+            <span class="faq-q-text">${escapeHtml(f.question || "")}</span>
+            <span class="faq-q-toggle" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer">${escapeHtml(f.answer || "")}</div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function renderGuideQa(guide) {
+  const root = document.getElementById("guideQaPanel");
+  if (!root) return;
+  if (!guide) {
+    root.innerHTML = GUIDE_FALLBACK_HTML;
+    return;
+  }
+  const rules = (guide.safetyRules || []).map((r) => `<li>${escapeHtml(r)}</li>`).join("");
+
+  root.innerHTML = `
+    <div class="guide-grid">
+      <div class="guide-card guide-card-intro">
+        <h3 class="guide-title">${escapeHtml(guide.title || "공익레이더 사용 가이드")}</h3>
+        <p class="muted guide-subtitle">${escapeHtml(guide.subtitle || "")}</p>
+        <p class="guide-description">${escapeHtml(guide.description || "")}</p>
+        <div class="guide-safety">
+          <strong>안전 원칙</strong>
+          <ul>${rules}</ul>
+        </div>
+      </div>
+      <div class="guide-card guide-card-firstrun">
+        <h3 class="guide-title">처음 사용자 첫 실행 순서</h3>
+        <p class="muted">실제 신고 전에 Mock 검증과 수동 URL 테스트를 먼저 진행하세요.</p>
+        ${renderFirstRunSteps(guide.firstRunSteps)}
+      </div>
+    </div>
+
+    <h3 class="guide-section-title">모듈별 가이드</h3>
+    <p class="muted">모듈별로 무엇을 수집하고 어디에 신고하며 어떤 증거가 필요한지, 포상/보상 공식 기준 확인 위치를 안내합니다. <strong>포상금 수령을 보장하지 않습니다.</strong></p>
+    ${renderModuleGuides(guide.moduleGuides)}
+
+    <h3 class="guide-section-title">공식 링크</h3>
+    <p class="muted">공식 기준은 기관별로 변경될 수 있으므로 실전 신고 전 사람이 직접 재확인해야 합니다.</p>
+    ${renderOfficialLinks(guide.officialLinks)}
+
+    <h3 class="guide-section-title">자주 묻는 질문 (Q&amp;A)</h3>
+    ${renderFaqs(guide.faqs)}
+
+    <div class="guide-foot">
+      <p class="muted">⚠ ${escapeHtml(guide.safetyNotice || "공익레이더는 자동 신고를 수행하지 않으며, 포상금 수령을 보장하지 않습니다.")}</p>
+      <p class="muted">${escapeHtml(guide.rewardDisclaimer || "")}</p>
+    </div>
+  `;
 }
 
 // ---------- 운영 대시보드 (체크리스트 23) ----------

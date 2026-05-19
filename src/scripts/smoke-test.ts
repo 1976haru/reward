@@ -80,6 +80,7 @@ import { JsonEvalRepository, checkEvalSetForPii, isSafeRunId } from "../reposito
 import { EvalRunner } from "../services/eval/EvalRunner.js";
 import { EVAL_LABELS } from "../types/eval.js";
 import { DashboardService, DASHBOARD_SAFETY_NOTICE } from "../services/dashboard/DashboardService.js";
+import { guideService, GUIDE_SAFETY_NOTICE } from "../services/guide/GuideService.js";
 import {
   loadCounterfeitKeywordsSync,
   getCounterfeitKeywordSummary
@@ -1515,6 +1516,84 @@ for (const t of renameTargets) {
     check(`${t.name} does not contain forbidden phrase: ${phrase}`, !t.body.includes(phrase));
   }
 }
+
+// 23-E) Guide / Q&A — 실전 재점검 03
+const guidePayload = guideService.getGuide();
+check("guide schemaVersion 1.0.0", guidePayload.schemaVersion === "1.0.0");
+check("guide title mentions 공익레이더", typeof guidePayload.title === "string" && guidePayload.title.includes("공익레이더"));
+check("guide.firstRunSteps length >= 5", Array.isArray(guidePayload.firstRunSteps) && guidePayload.firstRunSteps.length >= 5);
+check("guide.moduleGuides length >= 4", Array.isArray(guidePayload.moduleGuides) && guidePayload.moduleGuides.length >= 4);
+
+const moduleIdsInGuide = new Set(guidePayload.moduleGuides.map((m) => m.moduleId));
+check("guide includes false_ad", moduleIdsInGuide.has("false_ad"));
+check("guide includes counterfeit_goods", moduleIdsInGuide.has("counterfeit_goods"));
+check("guide includes subsidy_fraud", moduleIdsInGuide.has("subsidy_fraud"));
+check("guide includes bid_collusion", moduleIdsInGuide.has("bid_collusion"));
+
+// 모듈 가이드 필드 구조
+for (const mg of guidePayload.moduleGuides) {
+  check(`guide.${mg.moduleId} whatToCollect non-empty`, Array.isArray(mg.whatToCollect) && mg.whatToCollect.length > 0);
+  check(`guide.${mg.moduleId} whereToReport non-empty`, Array.isArray(mg.whereToReport) && mg.whereToReport.length > 0);
+  check(`guide.${mg.moduleId} evidence non-empty`, Array.isArray(mg.evidence) && mg.evidence.length > 0);
+  check(`guide.${mg.moduleId} rewardGuide mentions 수령 보장 없음 / 공식 기준`,
+    (mg.rewardGuide || []).some((s) => /수령\s*보장\s*없|공식\s*기준/.test(s)));
+}
+
+check("guide.faqs length >= 8", Array.isArray(guidePayload.faqs) && guidePayload.faqs.length >= 8);
+const faqQuestions = guidePayload.faqs.map((f) => f.question || "");
+check("FAQ includes 자동으로 신고하나요?",
+  faqQuestions.some((q) => /자동으로\s*신고/.test(q)));
+check("FAQ includes 포상금을 받을 수 있나요?",
+  faqQuestions.some((q) => /포상금을?\s*받을\s*수\s*있/.test(q)));
+const faqAnswers = guidePayload.faqs.map((f) => f.answer || "").join("\n");
+check("FAQ answers state 자동 신고 미수행",
+  /자동\s*(신고|제출)[^\n]*하지\s*않/.test(faqAnswers));
+check("FAQ answers state 포상금 수령 보장 없음",
+  /포상금[^\n]*보장하지\s*않|수령을?\s*보장하지\s*않/.test(faqAnswers));
+
+// 공식 링크 — 4개 이상 + 4개 host
+check("guide.officialLinks length >= 4", Array.isArray(guidePayload.officialLinks) && guidePayload.officialLinks.length >= 4);
+const linkUrls = guidePayload.officialLinks.map((l) => l.url || "");
+check("officialLinks include mfds host", linkUrls.some((u) => u.includes("mfds.go.kr")));
+check("officialLinks include kipo host", linkUrls.some((u) => u.includes("kipo.go.kr")));
+check("officialLinks include ftc host", linkUrls.some((u) => u.includes("ftc.go.kr")));
+check("officialLinks include clean.go.kr host", linkUrls.some((u) => u.includes("clean.go.kr")));
+check("officialLinks every entry has caution",
+  guidePayload.officialLinks.every((l) => typeof l.caution === "string" && l.caution.length > 0));
+
+// 안전 문구 / 면책
+check("guide.safetyNotice equals GUIDE_SAFETY_NOTICE",
+  guidePayload.safetyNotice === GUIDE_SAFETY_NOTICE);
+check("guide.safetyNotice mentions 자동 신고 미수행 + 포상금 보장 없음",
+  /자동\s*신고[^\n]*않|자동\s*제출[^\n]*않/.test(guidePayload.safetyNotice) &&
+  /보장하지\s*않/.test(guidePayload.safetyNotice));
+check("guide.safetyRules length >= 4", Array.isArray(guidePayload.safetyRules) && guidePayload.safetyRules.length >= 4);
+
+// 금지 표현 affirmative 회귀 — 가이드 페이로드 전체에 들어가서는 안 됨.
+const guideJson = JSON.stringify(guidePayload);
+const GUIDE_FORBIDDEN_AFFIRMATIVE = [
+  "포상금 확정", "수익 확정", "포상금 지급 보장", "포상금 수령 보장합니다",
+  "포상금을 보장합니다", "AI가 신고", "신고하면 지급", "무조건 받을", "무조건 지급"
+];
+for (const phrase of GUIDE_FORBIDDEN_AFFIRMATIVE) {
+  check(`guide payload does not contain forbidden phrase: ${phrase}`, !guideJson.includes(phrase));
+}
+
+// UI 마커 / 렌더 함수 존재
+check("public/index.html includes guideQaSection", /id="guideQaSection"/.test(indexHtml));
+check("public/index.html includes guideQaPanel", /id="guideQaPanel"/.test(indexHtml));
+check("public/app.js exposes renderGuideQa", /function\s+renderGuideQa\s*\(/.test(appJsHome));
+check("public/app.js exposes renderFirstRunSteps", /function\s+renderFirstRunSteps\s*\(/.test(appJsHome));
+check("public/app.js exposes renderModuleGuides", /function\s+renderModuleGuides\s*\(/.test(appJsHome));
+check("public/app.js exposes renderOfficialLinks", /function\s+renderOfficialLinks\s*\(/.test(appJsHome));
+check("public/app.js exposes renderFaqs", /function\s+renderFaqs\s*\(/.test(appJsHome));
+check("public/styles.css declares .module-guide-card", /\.module-guide-card\s*\{/.test(stylesRaw));
+check("public/styles.css declares .faq-item", /\.faq-item\s*\{/.test(stylesRaw));
+check("public/styles.css declares .official-link-card", /\.official-link-card\s*\{/.test(stylesRaw));
+
+// docs/guide_qa.md 존재 확인
+check("docs/guide_qa.md exists",
+  await fileExists(path.join(process.cwd(), "docs", "guide_qa.md")));
 
 // 24) Counterfeit Goods Module — 모듈 등록, 룰셋, 스카웃 주제, RuleAgent/ScoringAgent/ReportService 확장
 check("counterfeit module id", counterfeitGoodsDefinition.id === "counterfeit_goods");

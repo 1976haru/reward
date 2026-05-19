@@ -27,6 +27,7 @@ import { tracesRouter, caseTracesRouter } from "./routes/traces.js";
 import { traceMiddleware } from "./middleware/traceMiddleware.js";
 import { privacyRouter } from "./routes/privacy.js";
 import { outcomesRouter, caseOutcomesRouter } from "./routes/outcomes.js";
+import { guideRouter } from "./routes/guide.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -155,6 +156,9 @@ app.use("/api/eval", evalRouter);
 
 // 운영 대시보드 (체크리스트 23) — 조회 전용. 외부 신고 자동 제출 없음.
 app.use("/api/dashboard", dashboardRouter);
+
+// 사용자 가이드 / Q&A (실전 재점검 03) — 자동 신고/포상금 보장 표현 없음.
+app.use("/api/guide", guideRouter);
 
 // 보조금 부정수급 의심 후보 프로토타입 (체크리스트 25) — sample 기반 분석만 지원.
 app.use("/api/subsidy", subsidyRouter);

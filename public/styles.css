@@ -386,6 +386,191 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
   .notice-grid { grid-template-columns: 1fr; }
 }
 
+/* ---------- Guide / Q&A (실전 재점검 03) ---------- */
+.guide-card-section { margin-top: 4px; }
+.guide-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.guide-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+}
+.guide-card-intro .guide-safety {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  color: #9a3412;
+  font-size: 12.5px;
+}
+.guide-card-intro .guide-safety ul { margin: 4px 0 0; padding-left: 18px; }
+.guide-title { margin: 0 0 6px; font-size: 15px; }
+.guide-subtitle { margin: 0 0 4px; font-size: 12.5px; }
+.guide-description { margin: 0 0 8px; font-size: 13px; line-height: 1.55; color: #374151; }
+.guide-section-title { margin: 16px 0 6px; font-size: 14px; }
+
+.guide-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.guide-step {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 8px;
+  align-items: flex-start;
+}
+.guide-step-num {
+  width: 28px; height: 28px; border-radius: 999px;
+  background: var(--primary); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px;
+}
+.guide-step-title { font-weight: 700; font-size: 13.5px; }
+.guide-step-detail { font-size: 12.5px; color: #374151; line-height: 1.55; }
+.guide-step-anchor {
+  display: inline-block; margin-top: 4px;
+  font-size: 12px; color: var(--primary); text-decoration: none;
+}
+.guide-step-anchor:hover { text-decoration: underline; }
+
+.module-guide-grid-outer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.module-guide-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: white;
+}
+.module-guide-title { margin: 0 0 8px; font-size: 14px; }
+.module-guide-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.module-guide-block-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.module-guide-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.module-guide-list li { margin-bottom: 2px; }
+.module-guide-links {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.module-guide-link {
+  font-size: 12.5px;
+  color: var(--primary);
+  text-decoration: none;
+  word-break: break-all;
+}
+.module-guide-link:hover { text-decoration: underline; }
+
+.official-link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.official-link-card {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: white;
+}
+.official-link-label {
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+  word-break: break-all;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+.official-link-label:hover { text-decoration: underline; }
+.official-link-caution {
+  margin: 0;
+  font-size: 12px;
+  color: #9a3412;
+  line-height: 1.5;
+}
+
+.faq-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: white;
+  overflow: hidden;
+}
+.faq-question {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  font-weight: 700;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  color: #111827;
+}
+.faq-q-toggle {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px;
+  background: #eff6ff; color: var(--primary);
+  font-weight: 800;
+}
+.faq-item.open .faq-q-toggle::before { content: ""; }
+.faq-item.open .faq-q-toggle { background: var(--primary); color: white; }
+.faq-item.open .faq-q-toggle::after { content: "−"; }
+.faq-item.open .faq-q-toggle > * { display: none; }
+.faq-answer {
+  display: none;
+  padding: 0 12px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+}
+.faq-item.open .faq-answer { display: block; }
+
+.guide-foot { margin-top: 14px; }
+
+@media (max-width: 1024px) {
+  .guide-grid { grid-template-columns: 1fr; }
+  .module-guide-grid-outer { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .module-guide-grid { grid-template-columns: 1fr; }
+  .official-link-grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- 운영 대시보드 (체크리스트 23) ---------- */
 .ops-section-title { margin: 14px 0 6px; font-size: 14px; }
 .ops-safety { font-size: 12.5px; margin: 0 0 6px; }
