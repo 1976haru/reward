@@ -212,6 +212,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindEval();
   bindHomeNotice();
   bindDashboard();
+  // 공지 카드는 항상 보여야 하므로 boot 시 fallback 으로 먼저 그려둔다.
+  renderNotices(null);
   bindSubsidy();
   bindBids();
   bindTrace();
@@ -2479,6 +2481,53 @@ function renderHomeNotice(data) {
   `;
 }
 
+// ---------- Notice / 공지사항 (체크리스트 02) ----------
+const NOTICE_FALLBACK_HTML = `
+  <div class="notice-grid">
+    <div class="notice-card notice-level-warning">
+      <div class="notice-head">
+        <span class="notice-level notice-level-warning">WARNING</span>
+        <span class="notice-title">공지사항을 불러오지 못했습니다</span>
+      </div>
+      <p class="notice-message">실전 신고 전 공식 기준과 API 연결 상태를 반드시 확인하세요. 자동 신고는 수행되지 않으며, 모든 제출은 사람이 공식 창구에서 직접 진행해야 합니다.</p>
+    </div>
+  </div>
+`;
+
+function renderNotices(data) {
+  const root = document.getElementById("noticePanel");
+  if (!root) return;
+  const notices = Array.isArray(data && data.notices) ? data.notices : [];
+  if (notices.length === 0) {
+    root.innerHTML = NOTICE_FALLBACK_HTML;
+    return;
+  }
+  const html = notices.map((n) => {
+    const level = (n.level || "info").toLowerCase();
+    const cls = ["info", "warning", "danger", "success"].includes(level) ? level : "info";
+    const action = n.actionLabel && n.actionTarget
+      ? `<a class="notice-action" href="${escapeAttr(n.actionTarget)}">${escapeHtml(n.actionLabel)} →</a>`
+      : "";
+    const reviewedAt = n.lastReviewedAt
+      ? `<span class="notice-meta">최근 점검: ${escapeHtml(n.lastReviewedAt)}</span>`
+      : "";
+    return `
+      <div class="notice-card notice-level-${cls}" data-notice-id="${escapeAttr(n.id || "")}">
+        <div class="notice-head">
+          <span class="notice-level notice-level-${cls}">${escapeHtml(cls.toUpperCase())}</span>
+          <span class="notice-title">${escapeHtml(n.title || "")}</span>
+        </div>
+        <p class="notice-message">${escapeHtml(n.message || "")}</p>
+        <div class="notice-foot">
+          ${reviewedAt}
+          ${action}
+        </div>
+      </div>
+    `;
+  }).join("");
+  root.innerHTML = `<div class="notice-grid">${html}</div>`;
+}
+
 // ---------- 운영 대시보드 (체크리스트 23) ----------
 function bindDashboard() {
   const btn = document.getElementById("opsRefreshBtn");
@@ -2505,10 +2554,13 @@ async function loadDashboardSummary() {
     state.dashboard.lastError = null;
     if (root) renderDashboard(root, data);
     renderHomeNotice(data);
+    renderNotices(data);
   } catch (err) {
     state.dashboard.lastError = err.message;
     if (root) root.innerHTML = `<div class="code">대시보드 데이터를 불러오지 못했습니다: ${escapeHtml(err.message)}</div>`;
     if (homeRoot) homeRoot.innerHTML = `<div class="code">상태 정보를 불러오지 못했습니다: ${escapeHtml(err.message)}</div>`;
+    // 공지 카드는 비어도 절대 사라지지 않게 fallback 표시
+    renderNotices(null);
   }
 }
 

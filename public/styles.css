@@ -310,6 +310,81 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
   .home-notice-grid { grid-template-columns: 1fr; }
 }
 
+/* ---------- Notice / 공지사항 (체크리스트 02) ---------- */
+.notice-card-section { margin-top: 4px; }
+.notice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.notice-card {
+  border: 1px solid var(--border);
+  border-left: 4px solid #94a3b8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.notice-card.notice-level-info    { border-left-color: #2563eb; }
+.notice-card.notice-level-warning { border-left-color: #b45309; background: #fff7ed; }
+.notice-card.notice-level-danger  { border-left-color: #b91c1c; background: #fef2f2; }
+.notice-card.notice-level-success { border-left-color: #047857; background: #ecfdf5; }
+.notice-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.notice-level {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: white;
+}
+.notice-level.notice-level-info    { color: #1d4ed8; }
+.notice-level.notice-level-warning { color: #92400e; }
+.notice-level.notice-level-danger  { color: #991b1b; }
+.notice-level.notice-level-success { color: #065f46; }
+.notice-title {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.notice-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #374151;
+}
+.notice-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.notice-meta {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.notice-action {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+}
+.notice-action:hover { text-decoration: underline; }
+
+@media (max-width: 768px) {
+  .notice-grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- 운영 대시보드 (체크리스트 23) ---------- */
 .ops-section-title { margin: 14px 0 6px; font-size: 14px; }
 .ops-safety { font-size: 12.5px; margin: 0 0 6px; }

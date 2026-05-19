@@ -182,6 +182,26 @@ export interface DashboardGuideLink {
   href: string;
 }
 
+export type DashboardNoticeLevel = "info" | "warning" | "danger" | "success";
+export type DashboardNoticeCategory =
+  | "policy"
+  | "api"
+  | "safety"
+  | "readiness"
+  | "privacy"
+  | "other";
+
+export interface DashboardNotice {
+  id: string;
+  level: DashboardNoticeLevel;
+  title: string;
+  message: string;
+  category: DashboardNoticeCategory;
+  lastReviewedAt?: string;
+  actionLabel?: string;
+  actionTarget?: string;
+}
+
 export interface DashboardSummary {
   schemaVersion: "1.0.0";
   generatedAt: string;
@@ -193,6 +213,7 @@ export interface DashboardSummary {
   readiness: DashboardReadiness;
   guideLinks: DashboardGuideLink[];
   homeNotices: string[];
+  notices: DashboardNotice[];
   kpis: DashboardKpi[];
   queue: DashboardQueueSummary;
   topCandidates: DashboardTopCandidate[];
@@ -226,6 +247,112 @@ function readAppInfo(): { name: string; version: string } {
   return cachedAppInfo;
 }
 
+// 공지 카드의 "공식 기준 최근 재확인일" — 기관별 신고처/포상 기준이 바뀔 수 있으므로
+// 실전 신고 전 사람이 공식 페이지에서 다시 확인해야 한다. 이 날짜는 자동 확인이 아니라
+// "내부적으로 마지막으로 사람이 점검한 날짜"를 의미한다.
+const OFFICIAL_RULE_LAST_REVIEWED_AT = "2026-05-19";
+
+function buildNotices(args: {
+  runtimeMode: RuntimeMode;
+  openaiConfigured: boolean;
+  naverConfigured: boolean;
+  stage: ReadinessStage;
+  stageLabel: string;
+  modeLabel: string;
+}): DashboardNotice[] {
+  const { runtimeMode, openaiConfigured, naverConfigured, stage, stageLabel, modeLabel } = args;
+  const apiAllReady = openaiConfigured && naverConfigured;
+  const noKeysAtAll = !openaiConfigured && !naverConfigured;
+
+  return [
+    {
+      id: "official-rule-check",
+      level: "info",
+      title: "공식 기준 재확인 필요",
+      message:
+        "신고포상금 지급 기준과 신고처 안내는 기관별로 변경될 수 있으므로 실전 신고 전 공식 페이지를 다시 확인해야 합니다. 본 도구는 공식 기준을 대체하지 않습니다.",
+      category: "policy",
+      lastReviewedAt: OFFICIAL_RULE_LAST_REVIEWED_AT,
+      actionLabel: "공식 기준 확인",
+      actionTarget: "#reward-policy-guide"
+    },
+    {
+      id: "api-key-required",
+      level: apiAllReady ? "success" : "warning",
+      title: apiAllReady
+        ? "API 키 연결 확인됨 (실데이터 검증 필요)"
+        : "실데이터 수집 전 API 키 필요",
+      message: apiAllReady
+        ? "OpenAI / Naver Search API 키가 설정되어 있습니다. 다만 실제 후보 수집 결과는 사람 검토가 필요합니다. 자동 신고는 수행되지 않습니다."
+        : noKeysAtAll
+          ? "현재 Mock 모드입니다. 실제 후보 자동 발굴을 위해서는 Naver Search API 또는 기타 허용된 검색 소스 설정과 OpenAI 키가 필요합니다."
+          : "일부 API 키만 설정되어 있어 Mock과 실제 호출이 혼합됩니다. 실데이터 검증 전 누락된 키를 확인하세요.",
+      category: "api",
+      actionLabel: "설정 확인",
+      actionTarget: "#settings"
+    },
+    {
+      id: "approval-gate",
+      level: "danger",
+      title: "자동 신고 금지",
+      message:
+        "이 시스템은 외부 신고기관에 자동 제출하지 않습니다. 신고서 초안 복사와 공식 링크 안내만 제공하며, 최종 제출은 사람이 공식 창구에서 직접 수행해야 합니다.",
+      category: "safety",
+      actionLabel: "승인 게이트 확인",
+      actionTarget: "#approval-gate"
+    },
+    {
+      id: "real-data-status",
+      level:
+        runtimeMode === "REAL_READY"
+          ? "success"
+          : runtimeMode === "MIXED"
+            ? "info"
+            : "warning",
+      title: "실데이터 검증 상태",
+      message:
+        runtimeMode === "MOCK"
+          ? "현재 상태는 Mock 검증 단계입니다. 실제 URL 10건 수동 테스트와 API 키 연동 테스트를 통과해야 실전 수집 단계로 이동할 수 있습니다."
+          : runtimeMode === "MIXED"
+            ? "일부 실제 키가 연결된 혼합 모드입니다. 실데이터 검증과 사람 검토를 더 진행해야 실전 단계로 이동할 수 있습니다."
+            : "실전 키 설정이 완료된 상태입니다. 다만 자동 실전 신고는 수행되지 않으며, 사람 검토가 필수입니다.",
+      category: "readiness",
+      lastReviewedAt: OFFICIAL_RULE_LAST_REVIEWED_AT,
+      actionLabel: "실전 체크리스트 보기",
+      actionTarget: "#practical-checklist"
+    },
+    {
+      id: "human-review-required",
+      level: "info",
+      title: "사람 검토 필요",
+      message:
+        "AI 분석과 룰 탐지는 신고지원 도구이며, 검토 후보의 최종 판단은 사람이 수행해야 합니다. 포상금 수령 보장은 없으며, 공식 기준 확인 후 사람이 결정합니다.",
+      category: "safety",
+      actionLabel: "Review Queue 열기",
+      actionTarget: "#caseList"
+    },
+    {
+      id: "privacy-minimization",
+      level: "info",
+      title: "개인정보 최소화 운영",
+      message:
+        "본 도구는 신고 후보 탐지·증거정리·신고서 초안 보조 도구입니다. 개인정보를 적극적으로 수집하지 않으며, 저장된 개인정보성 문자열은 정책에 따라 마스킹·삭제 가능합니다.",
+      category: "privacy",
+      actionLabel: "개인정보 정책 확인",
+      actionTarget: "#privacyCard"
+    },
+    {
+      id: "current-readiness-stage",
+      level: stage === "HUMAN_REVIEW_READY" ? "success" : "info",
+      title: `실전 가능 단계: ${stage}`,
+      message: `${stageLabel} · 현재 모드: ${modeLabel}. 단계 전환은 사람이 검증 후 수동으로 진행합니다.`,
+      category: "readiness",
+      actionLabel: "운영 대시보드",
+      actionTarget: "#opsDashboardCard"
+    }
+  ];
+}
+
 function buildRuntimeStatus(): {
   app: DashboardAppInfo;
   mode: DashboardModeInfo;
@@ -233,6 +360,7 @@ function buildRuntimeStatus(): {
   readiness: DashboardReadiness;
   guideLinks: DashboardGuideLink[];
   homeNotices: string[];
+  notices: DashboardNotice[];
 } {
   const appInfo = readAppInfo();
   const mockAi = config.mockAi === true;
@@ -302,6 +430,15 @@ function buildRuntimeStatus(): {
     "실전 가능 단계: " + stageLabel
   ];
 
+  const notices = buildNotices({
+    runtimeMode,
+    openaiConfigured,
+    naverConfigured,
+    stage,
+    stageLabel,
+    modeLabel
+  });
+
   return {
     app: {
       name: appInfo.name,
@@ -338,7 +475,8 @@ function buildRuntimeStatus(): {
       notes: readinessNotes
     },
     guideLinks,
-    homeNotices
+    homeNotices,
+    notices
   };
 }
 
@@ -613,6 +751,7 @@ export class DashboardService {
       readiness: runtime.readiness,
       guideLinks: runtime.guideLinks,
       homeNotices: runtime.homeNotices,
+      notices: runtime.notices,
       kpis,
       queue: { total: cases.length, counts: queueCounts },
       topCandidates,

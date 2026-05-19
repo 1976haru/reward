@@ -29,6 +29,45 @@
 `readiness.canAutoSubmit`은 항상 `false`, `readiness.humanReviewRequired`는 항상 `true`이다.
 `REAL_READY`라도 자동 실전 신고가 가능하다는 의미가 아니며, 사람이 공식 창구에서 직접 제출해야 한다.
 
+## 0-A. Notice Cards (체크리스트 02)
+
+Home/Notice 카드 바로 아래 `#noticeCardSection` 에 "공지사항 / 실전 안내" 카드를 표시한다.
+공지 데이터는 `/api/dashboard/summary` 응답의 `notices[]` 배열에서 온다.
+
+목적:
+
+- 제도/공식 기준 재확인 필요성 안내 (`official-rule-check`)
+- API 키 설정 필요성 안내 (`api-key-required`)
+- 자동 신고 금지 강조 (`approval-gate`)
+- 실데이터 검증 상태 안내 (`real-data-status`)
+- 사람 검토 필요 안내 (`human-review-required`)
+- 개인정보 최소화 안내 (`privacy-minimization`)
+- 현재 실전 가능 단계 (`current-readiness-stage`)
+
+level enum (정확히 4종):
+
+| level | 의미 |
+|---|---|
+| `info` | 일반 안내 |
+| `warning` | 실전 전 확인 필요 |
+| `danger` | 안전상 반드시 지켜야 할 금지사항 |
+| `success` | 통과 또는 준비 완료 상태 |
+
+실전 체크리스트와의 관계:
+
+- `current-readiness-stage` notice 는 `readiness.stage` 에 연동된다.
+- `api-key-required` 의 level 은 OpenAI/Naver 둘 다 연결되면 `success`, 둘 다 미연결이면 `warning` 으로 동적 전환된다.
+- `real-data-status` 의 level 은 `runtimeMode` (MOCK/MIXED/REAL_READY) 에 연동된다.
+
+**자동 신고 금지 — `approval-gate` notice 는 항상 표시되며 level=`danger` 로 고정한다.**
+이 도구는 외부 신고기관에 자동 제출하지 않는다. 신고서 초안 복사와 공식 링크 안내만 제공하며,
+최종 제출은 사람이 공식 창구에서 직접 수행한다. 본 카드는 포상금 수령을 보장하지 않는다.
+
+UI fallback:
+
+- 응답이 비거나 `notices` 배열이 비어도 카드는 사라지지 않으며,
+  "공지사항을 불러오지 못했습니다. 실전 신고 전 공식 기준과 API 연결 상태를 반드시 확인하세요." 메시지가 표시된다.
+
 ## 1. Purpose
 
 운영자가 한 화면에서 다음을 확인하기 위한 조회 전용 운영 대시보드.

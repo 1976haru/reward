@@ -1417,6 +1417,60 @@ const serverTsRaw = await readFile(path.join(process.cwd(), "src", "server.ts"),
 check("server.ts sets no-store on /api responses",
   /app\.use\(\s*["']\/api["']\s*,[\s\S]*?Cache-Control[\s\S]*?no-store/i.test(serverTsRaw));
 
+// 23-C) Notice / 공지사항 카드 — 체크리스트 02
+const notices = (dashSummary as unknown as { notices?: unknown }).notices;
+check("dashboard.notices is array", Array.isArray(notices));
+const noticeList = (Array.isArray(notices) ? notices : []) as Array<{
+  id: string; level: string; title: string; message: string;
+  category?: string; lastReviewedAt?: string;
+  actionLabel?: string; actionTarget?: string;
+}>;
+check("dashboard.notices.length >= 4", noticeList.length >= 4);
+
+const noticeById = new Map(noticeList.map((n) => [n.id, n]));
+check("notice official-rule-check present", noticeById.has("official-rule-check"));
+check("notice api-key-required present", noticeById.has("api-key-required"));
+check("notice approval-gate present", noticeById.has("approval-gate"));
+check("notice real-data-status present", noticeById.has("real-data-status"));
+
+// level enum 검사
+const ALLOWED_LEVELS = new Set(["info", "warning", "danger", "success"]);
+check("every notice has allowed level",
+  noticeList.every((n) => ALLOWED_LEVELS.has((n.level || "").toLowerCase())));
+
+// 자동 신고 금지 카드는 항상 danger 로 고정
+const approvalGate = noticeById.get("approval-gate");
+check("approval-gate notice level=danger", approvalGate?.level === "danger");
+
+// 금지 표현 — 카드 어디에도 들어가서는 안 된다.
+const FORBIDDEN = ["포상금 확정", "수익 확정", "신고하면 지급", "AI가 신고", "바로 제출", "무조건 받을"];
+const noticeBlob = noticeList.map((n) => `${n.title}\n${n.message}`).join("\n");
+for (const phrase of FORBIDDEN) {
+  check(`notice text does not contain forbidden phrase: ${phrase}`, !noticeBlob.includes(phrase));
+}
+
+// 자동 신고 금지 또는 자동 제출하지 않습니다 문구가 어딘가에 한 번 이상 있어야 한다.
+check("notice text mentions 자동 신고 금지 / 자동 제출하지 않습니다",
+  /자동\s*신고\s*금지|자동\s*제출하지\s*않/.test(noticeBlob));
+
+// UI 회귀 — 노티스 영역 / 렌더 함수 / 스타일 존재 확인
+check("public/index.html includes noticeCardSection", /id="noticeCardSection"/.test(indexHtml));
+check("public/index.html includes noticePanel", /id="noticePanel"/.test(indexHtml));
+check("public/app.js exposes renderNotices", /function\s+renderNotices\s*\(/.test(appJsHome));
+check("public/styles.css declares .notice-grid", /\.notice-grid\s*\{/.test(stylesRaw));
+check("public/styles.css declares .notice-card", /\.notice-card\s*\{/.test(stylesRaw));
+check("public/styles.css declares .notice-level-warning", /\.notice-level-warning/.test(stylesRaw));
+check("public/styles.css declares .notice-level-danger", /\.notice-level-danger/.test(stylesRaw));
+
+// API 응답에 실제 API 키 노출 없음 (notice 카드 메시지 안에 실 키가 섞이지 않게)
+const dashJsonForNotices = JSON.stringify(noticeList);
+const realOpenAiKey2 = (process.env.OPENAI_API_KEY || "").trim();
+const realNaverSecret2 = (process.env.NAVER_CLIENT_SECRET || "").trim();
+check("notices payload does NOT leak OPENAI_API_KEY",
+  realOpenAiKey2.length === 0 || !dashJsonForNotices.includes(realOpenAiKey2));
+check("notices payload does NOT leak NAVER_CLIENT_SECRET",
+  realNaverSecret2.length === 0 || !dashJsonForNotices.includes(realNaverSecret2));
+
 // 24) Counterfeit Goods Module — 모듈 등록, 룰셋, 스카웃 주제, RuleAgent/ScoringAgent/ReportService 확장
 check("counterfeit module id", counterfeitGoodsDefinition.id === "counterfeit_goods");
 check("counterfeit module status ready", counterfeitGoodsDefinition.status === "ready");

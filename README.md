@@ -695,6 +695,27 @@ dist/              tsc 빌드 산출물 (gitignored)
 - 응답에는 `OPENAI_API_KEY`, `NAVER_CLIENT_SECRET` 등 실제 키 값이 절대 포함되지 않습니다.
 - 표시 문구는 "검토/신고지원", "실전 검증 단계", "사람 검토 필요" 표현을 사용하며 "포상금 가능"과 같은 표현은 사용하지 않습니다.
 
+## Notice and Practical Guidance
+
+The dashboard shows notice cards for:
+
+- official reward-policy recheck (`official-rule-check`) — 신고포상금 지급 기준·신고처는 기관별 변경 가능하므로 실전 신고 전 공식 페이지 재확인 필요
+- API key requirements (`api-key-required`) — Mock 모드에서 실데이터 수집으로 전환 시 필요한 키 설정 안내
+- automatic submission prohibition (`approval-gate`) — 자동 신고 금지, 사람이 공식 창구에서 직접 제출
+- real-data validation status (`real-data-status`) — Mock/Mixed/Real_Ready 단계 안내
+- human review (`human-review-required`), privacy minimization (`privacy-minimization`), current readiness stage (`current-readiness-stage`)
+
+각 카드는 `level` 4종으로 구분됩니다.
+
+| level | 의미 |
+|---|---|
+| `info` | 일반 안내 |
+| `warning` | 실전 전 확인 필요 |
+| `danger` | 안전상 반드시 지켜야 할 금지사항 |
+| `success` | 통과 또는 준비 완료 상태 |
+
+These notices are practical guidance only. They do not guarantee reward payment or report acceptance. 공식 기준 확인은 사람이 수행하며, 본 도구는 신고지원 / 검토 후보 도구입니다.
+
 ## Safety Notes
 
 - 이 도구는 **자동 신고 프로그램이 아닙니다.** 외부 신고기관 자동 제출·자동 로그인·자동 민원 기능을 제공하지 않습니다.
