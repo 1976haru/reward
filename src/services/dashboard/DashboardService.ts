@@ -1,4 +1,5 @@
 import path from "node:path";
+import { readFileSync } from "node:fs";
 import { readJson } from "../../utils/fs.js";
 import { config } from "../../utils/config.js";
 import { createCaseRepository } from "../../repositories/CaseRepository.js";
@@ -127,10 +128,71 @@ export interface DashboardOutcomeSummary {
   rewardPaidEntries: number;
 }
 
+export type RuntimeMode = "MOCK" | "MIXED" | "REAL_READY";
+
+export type ReadinessStage =
+  | "SETUP_REQUIRED"
+  | "MOCK_VALIDATION"
+  | "MANUAL_URL_TEST"
+  | "API_KEY_REQUIRED"
+  | "REAL_DATA_TEST"
+  | "HUMAN_REVIEW_READY"
+  | "OPERATION_READY";
+
+export interface DashboardAppInfo {
+  name: string;
+  version: string;
+  environment: string;
+}
+
+export interface DashboardModeInfo {
+  mockAi: boolean;
+  mockScout: boolean;
+  useDb: boolean;
+  schedulerEnabled: boolean;
+  scoutMode: "mock" | "real";
+  runtimeMode: RuntimeMode;
+  nodeEnv: string;
+  label: string;
+}
+
+export interface DashboardApiConnections {
+  openai: {
+    configured: boolean;
+    mock: boolean;
+    label: string;
+  };
+  naver: {
+    configured: boolean;
+    mock: boolean;
+    label: string;
+  };
+}
+
+export interface DashboardReadiness {
+  stage: ReadinessStage;
+  label: string;
+  canAutoSubmit: false;
+  humanReviewRequired: true;
+  notes: string[];
+}
+
+export interface DashboardGuideLink {
+  label: string;
+  href: string;
+}
+
 export interface DashboardSummary {
   schemaVersion: "1.0.0";
   generatedAt: string;
+  todayDate: string;
   today: DashboardTodaySummary;
+  app: DashboardAppInfo;
+  mode: DashboardModeInfo;
+  apiConnections: DashboardApiConnections;
+  readiness: DashboardReadiness;
+  guideLinks: DashboardGuideLink[];
+  homeNotices: string[];
   kpis: DashboardKpi[];
   queue: DashboardQueueSummary;
   topCandidates: DashboardTopCandidate[];
@@ -143,6 +205,141 @@ export interface DashboardSummary {
   safetyNotice: string;
   autoReport: false;
   humanReviewRequired: true;
+}
+
+const FALLBACK_APP_VERSION = "0.1.0";
+const FALLBACK_APP_NAME = "reward-agent-mvp";
+
+let cachedAppInfo: { name: string; version: string } | null = null;
+function readAppInfo(): { name: string; version: string } {
+  if (cachedAppInfo) return cachedAppInfo;
+  try {
+    const raw = readFileSync(path.join(process.cwd(), "package.json"), "utf8");
+    const parsed = JSON.parse(raw) as { name?: unknown; version?: unknown };
+    cachedAppInfo = {
+      name: typeof parsed.name === "string" && parsed.name.length > 0 ? parsed.name : FALLBACK_APP_NAME,
+      version: typeof parsed.version === "string" && parsed.version.length > 0 ? parsed.version : FALLBACK_APP_VERSION
+    };
+  } catch {
+    cachedAppInfo = { name: FALLBACK_APP_NAME, version: FALLBACK_APP_VERSION };
+  }
+  return cachedAppInfo;
+}
+
+function buildRuntimeStatus(): {
+  app: DashboardAppInfo;
+  mode: DashboardModeInfo;
+  apiConnections: DashboardApiConnections;
+  readiness: DashboardReadiness;
+  guideLinks: DashboardGuideLink[];
+  homeNotices: string[];
+} {
+  const appInfo = readAppInfo();
+  const mockAi = config.mockAi === true;
+  const mockScout = config.scout.mock === true;
+  const openAiKey = (config.openaiApiKey || "").trim();
+  const naverId = (config.scout.naverClientId || "").trim();
+  const naverSecret = (config.scout.naverClientSecret || "").trim();
+  const openaiConfigured = !mockAi && openAiKey.length > 0;
+  const naverConfigured = !mockScout && naverId.length > 0 && naverSecret.length > 0;
+
+  let runtimeMode: RuntimeMode;
+  if (openaiConfigured && naverConfigured) runtimeMode = "REAL_READY";
+  else if (openaiConfigured || naverConfigured) runtimeMode = "MIXED";
+  else runtimeMode = "MOCK";
+
+  const modeLabel =
+    runtimeMode === "REAL_READY"
+      ? "실전 키 설정 완료 (실제 신고 전 사람 검증 필요)"
+      : runtimeMode === "MIXED"
+        ? "일부 실제 키 + Mock 혼합 (사람 검증 필요)"
+        : "Mock 검증 단계";
+
+  let stage: ReadinessStage;
+  if (runtimeMode === "REAL_READY") {
+    stage = "HUMAN_REVIEW_READY";
+  } else if (runtimeMode === "MIXED") {
+    stage = "REAL_DATA_TEST";
+  } else if (!openAiKey && !naverId && !naverSecret) {
+    stage = "API_KEY_REQUIRED";
+  } else {
+    stage = "MOCK_VALIDATION";
+  }
+
+  const stageLabel = {
+    SETUP_REQUIRED: "초기 설정 필요",
+    MOCK_VALIDATION: "Mock 검증 단계 — 실제 신고 전 검증 필요",
+    MANUAL_URL_TEST: "수동 URL 테스트 단계 — 사람 검토 필요",
+    API_KEY_REQUIRED: "API 키 설정 필요 — Mock으로 먼저 검증하세요",
+    REAL_DATA_TEST: "실제 데이터 일부 검증 단계 — 사람 검토 필요",
+    HUMAN_REVIEW_READY: "사람 검토 단계 — 모든 제출은 사람이 공식 창구에서 직접 수행",
+    OPERATION_READY: "운영 단계 — 자동 제출 없음, 사람 검토 필수"
+  }[stage];
+
+  const readinessNotes = [
+    "이 시스템은 자동 신고를 수행하지 않으며, 모든 제출은 사람이 공식 창구에서 직접 진행해야 합니다.",
+    "포상금 지급 여부는 공식기관 기준과 조사 결과에 따라 달라집니다.",
+    "처음이면 Mock 검증부터 진행하세요.",
+    "실제 신고 전 Evidence Package와 Report Draft를 사람이 확인하세요."
+  ];
+
+  const guideLinks: DashboardGuideLink[] = [
+    { label: "원스톱 프로세스", href: "#processBar" },
+    { label: "후보 자동 발굴", href: "#discoveryStatus" },
+    { label: "Human Review Queue", href: "#caseList" },
+    { label: "품질 평가 (Eval Set)", href: "#evalDashboardCard" },
+    { label: "검토 피드백 통계", href: "#feedbackStatsCard" },
+    { label: "개인정보 보호 / 삭제", href: "#privacyCard" },
+    { label: "Outcome Tracker", href: "#outcomeCard" },
+    { label: "운영 대시보드", href: "#opsDashboardCard" }
+  ];
+
+  const homeNotices = [
+    "처음이면 Mock 검증부터 진행하세요.",
+    "실제 신고 전 Evidence Package와 Report Draft를 사람이 확인하세요.",
+    "포상금 지급 여부는 공식기관 기준과 조사 결과에 따라 달라집니다.",
+    "현재 상태: " + modeLabel,
+    "실전 가능 단계: " + stageLabel
+  ];
+
+  return {
+    app: {
+      name: appInfo.name,
+      version: appInfo.version,
+      environment: config.env
+    },
+    mode: {
+      mockAi,
+      mockScout,
+      useDb: config.useDb === true,
+      schedulerEnabled: config.scheduler.enabled === true,
+      scoutMode: mockScout ? "mock" : "real",
+      runtimeMode,
+      nodeEnv: config.env,
+      label: modeLabel
+    },
+    apiConnections: {
+      openai: {
+        configured: openaiConfigured,
+        mock: mockAi || openAiKey.length === 0,
+        label: openaiConfigured ? "연결됨 (실제 키)" : "미연결 또는 Mock"
+      },
+      naver: {
+        configured: naverConfigured,
+        mock: mockScout || naverId.length === 0 || naverSecret.length === 0,
+        label: naverConfigured ? "연결됨 (실제 키)" : "미연결 또는 Mock"
+      }
+    },
+    readiness: {
+      stage,
+      label: stageLabel,
+      canAutoSubmit: false,
+      humanReviewRequired: true,
+      notes: readinessNotes
+    },
+    guideLinks,
+    homeNotices
+  };
 }
 
 function todayKey(now: Date): string {
@@ -403,10 +600,19 @@ export class DashboardService {
           rewardPaidAmountTotal: 0, rewardPaidEntries: 0
         };
 
+    const runtime = buildRuntimeStatus();
+
     return {
       schemaVersion: "1.0.0",
       generatedAt: now.toISOString(),
+      todayDate: today,
       today: todaySummary,
+      app: runtime.app,
+      mode: runtime.mode,
+      apiConnections: runtime.apiConnections,
+      readiness: runtime.readiness,
+      guideLinks: runtime.guideLinks,
+      homeNotices: runtime.homeNotices,
       kpis,
       queue: { total: cases.length, counts: queueCounts },
       topCandidates,

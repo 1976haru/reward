@@ -210,6 +210,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindScheduler();
   bindFeedback();
   bindEval();
+  bindHomeNotice();
   bindDashboard();
   bindSubsidy();
   bindBids();
@@ -2401,6 +2402,83 @@ async function loadSubsidyReport(recordId) {
   }
 }
 
+// ---------- Home / Notice (체크리스트 01) ----------
+function bindHomeNotice() {
+  const btn = document.getElementById("homeNoticeRefreshBtn");
+  if (btn) btn.addEventListener("click", loadDashboardSummary);
+}
+
+function renderHomeNotice(data) {
+  const root = document.getElementById("homeNoticePanel");
+  if (!root) return;
+  const app = data.app || { name: "reward-agent-mvp", version: "?", environment: "?" };
+  const mode = data.mode || {};
+  const api = data.apiConnections || { openai: {}, naver: {} };
+  const readiness = data.readiness || {};
+  const guideLinks = Array.isArray(data.guideLinks) ? data.guideLinks : [];
+  const homeNotices = Array.isArray(data.homeNotices) ? data.homeNotices : [];
+  const todayDate = data.todayDate || data.today?.date || "";
+
+  const modeBadgeCls =
+    mode.runtimeMode === "REAL_READY" ? "warn" :
+    mode.runtimeMode === "MIXED" ? "warn" : "muted";
+  const modeBadge = `<span class="badge ${modeBadgeCls}">모드: ${escapeHtml(mode.runtimeMode || "?")}</span>`;
+
+  const openaiBadge = `<span class="badge ${api.openai?.configured ? "ok" : "muted"}">OpenAI: ${api.openai?.configured ? "연결됨" : "미연결"}</span>`;
+  const naverBadge = `<span class="badge ${api.naver?.configured ? "ok" : "muted"}">Naver: ${api.naver?.configured ? "연결됨" : "미연결"}</span>`;
+  const schedulerBadge = `<span class="badge ${mode.schedulerEnabled ? "ok" : "muted"}">Scheduler: ${mode.schedulerEnabled ? "활성" : "비활성"}</span>`;
+  const scoutBadge = `<span class="badge ${mode.scoutMode === "real" ? "warn" : "muted"}">Scout: ${escapeHtml(mode.scoutMode || "mock")}</span>`;
+  const dbBadge = `<span class="badge ${mode.useDb ? "ok" : "muted"}">DB: ${mode.useDb ? "ON" : "OFF"}</span>`;
+
+  const guideHtml = guideLinks.length
+    ? `<ul class="home-guide-links">${guideLinks.map((g) => `<li><a href="${escapeAttr(g.href)}">${escapeHtml(g.label)}</a></li>`).join("")}</ul>`
+    : '<p class="muted">빠른 가이드가 비어 있습니다.</p>';
+
+  const noticesHtml = homeNotices.length
+    ? `<ul class="home-notice-list">${homeNotices.map((n) => `<li>${escapeHtml(n)}</li>`).join("")}</ul>`
+    : "";
+
+  root.innerHTML = `
+    <div class="home-notice-grid">
+      <div class="home-notice-cell">
+        <div class="label">오늘 날짜 (UTC)</div>
+        <div class="value">${escapeHtml(todayDate || "—")}</div>
+      </div>
+      <div class="home-notice-cell">
+        <div class="label">앱 / 버전</div>
+        <div class="value">${escapeHtml(app.name)} v${escapeHtml(app.version)}</div>
+        <div class="muted home-notice-sub">환경: ${escapeHtml(app.environment || "?")}</div>
+      </div>
+      <div class="home-notice-cell">
+        <div class="label">현재 모드</div>
+        <div class="value">${modeBadge}</div>
+        <div class="muted home-notice-sub">${escapeHtml(mode.label || "Mock 검증 단계")}</div>
+      </div>
+      <div class="home-notice-cell">
+        <div class="label">API 연결 상태</div>
+        <div class="value home-notice-badges">${openaiBadge} ${naverBadge}</div>
+        <div class="muted home-notice-sub">API 키 값은 표시하지 않습니다.</div>
+      </div>
+      <div class="home-notice-cell">
+        <div class="label">Scheduler / Scout / DB</div>
+        <div class="value home-notice-badges">${schedulerBadge} ${scoutBadge} ${dbBadge}</div>
+      </div>
+      <div class="home-notice-cell home-notice-readiness">
+        <div class="label">실전 가능 단계</div>
+        <div class="value">${escapeHtml(readiness.stage || "MOCK_VALIDATION")}</div>
+        <div class="muted home-notice-sub">${escapeHtml(readiness.label || "Mock 검증 단계 — 실제 신고 전 검증 필요")}</div>
+        <div class="muted home-notice-sub">사람 검토 필요: ${readiness.humanReviewRequired ? "예" : "아니오"} · 자동 제출: ${readiness.canAutoSubmit ? "예" : "아니오 (불가)"}</div>
+      </div>
+    </div>
+    <div class="home-notice-safety">
+      ⚠ ${escapeHtml(data.safetyNotice || "이 시스템은 자동 신고를 수행하지 않으며, 모든 제출은 사람이 공식 창구에서 직접 진행해야 합니다.")}
+    </div>
+    ${noticesHtml}
+    <h4 class="ops-section-title">빠른 가이드</h4>
+    ${guideHtml}
+  `;
+}
+
 // ---------- 운영 대시보드 (체크리스트 23) ----------
 function bindDashboard() {
   const btn = document.getElementById("opsRefreshBtn");
@@ -2418,17 +2496,19 @@ function bindDashboard() {
 
 async function loadDashboardSummary() {
   const root = document.getElementById("opsDashboard");
-  if (!root) return;
+  const homeRoot = document.getElementById("homeNoticePanel");
   try {
     const res = await fetch("/api/dashboard/summary");
     const data = await res.json();
     if (!data.ok) throw new Error(data.message || "summary failed");
     state.dashboard.summary = data;
     state.dashboard.lastError = null;
-    renderDashboard(root, data);
+    if (root) renderDashboard(root, data);
+    renderHomeNotice(data);
   } catch (err) {
     state.dashboard.lastError = err.message;
-    root.innerHTML = `<div class="code">대시보드 데이터를 불러오지 못했습니다: ${escapeHtml(err.message)}</div>`;
+    if (root) root.innerHTML = `<div class="code">대시보드 데이터를 불러오지 못했습니다: ${escapeHtml(err.message)}</div>`;
+    if (homeRoot) homeRoot.innerHTML = `<div class="code">상태 정보를 불러오지 못했습니다: ${escapeHtml(err.message)}</div>`;
   }
 }
 

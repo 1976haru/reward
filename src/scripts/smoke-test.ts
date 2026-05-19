@@ -1326,6 +1326,50 @@ const quality = await dash.getQuality();
 check("getQuality returns eval + feedback + safetyNotice", typeof quality.safetyNotice === "string" && quality.safetyNotice.length > 0);
 check("DASHBOARD_SAFETY_NOTICE matches getSummary().safetyNotice", DASHBOARD_SAFETY_NOTICE === dashSummary.safetyNotice);
 
+// 23-A) Home / Notice — 체크리스트 01: 오늘 날짜·버전·실전 상태 표시
+check("dashboard todayDate YYYY-MM-DD", typeof dashSummary.todayDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dashSummary.todayDate));
+check("dashboard app.name is string", typeof dashSummary.app?.name === "string" && dashSummary.app.name.length > 0);
+check("dashboard app.version is string", typeof dashSummary.app?.version === "string" && dashSummary.app.version.length > 0);
+check("dashboard app.environment is string", typeof dashSummary.app?.environment === "string");
+check("dashboard mode.mockAi is boolean", typeof dashSummary.mode?.mockAi === "boolean");
+check("dashboard mode.mockScout is boolean", typeof dashSummary.mode?.mockScout === "boolean");
+check("dashboard mode.schedulerEnabled is boolean", typeof dashSummary.mode?.schedulerEnabled === "boolean");
+check("dashboard mode.runtimeMode in enum",
+  ["MOCK", "MIXED", "REAL_READY"].includes(dashSummary.mode?.runtimeMode));
+check("dashboard apiConnections.openai.configured is boolean",
+  typeof dashSummary.apiConnections?.openai?.configured === "boolean");
+check("dashboard apiConnections.naver.configured is boolean",
+  typeof dashSummary.apiConnections?.naver?.configured === "boolean");
+check("dashboard readiness.stage in enum",
+  ["SETUP_REQUIRED","MOCK_VALIDATION","MANUAL_URL_TEST","API_KEY_REQUIRED","REAL_DATA_TEST","HUMAN_REVIEW_READY","OPERATION_READY"]
+    .includes(dashSummary.readiness?.stage));
+check("dashboard readiness.canAutoSubmit === false", dashSummary.readiness?.canAutoSubmit === false);
+check("dashboard readiness.humanReviewRequired === true", dashSummary.readiness?.humanReviewRequired === true);
+check("dashboard guideLinks is non-empty array",
+  Array.isArray(dashSummary.guideLinks) && dashSummary.guideLinks.length > 0);
+check("dashboard homeNotices mentions Mock or 검증",
+  Array.isArray(dashSummary.homeNotices) && dashSummary.homeNotices.some((n) => /Mock|검증/.test(n)));
+check("safetyNotice includes 자동 신고 / 자동 제출 표현",
+  /자동\s*신고|자동\s*제출/.test(dashSummary.safetyNotice));
+
+// API 응답에 실제 키 값이 포함되지 않아야 한다 (응답 전체를 직렬화 후 검사)
+const dashJson = JSON.stringify(dashSummary);
+const realOpenAiKey = (process.env.OPENAI_API_KEY || "").trim();
+const realNaverSecret = (process.env.NAVER_CLIENT_SECRET || "").trim();
+check("dashboard response does NOT leak OPENAI_API_KEY",
+  realOpenAiKey.length === 0 || !dashJson.includes(realOpenAiKey));
+check("dashboard response does NOT leak NAVER_CLIENT_SECRET",
+  realNaverSecret.length === 0 || !dashJson.includes(realNaverSecret));
+
+// UI 회귀 — public/app.js 에 home notice 렌더링 함수가 존재해야 함
+const appJsHome = await readFile(path.join(process.cwd(), "public", "app.js"), "utf8");
+check("public/app.js exposes renderHomeNotice", /function\s+renderHomeNotice\s*\(/.test(appJsHome));
+check("public/app.js exposes bindHomeNotice", /function\s+bindHomeNotice\s*\(/.test(appJsHome));
+check("public/app.js home notice renders Mock or 검증 wording",
+  /Mock\s*검증|실전\s*검증|MOCK_VALIDATION/.test(appJsHome));
+const indexHtml = await readFile(path.join(process.cwd(), "public", "index.html"), "utf8");
+check("public/index.html includes homeNoticeCard", /id="homeNoticeCard"/.test(indexHtml));
+
 // 24) Counterfeit Goods Module — 모듈 등록, 룰셋, 스카웃 주제, RuleAgent/ScoringAgent/ReportService 확장
 check("counterfeit module id", counterfeitGoodsDefinition.id === "counterfeit_goods");
 check("counterfeit module status ready", counterfeitGoodsDefinition.status === "ready");

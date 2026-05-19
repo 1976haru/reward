@@ -674,6 +674,27 @@ dist/              tsc 빌드 산출물 (gitignored)
 | `data/`에 파일이 안 생김 | 폴더 권한, 디스크 여유 공간 |
 | 빌드 시 import 경로 에러 | `tsconfig.json`의 `module: NodeNext` 유지, `.js` 확장자 import 유지 |
 
+## Home Notice and Runtime Status
+
+대시보드 상단의 **Home / Notice** 카드(`#homeNoticeCard`)는 현재 프로그램의 상태를 한눈에 보여줍니다.
+
+- 오늘 날짜 (UTC 기준), 앱 이름·버전, `NODE_ENV` 환경
+- 현재 실행 모드: `MOCK` / `MIXED` / `REAL_READY` (Mock 검증 단계 / 일부 실제 / 실전 키 설정 완료)
+- API 연결 여부: OpenAI · Naver (**API 키 값은 표시하지 않으며 `configured` 플래그만 노출**)
+- Scheduler 활성/비활성, Scout 모드(mock/real), DB 사용 여부
+- **실전 가능 단계** (`readiness.stage` enum): `SETUP_REQUIRED` / `MOCK_VALIDATION` / `MANUAL_URL_TEST` / `API_KEY_REQUIRED` / `REAL_DATA_TEST` / `HUMAN_REVIEW_READY` / `OPERATION_READY`
+- 안전 공지 박스 — 자동 신고 미수행, 사람 검토 필수, 포상금 보장 없음
+- 빠른 가이드 anchor 링크 (운영 대시보드, Eval, Review Queue, 개인정보 등)
+
+이 카드는 `GET /api/dashboard/summary` 응답의 `app`, `mode`, `apiConnections`, `readiness`, `guideLinks`, `homeNotices`, `todayDate`, `safetyNotice` 필드를 사용합니다.
+
+**중요 안전 원칙:**
+
+- `readiness.canAutoSubmit`은 항상 `false`이며, `humanReviewRequired`는 항상 `true`입니다.
+- `runtimeMode`가 `REAL_READY`라도 **자동 실전 신고가 가능하다는 의미가 아닙니다.** 사람 검토를 거친 뒤 사람이 공식 창구에서 직접 제출해야 합니다.
+- 응답에는 `OPENAI_API_KEY`, `NAVER_CLIENT_SECRET` 등 실제 키 값이 절대 포함되지 않습니다.
+- 표시 문구는 "검토/신고지원", "실전 검증 단계", "사람 검토 필요" 표현을 사용하며 "포상금 가능"과 같은 표현은 사용하지 않습니다.
+
 ## Safety Notes
 
 - 이 도구는 **자동 신고 프로그램이 아닙니다.** 외부 신고기관 자동 제출·자동 로그인·자동 민원 기능을 제공하지 않습니다.

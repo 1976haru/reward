@@ -19,6 +19,16 @@
       </div>
     </section>
 
+    <!-- Home / Notice (체크리스트 01) — 오늘 날짜·버전·실전 상태 -->
+    <section class="card home-notice" id="homeNoticeCard">
+      <h2>Home / Notice — 오늘 날짜 · 버전 · 실전 상태</h2>
+      <p class="section-hint">대시보드 상단에서 현재 테스트/실전 상태, API 연결 여부, 안전 공지를 확인할 수 있습니다. <strong>이 시스템은 자동 신고를 수행하지 않으며 포상금 수령을 보장하지 않습니다.</strong></p>
+      <div id="homeNoticePanel" class="muted">불러오는 중...</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="ghost" type="button" id="homeNoticeRefreshBtn">상태 새로고침</button>
+      </div>
+    </section>
+
     <div class="layout">
       <!-- ===== Sidebar (모듈 선택 + 가이드) ===== -->
       <aside class="col-side">
