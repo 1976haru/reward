@@ -45,6 +45,14 @@ await Promise.all([
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
+// API 응답 캐시 방지 — Dashboard/Queue 등 데이터가 304로 멈춰 보이는 문제 차단.
+// 정적 자원에는 적용하지 않는다.
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
 // Trace middleware — /api/* 요청에 traceId 부여 + service_call 기록
 app.use(traceMiddleware);
 app.use(express.static(path.join(process.cwd(), "public")));

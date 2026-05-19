@@ -2824,8 +2824,25 @@ function openModal(title, message) {
 }
 
 // ---------- Utils ----------
+// 깨진 한글 (U+FFFD REPLACEMENT CHARACTER) 을 화면에 직접 노출하지 않기 위한 헬퍼.
+// data 산출물이 cp949→utf8 잘못 변환되어 baked-in 된 경우, 텍스트를 fallback 으로 대체한다.
+// 소스 파일에는 의도치 않은 U+FFFD가 섞이지 않도록 escape sequence 만 사용한다.
+const MOJIBAKE_REPLACEMENT_CHAR = String.fromCharCode(0xFFFD);
+const MOJIBAKE_FALLBACK = "[원문 손상 — 데이터 재생성 필요]";
+function hasMojibake(str) {
+  if (str == null) return false;
+  const s = typeof str === "string" ? str : String(str);
+  return s.indexOf(MOJIBAKE_REPLACEMENT_CHAR) !== -1;
+}
+function safeDisplayText(str, fallback) {
+  if (str == null) return "";
+  const s = typeof str === "string" ? str : String(str);
+  if (hasMojibake(s)) return fallback == null ? MOJIBAKE_FALLBACK : fallback;
+  return s;
+}
 function escapeHtml(str) {
-  return String(str == null ? "" : str).replace(/[&<>'"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[ch]));
+  const safe = safeDisplayText(str);
+  return safe.replace(/[&<>'"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[ch]));
 }
 function escapeAttr(str) {
   return escapeHtml(str);

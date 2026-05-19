@@ -1370,6 +1370,53 @@ check("public/app.js home notice renders Mock or 검증 wording",
 const indexHtml = await readFile(path.join(process.cwd(), "public", "index.html"), "utf8");
 check("public/index.html includes homeNoticeCard", /id="homeNoticeCard"/.test(indexHtml));
 
+// 23-B) Encoding safeguards — 체크리스트: mojibake (U+FFFD) 제거 + UTF-8 안전장치
+// 소스 파일에는 의도치 않은 U+FFFD가 섞이지 않도록 escape sequence 만 사용한다.
+const REPL = String.fromCharCode(0xFFFD);
+check("public/index.html declares UTF-8 charset",
+  /<meta\s+charset=["']?utf-?8["']?\s*\/?>/i.test(indexHtml));
+check("public/index.html has no U+FFFD", !indexHtml.includes(REPL));
+const appJsRaw = await readFile(path.join(process.cwd(), "public", "app.js"), "utf8");
+check("public/app.js has no U+FFFD", !appJsRaw.includes(REPL));
+check("public/app.js exposes hasMojibake", /function\s+hasMojibake\s*\(/.test(appJsRaw));
+check("public/app.js exposes safeDisplayText", /function\s+safeDisplayText\s*\(/.test(appJsRaw));
+check("public/app.js escapeHtml routes through safeDisplayText",
+  /function\s+escapeHtml\s*\([^)]*\)\s*\{[^}]*safeDisplayText/.test(appJsRaw));
+const readmeRaw = await readFile(path.join(process.cwd(), "README.md"), "utf8");
+check("README.md has no U+FFFD", !readmeRaw.includes(REPL));
+const stylesRaw = await readFile(path.join(process.cwd(), "public", "styles.css"), "utf8");
+check("public/styles.css has no U+FFFD", !stylesRaw.includes(REPL));
+
+// /api/dashboard/summary 응답에 mojibake 가 직렬화되어 들어가는지 검사 (data 가 깨져 있어도 home/notice 부분은 깨끗해야 함)
+const dashJsonStr = JSON.stringify(dashSummary);
+check("dashboard.app/mode/readiness/apiConnections/guideLinks/homeNotices has no U+FFFD",
+  ![
+    dashSummary.app, dashSummary.mode, dashSummary.apiConnections,
+    dashSummary.readiness, dashSummary.guideLinks, dashSummary.homeNotices,
+    dashSummary.safetyNotice
+  ].some((v) => typeof v === "object"
+    ? JSON.stringify(v).includes(REPL)
+    : String(v).includes(REPL)));
+
+// npm scripts 등록 확인
+const pkgJsonRaw = await readFile(path.join(process.cwd(), "package.json"), "utf8");
+const pkgScripts = (JSON.parse(pkgJsonRaw) as { scripts?: Record<string, string> }).scripts ?? {};
+check("npm script data:scan-encoding registered", typeof pkgScripts["data:scan-encoding"] === "string");
+check("npm script data:scan-encoding:strict registered", typeof pkgScripts["data:scan-encoding:strict"] === "string");
+check("npm script data:reset-demo registered", typeof pkgScripts["data:reset-demo"] === "string");
+check("npm script data:reset-demo:apply registered", typeof pkgScripts["data:reset-demo:apply"] === "string");
+
+// 스크립트 파일 존재 확인
+const scanScriptPath = path.join(process.cwd(), "scripts", "scan-encoding-issues.js");
+const resetScriptPath = path.join(process.cwd(), "scripts", "reset-demo-data.js");
+check("scripts/scan-encoding-issues.js exists", await fileExists(scanScriptPath));
+check("scripts/reset-demo-data.js exists", await fileExists(resetScriptPath));
+
+// server.ts 에 /api cache-control no-store 미들웨어가 등록되어 있는지 확인
+const serverTsRaw = await readFile(path.join(process.cwd(), "src", "server.ts"), "utf8");
+check("server.ts sets no-store on /api responses",
+  /app\.use\(\s*["']\/api["']\s*,[\s\S]*?Cache-Control[\s\S]*?no-store/i.test(serverTsRaw));
+
 // 24) Counterfeit Goods Module — 모듈 등록, 룰셋, 스카웃 주제, RuleAgent/ScoringAgent/ReportService 확장
 check("counterfeit module id", counterfeitGoodsDefinition.id === "counterfeit_goods");
 check("counterfeit module status ready", counterfeitGoodsDefinition.status === "ready");

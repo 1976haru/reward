@@ -13,7 +13,11 @@
     "check:policy": "node scripts/check-approval-gate.js",
     "playwright:install": "playwright install chromium",
     "eval:generate": "tsx scripts/generate-eval-set.ts",
-    "health": "node scripts/health-check.js"
+    "health": "node scripts/health-check.js",
+    "data:scan-encoding": "node scripts/scan-encoding-issues.js",
+    "data:scan-encoding:strict": "node scripts/scan-encoding-issues.js --strict-data",
+    "data:reset-demo": "node scripts/reset-demo-data.js",
+    "data:reset-demo:apply": "node scripts/reset-demo-data.js --apply"
   },
   "dependencies": {
     "@openai/agents": "latest",
