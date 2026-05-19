@@ -229,23 +229,27 @@ export interface DashboardSummary {
 }
 
 const FALLBACK_APP_VERSION = "0.1.0";
-const FALLBACK_APP_NAME = "reward-agent-mvp";
+// 사용자 화면 / API 응답에 표시되는 제품명 — package.json 의 npm name 과 분리.
+// package.json.name 은 npm/내부 repo 식별자이며, UI 표시명은 항상 공익레이더(또는 PRODUCT_DISPLAY_NAME env override).
+const PRODUCT_DISPLAY_NAME = process.env.PRODUCT_DISPLAY_NAME?.trim() || "공익레이더";
+const PRODUCT_INTERNAL_NAME = "reward-agent-mvp";
 
 let cachedAppInfo: { name: string; version: string } | null = null;
 function readAppInfo(): { name: string; version: string } {
   if (cachedAppInfo) return cachedAppInfo;
+  let version = FALLBACK_APP_VERSION;
   try {
     const raw = readFileSync(path.join(process.cwd(), "package.json"), "utf8");
-    const parsed = JSON.parse(raw) as { name?: unknown; version?: unknown };
-    cachedAppInfo = {
-      name: typeof parsed.name === "string" && parsed.name.length > 0 ? parsed.name : FALLBACK_APP_NAME,
-      version: typeof parsed.version === "string" && parsed.version.length > 0 ? parsed.version : FALLBACK_APP_VERSION
-    };
-  } catch {
-    cachedAppInfo = { name: FALLBACK_APP_NAME, version: FALLBACK_APP_VERSION };
-  }
+    const parsed = JSON.parse(raw) as { version?: unknown };
+    if (typeof parsed.version === "string" && parsed.version.length > 0) {
+      version = parsed.version;
+    }
+  } catch { /* fallback version */ }
+  cachedAppInfo = { name: PRODUCT_DISPLAY_NAME, version };
   return cachedAppInfo;
 }
+
+export { PRODUCT_DISPLAY_NAME, PRODUCT_INTERNAL_NAME };
 
 // 공지 카드의 "공식 기준 최근 재확인일" — 기관별 신고처/포상 기준이 바뀔 수 있으므로
 // 실전 신고 전 사람이 공식 페이지에서 다시 확인해야 한다. 이 날짜는 자동 확인이 아니라

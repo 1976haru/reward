@@ -1471,6 +1471,51 @@ check("notices payload does NOT leak OPENAI_API_KEY",
 check("notices payload does NOT leak NAVER_CLIENT_SECRET",
   realNaverSecret2.length === 0 || !dashJsonForNotices.includes(realNaverSecret2));
 
+// 23-D) Product rename — 공익레이더
+const PRODUCT_NAME = "공익레이더";
+check("dashboard app.name === 공익레이더", dashSummary.app.name === PRODUCT_NAME);
+check("public/index.html <title> contains 공익레이더",
+  /<title>[^<]*공익레이더[^<]*<\/title>/.test(indexHtml));
+check("public/index.html hero h1 is 공익레이더",
+  /<h1>\s*공익레이더\s*<\/h1>/.test(indexHtml));
+check("public/index.html body contains 공익레이더", indexHtml.includes(PRODUCT_NAME));
+check("README.md heading contains 공익레이더",
+  /^#\s+공익레이더/m.test(readmeRaw));
+check("scope.md mentions 공익레이더",
+  (await readFile(path.join(process.cwd(), "scope.md"), "utf8")).includes(PRODUCT_NAME));
+check("mvp_scope.md mentions 공익레이더",
+  (await readFile(path.join(process.cwd(), "mvp_scope.md"), "utf8")).includes(PRODUCT_NAME));
+check("safetyNotice still mentions 자동 제출 아님",
+  /자동\s*제출하지\s*않|자동\s*신고[^\n]*하지\s*않/.test(dashSummary.safetyNotice));
+
+// 금지 표현이 신규로 들어가지 않아야 한다 (UI / 노출 영역 한정 스캔).
+// 단, "포상금 보장 없음" 같은 부정문은 안전한 표현이므로 affirmative form 만 잡는다.
+const RENAME_FORBIDDEN_AFFIRMATIVE = [
+  "포상금 확정",
+  "수익 확정",
+  "포상금 지급 보장",
+  "포상금 수령 보장합니다",
+  "포상금 수령을 보장합니다",
+  "포상금을 보장합니다",
+  "AI가 신고",
+  "신고하면 지급",
+  "무조건 받을",
+  "무조건 지급"
+];
+const renameTargets: Array<{ name: string; body: string }> = [
+  { name: "index.html", body: indexHtml },
+  { name: "app.js (renderHomeNotice/renderNotices area)", body: appJsHome },
+  { name: "README.md", body: readmeRaw },
+  { name: "scope.md", body: await readFile(path.join(process.cwd(), "scope.md"), "utf8") },
+  { name: "mvp_scope.md", body: await readFile(path.join(process.cwd(), "mvp_scope.md"), "utf8") },
+  { name: "dashboard summary JSON", body: dashJsonStr }
+];
+for (const t of renameTargets) {
+  for (const phrase of RENAME_FORBIDDEN_AFFIRMATIVE) {
+    check(`${t.name} does not contain forbidden phrase: ${phrase}`, !t.body.includes(phrase));
+  }
+}
+
 // 24) Counterfeit Goods Module — 모듈 등록, 룰셋, 스카웃 주제, RuleAgent/ScoringAgent/ReportService 확장
 check("counterfeit module id", counterfeitGoodsDefinition.id === "counterfeit_goods");
 check("counterfeit module status ready", counterfeitGoodsDefinition.status === "ready");

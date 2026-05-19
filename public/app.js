@@ -1,4 +1,5 @@
-// Reward Agent MVP — Frontend
+// 공익레이더 (Public Interest Radar) — Frontend
+// Repository / internal project name: reward-agent-mvp
 // 이 파일은 백엔드 API(/api/cases, /api/cases/analyze)를 그대로 호출합니다.
 // 자동 신고/자동 제출 기능은 포함하지 않습니다. 모든 신고 행위는 사람이 직접 수행합니다.
 
@@ -2413,7 +2414,7 @@ function bindHomeNotice() {
 function renderHomeNotice(data) {
   const root = document.getElementById("homeNoticePanel");
   if (!root) return;
-  const app = data.app || { name: "reward-agent-mvp", version: "?", environment: "?" };
+  const app = data.app || { name: "공익레이더", version: "?", environment: "?" };
   const mode = data.mode || {};
   const api = data.apiConnections || { openai: {}, naver: {} };
   const readiness = data.readiness || {};

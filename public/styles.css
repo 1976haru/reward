@@ -36,7 +36,8 @@ body { margin: 0; padding: 24px; }
   padding: 28px 32px;
   box-shadow: var(--shadow-strong);
 }
-.hero h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.3; }
+.hero h1 { margin: 0 0 4px; font-size: 30px; line-height: 1.25; letter-spacing: -0.5px; }
+.hero .lead-sub { margin: 0 0 10px; color: #93c5fd; font-size: 14px; font-weight: 600; line-height: 1.4; }
 .hero .lead { margin: 0; color: #cbd5e1; line-height: 1.6; max-width: 880px; }
 .hero .safety-banner {
   margin-top: 14px;
