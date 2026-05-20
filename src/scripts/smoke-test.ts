@@ -2571,6 +2571,152 @@ check("outcome UI does NOT call localStorage",
   }
 }
 
+// 32) Reward Registry — 실전 재점검 05 (신고포상금·보상금 제도 안내 DB)
+{
+  const {
+    rewardRegistryService,
+    REWARD_REGISTRY_SAFETY_NOTICE,
+    sanitizeRewardText
+  } = await import("../services/reward/RewardRegistryService.js");
+
+  const programs = rewardRegistryService.listRewardPrograms();
+  const summary = rewardRegistryService.getSummary();
+
+  check("reward registry programs is array", Array.isArray(programs));
+  check("reward registry has >= 5 programs", programs.length >= 5, `len=${programs.length}`);
+
+  const ids = new Set(programs.map((p) => p.id));
+  check("reward registry has mfds_false_ad", ids.has("mfds_false_ad"));
+  check("reward registry has kipo_counterfeit", ids.has("kipo_counterfeit"));
+  check("reward registry has ftc_bid_collusion", ids.has("ftc_bid_collusion"));
+  check("reward registry has acrc_public_interest", ids.has("acrc_public_interest"));
+  check("reward registry has acrc_corruption_subsidy", ids.has("acrc_corruption_subsidy"));
+
+  for (const p of programs) {
+    check(`reward ${p.id} has officialUrl`,
+      typeof p.officialUrl === "string" && /^https?:\/\//.test(p.officialUrl));
+    check(`reward ${p.id} whatToCollect length >= 3`,
+      Array.isArray(p.whatToCollect) && p.whatToCollect.length >= 3);
+    check(`reward ${p.id} evidenceChecklist length >= 3`,
+      Array.isArray(p.evidenceChecklist) && p.evidenceChecklist.length >= 3);
+    check(`reward ${p.id} has rewardBasisSummary`,
+      typeof p.rewardBasisSummary === "string" && p.rewardBasisSummary.length > 0);
+    check(`reward ${p.id} has amountGuide`,
+      typeof p.amountGuide === "string" && p.amountGuide.length > 0);
+    check(`reward ${p.id} amountGuide mentions 공식 기준`,
+      /공식\s*[가-힣A-Za-z]*\s*확인\s*필요|공정위\s*안내\s*기준\s*확인\s*필요/.test(p.amountGuide));
+  }
+
+  // safetyNotice
+  check("reward safetyNotice mentions 수령을 보장하지 않습니다",
+    /수령을\s*보장하지\s*않/.test(REWARD_REGISTRY_SAFETY_NOTICE));
+
+  // 공식 URL — 4종 host 모두 포함
+  const allUrls = programs.map((p) => p.officialUrl).join(" ");
+  check("reward officialUrl includes mfds.go.kr", allUrls.includes("mfds.go.kr"));
+  check("reward officialUrl includes kipo.go.kr", allUrls.includes("kipo.go.kr"));
+  check("reward officialUrl includes ftc.go.kr", allUrls.includes("ftc.go.kr"));
+  check("reward officialUrl includes clean.go.kr", allUrls.includes("clean.go.kr"));
+
+  // Summary
+  check("reward summary.total >= 5", summary.total >= 5);
+  check("reward summary.officialCheckRequired === true", summary.officialCheckRequired === true);
+  check("reward summary.lastReviewedAt is ISO-like",
+    typeof summary.lastReviewedAt === "string" && /^\d{4}-\d{2}-\d{2}$/.test(summary.lastReviewedAt));
+  check("reward summary.moduleIds non-empty",
+    Array.isArray(summary.moduleIds) && summary.moduleIds.length > 0);
+
+  // getRewardProgram / listByModule
+  const single = rewardRegistryService.getRewardProgram("mfds_false_ad");
+  check("getRewardProgram returns mfds_false_ad",
+    single !== null && single?.id === "mfds_false_ad");
+  const byMod = rewardRegistryService.listByModule("counterfeit_goods");
+  check("listByModule counterfeit_goods returns >=1",
+    byMod.length >= 1 && byMod.every((p) => p.moduleId === "counterfeit_goods"));
+
+  // sanitizeRewardText
+  check("sanitizeRewardText neutralizes 포상금 확정",
+    !/포상금\s*확정/.test(sanitizeRewardText("포상금 확정 안내")));
+  check("sanitizeRewardText neutralizes 수익 확정",
+    !/수익\s*확정/.test(sanitizeRewardText("이 제도는 수익 확정입니다")));
+  check("sanitizeRewardText neutralizes 신고하면 지급",
+    !/신고하면\s*지급/.test(sanitizeRewardText("신고하면 지급됩니다")));
+  check("sanitizeRewardText neutralizes 무조건 지급",
+    !/무조건\s*지급/.test(sanitizeRewardText("무조건 지급된다")));
+  check("sanitizeRewardText neutralizes 포상금 보장합니다",
+    !/포상금\s*보장합니다/.test(sanitizeRewardText("포상금 보장합니다.")));
+
+  // 금지 표현 — 긍정 표현이 reward 페이로드 전체에 없어야 한다.
+  const rewardPayload = JSON.stringify({
+    programs,
+    summary,
+    officialLinks: rewardRegistryService.getOfficialLinks(),
+    safetyNotice: REWARD_REGISTRY_SAFETY_NOTICE
+  });
+  const REWARD_FORBIDDEN_AFFIRMATIVE = [
+    "포상금 확정",
+    "수익 확정",
+    "신고하면 지급",
+    "무조건 지급",
+    "무조건 받을 수 있음",
+    "포상금 보장합니다",
+    "자동 신고합니다",
+    "자동 신고됩니다",
+    "바로 제출합니다",
+    "바로 제출됩니다"
+  ];
+  for (const phrase of REWARD_FORBIDDEN_AFFIRMATIVE) {
+    check(`reward payload does not contain forbidden affirmative: ${phrase}`,
+      !rewardPayload.includes(phrase));
+  }
+
+  // 화면 / 라우터 / 서비스 / 문서에도 동일 금지 표현이 긍정문으로 들어가서는 안 된다.
+  const rewardServiceText = await readFileSafe(path.join(process.cwd(), "src", "services", "reward", "RewardRegistryService.ts"));
+  const rewardProgramsText = await readFileSafe(path.join(process.cwd(), "src", "services", "reward", "rewardPrograms.ts"));
+  const rewardRouteText = await readFileSafe(path.join(process.cwd(), "src", "routes", "rewardPrograms.ts"));
+  const rewardDocText = await readFileSafe(path.join(process.cwd(), "docs", "reward_registry.md"));
+  for (const phrase of ["신고하면 지급", "무조건 지급", "무조건 받을 수 있음", "포상금 보장합니다"]) {
+    check(`reward service text excludes affirmative: ${phrase}`,
+      !rewardServiceText.includes(phrase) || rewardServiceText.includes("→") || rewardServiceText.includes("replace"));
+    check(`reward programs data excludes affirmative: ${phrase}`,
+      !rewardProgramsText.includes(phrase));
+    check(`reward route excludes affirmative: ${phrase}`,
+      !rewardRouteText.includes(phrase));
+  }
+
+  // UI 마커 / 렌더 함수 / CSS
+  check("public/index.html includes rewardRegistryCard",
+    /id="rewardRegistryCard"/.test(indexHtml));
+  check("public/index.html includes rewardRegistryPanel",
+    /id="rewardRegistryPanel"/.test(indexHtml));
+  check("public/app.js exposes renderRewardPrograms",
+    /function\s+renderRewardPrograms\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderRewardProgramCard",
+    /function\s+renderRewardProgramCard\s*\(/.test(appJsHome));
+  check("public/app.js exposes loadRewardPrograms",
+    /async\s+function\s+loadRewardPrograms\s*\(|function\s+loadRewardPrograms\s*\(/.test(appJsHome));
+  check("public/styles.css declares .reward-program-card",
+    /\.reward-program-card\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .reward-program-link",
+    /\.reward-program-link\s*\{/.test(stylesRaw));
+
+  // README + docs
+  const readmeText = await readFileSafe(path.join(process.cwd(), "README.md"));
+  check("README.md contains Reward Registry section", /##\s*Reward\s*Registry\b/.test(readmeText));
+  check("README.md mentions GET /api/reward-programs",
+    /GET\s+\/api\/reward-programs/.test(readmeText));
+  check("docs/reward_registry.md exists",
+    await fileExists(path.join(process.cwd(), "docs", "reward_registry.md")));
+
+  // 문서/README 도 긍정 금지 표현 없어야 함.
+  for (const phrase of ["포상금 확정", "수익 확정", "신고하면 지급", "무조건 지급", "포상금 보장합니다"]) {
+    check(`README does not contain forbidden affirmative: ${phrase}`,
+      !readmeText.includes(phrase));
+    check(`docs/reward_registry.md does not contain forbidden affirmative as positive: ${phrase}`,
+      !rewardDocText.includes(phrase) || rewardDocText.includes("→"));
+  }
+}
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);

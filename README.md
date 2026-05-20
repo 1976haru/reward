@@ -720,6 +720,30 @@ The dashboard shows notice cards for:
 
 These notices are practical guidance only. They do not guarantee reward payment or report acceptance. 공식 기준 확인은 사람이 수행하며, 본 도구는 신고지원 / 검토 후보 도구입니다.
 
+## Reward Registry
+
+공익레이더는 모듈별 신고포상금·보상금 제도 안내를 제공합니다.
+
+포함 정보:
+
+- 신고처
+- 수집할 자료
+- 필요 증거
+- 공식 기준 URL
+- 지급 기준 요약
+- 제외사유와 주의사항
+
+이 정보는 참고용이며 포상금 수령을 보장하지 않습니다.
+실전 신고 전 반드시 공식 URL에서 최신 기준을 확인해야 합니다.
+
+API:
+
+- `GET /api/reward-programs`
+- `GET /api/reward-programs/:id`
+- `GET /api/reward-programs/module/:moduleId`
+
+자세한 명세는 [`docs/reward_registry.md`](./docs/reward_registry.md) 참고.
+
 ## Settings
 
 공익레이더는 설정 화면에서 다음 상태를 확인할 수 있습니다.

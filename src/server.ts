@@ -29,6 +29,7 @@ import { privacyRouter } from "./routes/privacy.js";
 import { outcomesRouter, caseOutcomesRouter } from "./routes/outcomes.js";
 import { guideRouter } from "./routes/guide.js";
 import { settingsRouter } from "./routes/settings.js";
+import { rewardProgramsRouter } from "./routes/rewardPrograms.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -164,6 +165,10 @@ app.use("/api/guide", guideRouter);
 // Settings (실전 재점검 04) — Mock/Real 모드 / API 키 연결 / Scheduler / Privacy / Storage / Safety / Readiness 상태 조회 전용.
 // API 키 원문은 응답에 포함되지 않으며, 외부 신고기관 자동 제출 기능은 제공하지 않는다.
 app.use("/api/settings", settingsRouter);
+
+// Reward Registry (실전 재점검 05) — 신고포상금·보상금 제도 안내 (조회 전용).
+// 외부 신고기관 자동 제출 없음. 포상금 수령을 보장하지 않으며 금액·한도는 공식 기준 확인 필요.
+app.use("/api/reward-programs", rewardProgramsRouter);
 
 // 보조금 부정수급 의심 후보 프로토타입 (체크리스트 25) — sample 기반 분석만 지원.
 app.use("/api/subsidy", subsidyRouter);

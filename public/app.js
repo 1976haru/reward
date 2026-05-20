@@ -226,6 +226,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindSettings();
   renderSettings(null);
   await loadSettings();
+  bindRewardRegistry();
+  renderRewardPrograms(null);
+  await loadRewardPrograms();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -2877,6 +2880,150 @@ function renderSettings(settings) {
       ${renderReadinessSettings(settings.readiness)}
     </div>
     <p class="muted" style="margin-top:10px;font-size:12px;">${escapeHtml(settings.safetyNotice || "설정 화면은 상태만 표시하며 API 키 원문을 표시하지 않습니다. 외부 신고기관 자동 제출 기능은 제공하지 않습니다.")}</p>
+  `;
+}
+
+// ---------- Reward Registry (실전 재점검 05) ----------
+const REWARD_FALLBACK_HTML = `
+  <div class="reward-program-card reward-fallback">
+    <p class="muted">신고포상금 제도 정보를 불러오지 못했습니다. 실전 신고 전 공식 기관 페이지를 직접 확인하세요.</p>
+  </div>
+`;
+
+const rewardRegistryState = {
+  programs: [],
+  summary: null,
+  filterModuleId: "ALL"
+};
+
+function bindRewardRegistry() {
+  const btn = document.getElementById("rewardRegistryRefreshBtn");
+  if (btn) btn.addEventListener("click", loadRewardPrograms);
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    const chip = t.closest && t.closest("[data-reward-filter]");
+    if (!chip) return;
+    e.preventDefault();
+    rewardRegistryState.filterModuleId = chip.getAttribute("data-reward-filter") || "ALL";
+    renderRewardPrograms({
+      programs: rewardRegistryState.programs,
+      summary: rewardRegistryState.summary
+    });
+  });
+}
+
+async function loadRewardPrograms() {
+  const root = document.getElementById("rewardRegistryPanel");
+  if (!root) return;
+  try {
+    const res = await fetch("/api/reward-programs");
+    const data = await res.json();
+    if (!data.ok || !Array.isArray(data.programs)) throw new Error(data.message || "reward programs failed");
+    rewardRegistryState.programs = data.programs;
+    rewardRegistryState.summary = data.summary || null;
+    renderRewardPrograms({ programs: data.programs, summary: data.summary });
+  } catch (err) {
+    root.innerHTML = REWARD_FALLBACK_HTML + `<p class="muted" style="margin-top:8px;font-size:12px;">[debug] ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderRewardProgramSummary(summary) {
+  if (!summary) return "";
+  return `
+    <div class="reward-program-summary">
+      <span class="reward-program-summary-item"><strong>총 ${Number(summary.total || 0)}개 제도</strong> 안내</span>
+      <span class="reward-program-summary-item">최종 점검일 <code>${escapeHtml(summary.lastReviewedAt || "")}</code></span>
+      <span class="reward-program-summary-item reward-program-summary-warn">⚠ 공식 기준 확인 필요</span>
+    </div>
+  `;
+}
+
+function renderRewardProgramFilter(programs) {
+  const moduleIds = Array.from(new Set((programs || []).map((p) => p.moduleId).filter(Boolean))).sort();
+  if (moduleIds.length === 0) return "";
+  const active = rewardRegistryState.filterModuleId || "ALL";
+  const chips = [
+    `<button type="button" class="reward-filter-chip ${active === "ALL" ? "active" : ""}" data-reward-filter="ALL">전체 (${programs.length})</button>`,
+    ...moduleIds.map((m) => {
+      const count = programs.filter((p) => p.moduleId === m).length;
+      return `<button type="button" class="reward-filter-chip ${active === m ? "active" : ""}" data-reward-filter="${escapeAttr(m)}">${escapeHtml(m)} (${count})</button>`;
+    })
+  ];
+  return `<div class="reward-filter-row">${chips.join("")}</div>`;
+}
+
+function renderRewardProgramCard(program) {
+  if (!program) return "";
+  const ul = (arr) => (arr || []).length === 0
+    ? `<li class="muted">—</li>`
+    : (arr || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("");
+  return `
+    <article class="reward-program-card" data-program-id="${escapeAttr(program.id || "")}">
+      <header class="reward-program-header">
+        <h4 class="reward-program-title">${escapeHtml(program.title || "")}</h4>
+        <div class="reward-program-meta">
+          <span class="badge muted">${escapeHtml(program.moduleId || "")}</span>
+          <span class="reward-program-agency">${escapeHtml(program.agencyName || "")}</span>
+        </div>
+        <p class="reward-program-dept muted">${escapeHtml(program.departmentHint || "")}</p>
+      </header>
+
+      <details class="reward-program-block" open>
+        <summary>수집할 자료</summary>
+        <ul class="reward-program-list">${ul(program.whatToCollect)}</ul>
+      </details>
+
+      <details class="reward-program-block">
+        <summary>필요 증거 체크리스트</summary>
+        <ul class="reward-program-list">${ul(program.evidenceChecklist)}</ul>
+      </details>
+
+      <details class="reward-program-block">
+        <summary>지급 기준 요약 (공식 기준 확인 필요)</summary>
+        <p class="reward-program-summary-text">${escapeHtml(program.rewardBasisSummary || "")}</p>
+        <p class="reward-program-amount"><strong>금액/한도 안내:</strong> ${escapeHtml(program.amountGuide || "")}</p>
+      </details>
+
+      <details class="reward-program-block">
+        <summary>제외사유 · 주의사항</summary>
+        <ul class="reward-program-list">${ul(program.exclusionNotes)}</ul>
+        ${(program.cautionRules || []).length ? `<ul class="reward-program-list reward-program-caution-list">${(program.cautionRules || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ul>` : ""}
+      </details>
+
+      <footer class="reward-program-footer">
+        <a class="reward-program-link" href="${escapeAttr(program.officialUrl || "")}" target="_blank" rel="noopener noreferrer">
+          공식 페이지 열기 ↗
+        </a>
+        <span class="reward-program-reviewed muted">최종 점검일 <code>${escapeHtml(program.lastReviewedAt || "")}</code></span>
+      </footer>
+
+      <p class="reward-program-caution">⚠ 본 안내는 참고용이며, 포상금 수령을 보장하지 않습니다. 공식 URL에서 최신 기준을 사람이 직접 확인하세요.</p>
+    </article>
+  `;
+}
+
+function renderRewardPrograms(payload) {
+  const root = document.getElementById("rewardRegistryPanel");
+  if (!root) return;
+  if (!payload || !Array.isArray(payload.programs) || payload.programs.length === 0) {
+    if (rewardRegistryState.programs.length === 0) {
+      root.innerHTML = REWARD_FALLBACK_HTML;
+      return;
+    }
+    payload = { programs: rewardRegistryState.programs, summary: rewardRegistryState.summary };
+  }
+  const programs = payload.programs;
+  const summary = payload.summary || rewardRegistryState.summary;
+  const active = rewardRegistryState.filterModuleId || "ALL";
+  const filtered = active === "ALL" ? programs : programs.filter((p) => p.moduleId === active);
+  const cards = filtered.map(renderRewardProgramCard).join("") || `<p class="muted">해당 모듈에 등록된 제도가 없습니다.</p>`;
+
+  root.innerHTML = `
+    ${renderRewardProgramSummary(summary)}
+    ${renderRewardProgramFilter(programs)}
+    <div class="reward-program-grid">${cards}</div>
+    <p class="muted" style="margin-top:8px;font-size:12px;">신고포상금·보상금은 공식 기준과 처리 결과에 따라 달라지며, 공익레이더는 수령을 보장하지 않습니다.</p>
   `;
 }
 
