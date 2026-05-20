@@ -1202,3 +1202,101 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
   .bid-collusion-checklist { grid-template-columns: 1fr; }
   .bid-collusion-link { width: 100%; text-align: center; }
 }
+
+/* ---------- Subsidy Practical Guide (실전 재점검 09) ---------- */
+.subsidy-guide-section { background: #eef2ff; }
+.subsidy-section-title {
+  margin: 18px 0 6px; font-size: 15px; font-weight: 700;
+  color: #3730a3;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed #c7d2fe;
+}
+.subsidy-guide-intro p { font-size: 12.5px; margin: 6px 0 0; }
+.subsidy-guide-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.subsidy-guide-card {
+  background: white;
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.subsidy-source-card { background: #f5f3ff; border-color: #c4b5fd; }
+.subsidy-channel-header,
+.subsidy-signal-header {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  align-items: center; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.subsidy-channel-title,
+.subsidy-signal-title {
+  margin: 0; font-size: 14px; font-weight: 700; color: #312e81;
+}
+.subsidy-channel-desc { margin: 4px 0; font-size: 13px; color: #334155; }
+.subsidy-why { margin: 6px 0 0; font-size: 12.5px; color: #475569; }
+.subsidy-warning {
+  margin: 6px 0 0;
+  background: #fff7ed; border: 1px solid #fed7aa;
+  color: #7c2d12; font-size: 12px;
+  padding: 5px 8px; border-radius: 6px;
+}
+.subsidy-example-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.subsidy-example-list li { margin: 2px 0; }
+.subsidy-example-list code {
+  background: #eef2ff; padding: 1px 6px; border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; color: #312e81;
+}
+
+.subsidy-checklist {
+  list-style: none; padding: 0; margin: 6px 0 0;
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.subsidy-checklist li {
+  display: grid; grid-template-columns: 48px 1fr; gap: 8px;
+  background: white; border: 1px solid #c7d2fe;
+  border-radius: 8px; padding: 8px 10px;
+  align-items: start;
+}
+.subsidy-checklist li.required { border-color: #a5b4fc; background: #eef2ff; }
+.subsidy-checklist li.optional { background: #f8fafc; border-color: #e2e8f0; }
+.subsidy-check-badge {
+  background: #6366f1; color: white;
+  font-size: 11px; font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-align: center;
+  align-self: start;
+}
+.subsidy-checklist li.optional .subsidy-check-badge { background: #94a3b8; }
+.subsidy-check-label { font-size: 13px; font-weight: 600; color: #312e81; }
+.subsidy-check-hint { margin-top: 2px; font-size: 11.5px; }
+
+.subsidy-link {
+  display: inline-block; padding: 5px 10px;
+  background: #6366f1; color: white;
+  text-decoration: none; border-radius: 6px;
+  font-size: 12.5px; font-weight: 600;
+  word-break: break-all;
+}
+.subsidy-link:hover { background: #4f46e5; }
+
+.subsidy-reward-caution { background: #fff7ed; border-color: #fed7aa; }
+.subsidy-reward-caution .subsidy-signal-title { color: #7c2d12; }
+.subsidy-reward-caution p { font-size: 13px; color: #7c2d12; margin: 6px 0; }
+
+.subsidy-example { border-color: #a5b4fc; }
+.subsidy-example-suspicious { background: #fef2f2; border-color: #fecaca; }
+.subsidy-example-suspicious .subsidy-signal-title { color: #991b1b; }
+.subsidy-example-normal { background: #ecfdf5; border-color: #a7f3d0; }
+.subsidy-example-normal .subsidy-signal-title { color: #065f46; }
+.subsidy-example-needs_review { background: #fffbeb; border-color: #fde68a; }
+.subsidy-example-needs_review .subsidy-signal-title { color: #92400e; }
+
+@media (max-width: 768px) {
+  .subsidy-guide-grid { grid-template-columns: 1fr; }
+  .subsidy-checklist { grid-template-columns: 1fr; }
+  .subsidy-link { width: 100%; text-align: center; }
+}

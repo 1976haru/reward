@@ -720,6 +720,31 @@ The dashboard shows notice cards for:
 
 These notices are practical guidance only. They do not guarantee reward payment or report acceptance. 공식 기준 확인은 사람이 수행하며, 본 도구는 신고지원 / 검토 후보 도구입니다.
 
+## Subsidy Practical Guide
+
+보조금 부정수급 의심 후보 탐지 모듈의 실전 기준을 제공합니다.
+
+포함 정보:
+
+- 국민권익위원회 / 청렴포털 보상·포상 안내
+- 국민신문고 / 보조금 관리기관 / 관할 지자체 신고처
+- 보조금통합포털 / e나라도움 / 보탬e / 공공데이터포털 등 공개자료 소스
+- 수집할 보조금 자료 (공고·교부·집행·정산·결과보고서)
+- 부정수급 의심 신호 (반복 수급, 동일 주소, 유사 사업명, 결과물 부족 등)
+- 신고 전 체크리스트
+- 보상·포상 주의사항
+- 공식 링크
+
+이 가이드는 공공자료 기반 신고지원 도구 안내이며, 부정수급 여부 또는 보상·포상 지급을 단정하지 않습니다.
+특정 단체·개인·사업자를 형사적 표현으로 단정하지 않으며, 보상·포상 여부 확정은 국민권익위원회·보조금 관리기관·관할 지자체 등 관계기관의 공식 기준과 처리 결과(환수·처분·공공기관 수입 회복 등)에 따라 달라집니다.
+공익레이더는 외부 신고기관에 자동으로 제출하지 않으며, 보상금·포상금 수령을 보장하지 않습니다.
+
+API:
+
+- `GET /api/modules/subsidy-fraud/guide`
+
+자세한 명세는 [`docs/subsidy_guide.md`](./docs/subsidy_guide.md) 참고.
+
 ## Bid Collusion Practical Guide
 
 입찰담합 의심 패턴 분석 모듈의 실전 기준을 제공합니다.

@@ -33,6 +33,7 @@ import { rewardProgramsRouter } from "./routes/rewardPrograms.js";
 import { falseAdGuideRouter } from "./routes/falseAdGuide.js";
 import { counterfeitGuideRouter } from "./routes/counterfeitGuide.js";
 import { bidCollusionGuideRouter } from "./routes/bidCollusionGuide.js";
+import { subsidyGuideRouter } from "./routes/subsidyGuide.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -98,6 +99,10 @@ app.use("/api/modules/counterfeit-goods", counterfeitGuideRouter);
 // Bid Collusion 모듈 실전 가이드 (실전 재점검 08) — /api/modules/bid-collusion/guide
 // 자동 신고/담합 단정/포상금 보장/특정 업체 단정 표현 없음.
 app.use("/api/modules/bid-collusion", bidCollusionGuideRouter);
+
+// Subsidy 모듈 실전 가이드 (실전 재점검 09) — /api/modules/subsidy-fraud/guide
+// 공공자료 기반만 검토. 자동 신고/부정수급 단정/포상금·보상금 보장/단체 단정 표현 없음.
+app.use("/api/modules/subsidy-fraud", subsidyGuideRouter);
 
 app.get("/api/modules", (_req, res) => {
   res.json({

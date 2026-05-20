@@ -3292,6 +3292,232 @@ check("outcome UI does NOT call localStorage",
   }
 }
 
+// 36) Subsidy Practical Guide — 실전 재점검 09
+{
+  const { subsidyGuideService, SUBSIDY_GUIDE_SAFETY_NOTICE } =
+    await import("../services/subsidy-guide/SubsidyGuideService.js");
+
+  const g = subsidyGuideService.getSubsidyGuide();
+
+  // 구조
+  check("subsidy guide schemaVersion 1.0.0", g.schemaVersion === "1.0.0");
+  check("subsidy guide moduleId subsidy_fraud", g.moduleId === "subsidy_fraud");
+  check("subsidy guide displayName non-empty",
+    typeof g.displayName === "string" && g.displayName.length > 0);
+
+  // Reporting channels (>=4)
+  check("subsidy reportingChannels length >= 4",
+    Array.isArray(g.reportingChannels) && g.reportingChannels.length >= 4);
+  const channelAgencies = g.reportingChannels.map((c) => c.agencyName || "");
+  check("subsidy reportingChannels include 국민권익위원회",
+    channelAgencies.some((a) => /국민권익위원회/.test(a)));
+  check("subsidy reportingChannels include 국민신문고",
+    channelAgencies.some((a) => /국민신문고/.test(a)));
+  check("subsidy reportingChannels include 보조금 관리기관 / 지자체",
+    channelAgencies.some((a) => /보조금\s*관리기관|지자체/.test(a)));
+  const channelUrls = g.reportingChannels.map((c) => c.officialUrl || "").join(" ");
+  check("subsidy reportingChannels include clean.go.kr",
+    channelUrls.includes("clean.go.kr"));
+  check("subsidy reportingChannels include epeople.go.kr",
+    channelUrls.includes("epeople.go.kr"));
+  for (const c of g.reportingChannels) {
+    check(`subsidy channel ${c.id} has caution`,
+      typeof c.caution === "string" && c.caution.length > 0);
+  }
+
+  // Public data sources (>=5)
+  check("subsidy publicDataSources length >= 5",
+    Array.isArray(g.publicDataSources) && g.publicDataSources.length >= 5);
+  const sourceNames = g.publicDataSources.map((s) => s.name || "");
+  for (const must of ["보조금통합포털", "e나라도움", "보탬e", "공공데이터포털", "지자체"]) {
+    check(`subsidy publicDataSources includes ${must}`,
+      sourceNames.some((n) => n.includes(must)));
+  }
+  const sourceUrls = g.publicDataSources.map((s) => s.officialUrl || "").join(" ");
+  check("subsidy publicDataSources include bojo.go.kr", sourceUrls.includes("bojo.go.kr"));
+  check("subsidy publicDataSources include gosims.go.kr", sourceUrls.includes("gosims.go.kr"));
+  check("subsidy publicDataSources include losims.go.kr", sourceUrls.includes("losims.go.kr"));
+  check("subsidy publicDataSources include data.go.kr", sourceUrls.includes("data.go.kr"));
+  for (const s of g.publicDataSources) {
+    check(`subsidy source ${s.id} has dataTypes >= 1`,
+      Array.isArray(s.dataTypes) && s.dataTypes.length >= 1);
+    check(`subsidy source ${s.id} has usage`,
+      typeof s.usage === "string" && s.usage.length > 0);
+    check(`subsidy source ${s.id} has caution`,
+      typeof s.caution === "string" && s.caution.length > 0);
+  }
+
+  // Suspicious signals (>=8)
+  check("subsidy suspiciousSignals length >= 8",
+    Array.isArray(g.suspiciousSignals) && g.suspiciousSignals.length >= 8);
+  for (const s of g.suspiciousSignals) {
+    check(`subsidy signal ${s.id} has >=2 examples`,
+      Array.isArray(s.examples) && s.examples.length >= 2);
+    check(`subsidy signal ${s.id} whyItMatters mentions 검토 / 후보`,
+      typeof s.whyItMatters === "string" && /검토|후보/.test(s.whyItMatters));
+    check(`subsidy signal ${s.id} reviewLevel in enum`,
+      ["HIGH", "MEDIUM", "LOW"].includes(s.reviewLevel));
+  }
+  const sigCats = g.suspiciousSignals.map((s) => s.category || "");
+  for (const must of ["반복 수급", "동일 주소", "유사 사업명", "결과물", "정산", "특수관계", "중복"]) {
+    check(`subsidy signals include category keyword: ${must}`,
+      sigCats.some((c) => c.includes(must)));
+  }
+
+  // Evidence checklist (>=15)
+  check("subsidy evidenceChecklist length >= 15",
+    Array.isArray(g.evidenceChecklist) && g.evidenceChecklist.length >= 15);
+  for (const i of g.evidenceChecklist) {
+    check(`subsidy evidence ${i.id} has boolean required`,
+      typeof i.required === "boolean");
+    check(`subsidy evidence ${i.id} has label`,
+      typeof i.label === "string" && i.label.length > 0);
+  }
+  const evLabels = g.evidenceChecklist.map((i) => i.label);
+  for (const must of ["보조사업명", "교부기관", "교부금액", "사업 공고 URL", "반복 수급 근거", "수집일시"]) {
+    check(`subsidy evidenceChecklist includes ${must}`,
+      evLabels.some((l) => l.includes(must)));
+  }
+
+  // Pre-report checklist (>=9)
+  check("subsidy preReportChecklist length >= 9",
+    Array.isArray(g.preReportChecklist) && g.preReportChecklist.length >= 9);
+  const prLabels = g.preReportChecklist.map((i) => i.label || "");
+  check("subsidy preReport mentions 공개자료",
+    prLabels.some((l) => /공개자료/.test(l)));
+  check("subsidy preReport mentions 단일 정황만으로 부정수급",
+    prLabels.some((l) => /단일\s*정황만으로\s*부정수급/.test(l)));
+  check("subsidy preReport mentions 최종 제출은 사람",
+    prLabels.some((l) => /최종\s*제출[^\n]*사람/.test(l)));
+
+  // Reward caution
+  check("subsidy rewardCaution.notGuaranteed === true",
+    g.rewardCaution?.notGuaranteed === true);
+  check("subsidy rewardCaution.officialCheckRequired === true",
+    g.rewardCaution?.officialCheckRequired === true);
+  check("subsidy rewardCaution.summary mentions 수령을 보장하지 않",
+    /수령을\s*보장하지\s*않/.test(g.rewardCaution?.summary || ""));
+  check("subsidy rewardCaution.notes length >= 4",
+    Array.isArray(g.rewardCaution?.notes) && g.rewardCaution.notes.length >= 4);
+
+  // Examples
+  check("subsidy examples length >= 6", Array.isArray(g.examples) && g.examples.length >= 6);
+  const catCounts = g.examples.reduce<Record<string, number>>((acc, e) => {
+    acc[e.category] = (acc[e.category] ?? 0) + 1;
+    return acc;
+  }, {});
+  check("subsidy examples include suspicious", (catCounts.suspicious ?? 0) >= 3);
+  check("subsidy examples include normal", (catCounts.normal ?? 0) >= 2);
+  check("subsidy examples include needs_review", (catCounts.needs_review ?? 0) >= 2);
+
+  // Official links (>=6)
+  check("subsidy officialLinks length >= 6",
+    Array.isArray(g.officialLinks) && g.officialLinks.length >= 6);
+  const linkText = g.officialLinks.map((l) => l.url || "").join(" ");
+  for (const must of ["clean.go.kr", "epeople.go.kr", "bojo.go.kr", "gosims.go.kr", "losims.go.kr", "data.go.kr"]) {
+    check(`subsidy officialLinks include ${must}`, linkText.includes(must));
+  }
+  for (const l of g.officialLinks) {
+    check(`subsidy link ${l.id} has caution`,
+      typeof l.caution === "string" && l.caution.length > 0);
+  }
+
+  // Safety notice
+  check("subsidy guide.safetyNotice === SUBSIDY_GUIDE_SAFETY_NOTICE",
+    g.safetyNotice === SUBSIDY_GUIDE_SAFETY_NOTICE);
+  check("subsidy safetyNotice mentions 자동으로 제출하지 않으며",
+    /자동으로\s*제출하지\s*않/.test(g.safetyNotice));
+  check("subsidy safetyNotice mentions 보상금·포상금 수령을 보장하지 않",
+    /보상금[·\s]*포상금\s*수령을\s*보장하지\s*않/.test(g.safetyNotice));
+  check("subsidy safetyNotice mentions 국민권익위원회",
+    /국민권익위원회/.test(g.safetyNotice));
+
+  // 금지 표현 (긍정문) — payload 전체에 들어가서는 안 됨
+  const guideJson = JSON.stringify(g);
+  const SUBSIDY_FORBIDDEN_AFFIRMATIVE = [
+    "부정수급 확정",
+    "횡령 확정",
+    "사기 확정",
+    "범죄자",
+    "포상금 확정",
+    "보상금 확정",
+    "수익 확정",
+    "신고하면 지급",
+    "무조건 지급",
+    "무조건 받을 수 있음",
+    "포상금 보장합니다",
+    "보상금 보장합니다",
+    "자동 신고합니다",
+    "자동 신고됩니다",
+    "바로 제출합니다",
+    "바로 제출됩니다"
+  ];
+  for (const phrase of SUBSIDY_FORBIDDEN_AFFIRMATIVE) {
+    check(`subsidy guide payload excludes affirmative: ${phrase}`,
+      !guideJson.includes(phrase));
+  }
+
+  // 소스 파일 / 문서 검증
+  const subSvcText = await readFileSafe(path.join(process.cwd(), "src", "services", "subsidy-guide", "SubsidyGuideService.ts"));
+  const subRouteText = await readFileSafe(path.join(process.cwd(), "src", "routes", "subsidyGuide.ts"));
+  const subDocText = await readFileSafe(path.join(process.cwd(), "docs", "subsidy_guide.md"));
+  for (const phrase of ["신고하면 지급", "무조건 지급", "무조건 받을 수 있음", "포상금 보장합니다", "보상금 보장합니다", "범죄자", "부정수급 확정", "횡령 확정", "사기 확정"]) {
+    check(`subsidy service does not contain affirmative: ${phrase}`,
+      !subSvcText.includes(phrase));
+    check(`subsidy route does not contain affirmative: ${phrase}`,
+      !subRouteText.includes(phrase));
+    check(`subsidy docs do not contain affirmative as positive: ${phrase}`,
+      !subDocText.includes(phrase));
+  }
+
+  // UI 마커 / 렌더 함수 / CSS
+  check("public/index.html includes subsidyGuideCard",
+    /id="subsidyGuideCard"/.test(indexHtml));
+  check("public/index.html includes subsidyGuidePanel",
+    /id="subsidyGuidePanel"/.test(indexHtml));
+  check("public/app.js exposes loadSubsidyGuide",
+    /async\s+function\s+loadSubsidyGuide\s*\(|function\s+loadSubsidyGuide\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderSubsidyGuide",
+    /function\s+renderSubsidyGuide\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderSubsidyReportingChannels",
+    /function\s+renderSubsidyReportingChannels\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderSubsidyPublicDataSources",
+    /function\s+renderSubsidyPublicDataSources\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderSubsidySuspiciousSignals",
+    /function\s+renderSubsidySuspiciousSignals\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderSubsidyEvidenceChecklist",
+    /function\s+renderSubsidyEvidenceChecklist\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderSubsidyRewardCaution",
+    /function\s+renderSubsidyRewardCaution\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderSubsidyExamples",
+    /function\s+renderSubsidyExamples\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderSubsidyOfficialLinks",
+    /function\s+renderSubsidyOfficialLinks\s*\(/.test(appJsHome));
+  check("public/styles.css declares .subsidy-guide-card",
+    /\.subsidy-guide-card\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .subsidy-checklist",
+    /\.subsidy-checklist\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .subsidy-warning",
+    /\.subsidy-warning\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .subsidy-link",
+    /\.subsidy-link\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .subsidy-source-card",
+    /\.subsidy-source-card\s*\{/.test(stylesRaw));
+
+  // README + docs
+  const readmeText = await readFileSafe(path.join(process.cwd(), "README.md"));
+  check("README.md contains Subsidy Practical Guide section",
+    /##\s*Subsidy\s*Practical\s*Guide\b/.test(readmeText));
+  check("README.md mentions GET /api/modules/subsidy-fraud/guide",
+    /GET\s+\/api\/modules\/subsidy-fraud\/guide/.test(readmeText));
+  check("docs/subsidy_guide.md exists",
+    await fileExists(path.join(process.cwd(), "docs", "subsidy_guide.md")));
+  for (const phrase of ["부정수급 확정", "횡령 확정", "사기 확정", "범죄자", "포상금 보장합니다", "보상금 보장합니다"]) {
+    check(`README does not contain forbidden affirmative: ${phrase}`,
+      !readmeText.includes(phrase));
+  }
+}
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);

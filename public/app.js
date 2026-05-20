@@ -238,6 +238,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindBidCollusionGuide();
   renderBidCollusionGuide(null);
   await loadBidCollusionGuide();
+  bindSubsidyGuide();
+  renderSubsidyGuide(null);
+  await loadSubsidyGuide();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -3609,6 +3612,222 @@ function renderBidCollusionGuide(guide) {
 
     <h3 class="bid-collusion-section-title">공식 링크</h3>
     ${renderBidCollusionOfficialLinks(guide.officialLinks)}
+  `;
+}
+
+// ---------- Subsidy Practical Guide (실전 재점검 09) ----------
+const SUBSIDY_GUIDE_FALLBACK_HTML = `
+  <div class="subsidy-guide-card subsidy-guide-fallback">
+    <p class="muted">보조금/공익신고 보상·포상 가이드를 불러오지 못했습니다. 실전 신고 전 국민권익위원회, 보조금 관리기관, 관할 지자체의 공식 기준을 직접 확인하세요.</p>
+  </div>
+`;
+
+function bindSubsidyGuide() {
+  const btn = document.getElementById("subsidyGuideRefreshBtn");
+  if (btn) btn.addEventListener("click", loadSubsidyGuide);
+}
+
+async function loadSubsidyGuide() {
+  const root = document.getElementById("subsidyGuidePanel");
+  if (!root) return;
+  try {
+    const res = await fetch("/api/modules/subsidy-fraud/guide");
+    const data = await res.json();
+    if (!data.ok || !data.guide) throw new Error(data.message || "subsidy guide failed");
+    renderSubsidyGuide(data.guide);
+  } catch (err) {
+    root.innerHTML = SUBSIDY_GUIDE_FALLBACK_HTML + `<p class="muted" style="margin-top:8px;font-size:12px;">[debug] ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderSubsidyReportingChannels(channels) {
+  if (!Array.isArray(channels) || channels.length === 0) {
+    return `<p class="muted">신고처 정보가 없습니다.</p>`;
+  }
+  const items = channels.map((c) => `
+    <div class="subsidy-guide-card">
+      <div class="subsidy-channel-header">
+        <h4 class="subsidy-channel-title">${escapeHtml(c.agencyName || "")}</h4>
+        ${c.officialUrl ? `<a class="subsidy-link" href="${escapeAttr(c.officialUrl)}" target="_blank" rel="noopener noreferrer">공식 페이지 ↗</a>` : `<span class="badge muted">공식 페이지 직접 확인</span>`}
+      </div>
+      <p class="subsidy-channel-desc">${escapeHtml(c.description || "")}</p>
+      <p class="subsidy-warning">⚠ ${escapeHtml(c.caution || "")}</p>
+    </div>
+  `).join("");
+  return `<div class="subsidy-guide-grid">${items}</div>`;
+}
+
+function renderSubsidyPublicDataSources(sources) {
+  if (!Array.isArray(sources) || sources.length === 0) {
+    return `<p class="muted">공개자료 소스가 없습니다.</p>`;
+  }
+  const items = sources.map((s) => `
+    <div class="subsidy-guide-card subsidy-source-card">
+      <div class="subsidy-channel-header">
+        <h4 class="subsidy-channel-title">${escapeHtml(s.name || "")}</h4>
+        ${s.officialUrl ? `<a class="subsidy-link" href="${escapeAttr(s.officialUrl)}" target="_blank" rel="noopener noreferrer">공식 페이지 ↗</a>` : `<span class="badge muted">공식 페이지 직접 확인</span>`}
+      </div>
+      <p class="subsidy-channel-desc"><strong>활용:</strong> ${escapeHtml(s.usage || "")}</p>
+      <ul class="subsidy-example-list">
+        ${(s.dataTypes || []).map((d) => `<li><code>${escapeHtml(d)}</code></li>`).join("")}
+      </ul>
+      <p class="subsidy-warning">⚠ ${escapeHtml(s.caution || "")}</p>
+    </div>
+  `).join("");
+  return `<div class="subsidy-guide-grid">${items}</div>`;
+}
+
+function renderSubsidySuspiciousSignals(signals) {
+  if (!Array.isArray(signals) || signals.length === 0) {
+    return `<p class="muted">의심 신호가 없습니다.</p>`;
+  }
+  const levelLabel = (lv) => lv === "HIGH" ? '<span class="badge danger">HIGH 검토</span>'
+    : lv === "MEDIUM" ? '<span class="badge warn">MEDIUM 검토</span>'
+    : '<span class="badge muted">LOW 검토</span>';
+  const items = signals.map((s) => `
+    <div class="subsidy-guide-card">
+      <div class="subsidy-signal-header">
+        <h4 class="subsidy-signal-title">${escapeHtml(s.category || "")}</h4>
+        ${levelLabel(s.reviewLevel || "MEDIUM")}
+      </div>
+      <ul class="subsidy-example-list">
+        ${(s.examples || []).map((ex) => `<li><code>${escapeHtml(ex)}</code></li>`).join("")}
+      </ul>
+      <p class="subsidy-why">${escapeHtml(s.whyItMatters || "")}</p>
+    </div>
+  `).join("");
+  return `<div class="subsidy-guide-grid">${items}</div>`;
+}
+
+function renderSubsidyEvidenceChecklist(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `<p class="muted">증거 체크리스트가 없습니다.</p>`;
+  }
+  return `
+    <ul class="subsidy-checklist">
+      ${items.map((it) => `
+        <li class="${it.required ? "required" : "optional"}">
+          <span class="subsidy-check-badge">${it.required ? "필수" : "선택"}</span>
+          <div>
+            <div class="subsidy-check-label">${escapeHtml(it.label || "")}</div>
+            ${it.hint ? `<div class="subsidy-check-hint muted">${escapeHtml(it.hint)}</div>` : ""}
+          </div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function renderSubsidyPreReportChecklist(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `<p class="muted">신고 전 확인사항이 없습니다.</p>`;
+  }
+  return `
+    <ul class="subsidy-checklist">
+      ${items.map((it) => `
+        <li class="${it.required ? "required" : "optional"}">
+          <span class="subsidy-check-badge">${it.required ? "필수" : "선택"}</span>
+          <div class="subsidy-check-label">${escapeHtml(it.label || "")}</div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function renderSubsidyRewardCaution(caution) {
+  if (!caution) return "";
+  const notes = (caution.notes || []).map((n) => `<li>${escapeHtml(n)}</li>`).join("");
+  return `
+    <div class="subsidy-guide-card subsidy-reward-caution">
+      <h4 class="subsidy-signal-title">${escapeHtml(caution.title || "보조금·공익신고 보상·포상 기준 안내")}</h4>
+      <p>${escapeHtml(caution.summary || "")}</p>
+      <ul class="subsidy-example-list">${notes}</ul>
+      <p class="subsidy-warning">⚠ 보상금·포상금 수령을 보장하지 않으며, 부정수급 여부 확정은 관계기관 처리 결과에 따라 달라집니다.</p>
+    </div>
+  `;
+}
+
+function renderSubsidyExamples(examples) {
+  if (!Array.isArray(examples) || examples.length === 0) {
+    return `<p class="muted">예시가 없습니다.</p>`;
+  }
+  const groups = { suspicious: [], normal: [], needs_review: [] };
+  for (const e of examples) {
+    const cat = e.category || "needs_review";
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(e);
+  }
+  const groupLabel = { suspicious: "공개자료 기반 검토 후보", normal: "참고 예시", needs_review: "맥락 확인 필요" };
+  const cards = Object.keys(groups).map((cat) => `
+    <div class="subsidy-guide-card subsidy-example subsidy-example-${cat}">
+      <h4 class="subsidy-signal-title">${escapeHtml(groupLabel[cat] || cat)}</h4>
+      <ul class="subsidy-example-list">
+        ${groups[cat].map((e) => `
+          <li>
+            <code>${escapeHtml(e.text || "")}</code>
+            ${e.explanation ? `<div class="subsidy-check-hint muted">${escapeHtml(e.explanation)}</div>` : ""}
+          </li>
+        `).join("")}
+      </ul>
+    </div>
+  `).join("");
+  return `<div class="subsidy-guide-grid">${cards}</div>`;
+}
+
+function renderSubsidyOfficialLinks(links) {
+  if (!Array.isArray(links) || links.length === 0) {
+    return `<p class="muted">공식 링크가 없습니다.</p>`;
+  }
+  return `
+    <div class="subsidy-guide-grid">
+      ${links.map((l) => `
+        <div class="subsidy-guide-card">
+          <a class="subsidy-link" href="${escapeAttr(l.url || "")}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.label || l.url || "")} ↗</a>
+          <p class="subsidy-warning">⚠ ${escapeHtml(l.caution || "공식 기준은 변경될 수 있으므로 실전 신고 전 사람이 직접 재확인하세요.")}</p>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderSubsidyGuide(guide) {
+  const root = document.getElementById("subsidyGuidePanel");
+  if (!root) return;
+  if (!guide) {
+    root.innerHTML = SUBSIDY_GUIDE_FALLBACK_HTML;
+    return;
+  }
+  root.innerHTML = `
+    <div class="subsidy-guide-intro">
+      <h3 class="subsidy-section-title">${escapeHtml(guide.displayName || "보조금/공익신고 보상·포상 가이드")}</h3>
+      <p class="muted">${escapeHtml(guide.safetyNotice || "이 가이드는 신고지원용이며, 부정수급 여부 또는 보상·포상 지급을 확정하지 않습니다.")}</p>
+    </div>
+
+    <h3 class="subsidy-section-title">신고처</h3>
+    ${renderSubsidyReportingChannels(guide.reportingChannels)}
+
+    <h3 class="subsidy-section-title">공개자료 소스</h3>
+    <p class="muted">공익레이더는 아래 공개자료만 활용하며, 로그인 또는 권한이 필요한 비공개 자료는 다루지 않습니다.</p>
+    ${renderSubsidyPublicDataSources(guide.publicDataSources)}
+
+    <h3 class="subsidy-section-title">부정수급 의심 신호</h3>
+    <p class="muted">아래 신호는 단정이 아니라, 사람이 추가 검토할 공개자료 기반 검토 후보입니다.</p>
+    ${renderSubsidySuspiciousSignals(guide.suspiciousSignals)}
+
+    <h3 class="subsidy-section-title">필요 증거 체크리스트</h3>
+    ${renderSubsidyEvidenceChecklist(guide.evidenceChecklist)}
+
+    <h3 class="subsidy-section-title">신고 전 확인사항</h3>
+    ${renderSubsidyPreReportChecklist(guide.preReportChecklist)}
+
+    <h3 class="subsidy-section-title">보상·포상 주의사항</h3>
+    ${renderSubsidyRewardCaution(guide.rewardCaution)}
+
+    <h3 class="subsidy-section-title">예시 패턴</h3>
+    ${renderSubsidyExamples(guide.examples)}
+
+    <h3 class="subsidy-section-title">공식 링크</h3>
+    ${renderSubsidyOfficialLinks(guide.officialLinks)}
   `;
 }
 
