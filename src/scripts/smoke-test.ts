@@ -2904,6 +2904,199 @@ check("outcome UI does NOT call localStorage",
     await fileExists(path.join(process.cwd(), "docs", "false_ad_guide.md")));
 }
 
+// 34) Counterfeit Practical Guide — 실전 재점검 07
+{
+  const { counterfeitGuideService, COUNTERFEIT_GUIDE_SAFETY_NOTICE } =
+    await import("../services/counterfeit-guide/CounterfeitGuideService.js");
+
+  const g = counterfeitGuideService.getGuide();
+
+  // 구조
+  check("counterfeit guide schemaVersion 1.0.0", g.schemaVersion === "1.0.0");
+  check("counterfeit guide moduleId counterfeit_goods", g.moduleId === "counterfeit_goods");
+  check("counterfeit guide displayName non-empty",
+    typeof g.displayName === "string" && g.displayName.length > 0);
+
+  // Reporting channels
+  check("counterfeit reportingChannels length >= 3",
+    Array.isArray(g.reportingChannels) && g.reportingChannels.length >= 3);
+  const channelAgencies = g.reportingChannels.map((c) => c.agencyName || "");
+  check("counterfeit reportingChannels include 특허청",
+    channelAgencies.some((a) => /특허청/.test(a)));
+  check("counterfeit reportingChannels include 지식재산침해 원스톱 신고상담센터",
+    channelAgencies.some((a) => /지식재산침해\s*원스톱\s*신고상담센터/.test(a)));
+  const channelUrls = g.reportingChannels.map((c) => c.officialUrl || "").join(" ");
+  check("counterfeit reportingChannels include kipo.go.kr",
+    channelUrls.includes("kipo.go.kr"));
+  check("counterfeit reportingChannels include koipa.re.kr",
+    channelUrls.includes("koipa.re.kr"));
+  for (const c of g.reportingChannels) {
+    check(`counterfeit channel ${c.id} has caution`,
+      typeof c.caution === "string" && c.caution.length > 0);
+  }
+
+  // Suspicious signals
+  check("counterfeit suspiciousSignals length >= 7",
+    Array.isArray(g.suspiciousSignals) && g.suspiciousSignals.length >= 7);
+  for (const s of g.suspiciousSignals) {
+    check(`counterfeit signal ${s.id} has >=3 examples`,
+      Array.isArray(s.examples) && s.examples.length >= 3);
+    check(`counterfeit signal ${s.id} whyItMatters mentions 검토 / 위조상품 의심 후보`,
+      typeof s.whyItMatters === "string" && /검토|위조상품\s*의심\s*후보/.test(s.whyItMatters));
+    check(`counterfeit signal ${s.id} reviewLevel in enum`,
+      ["HIGH", "MEDIUM", "LOW"].includes(s.reviewLevel));
+  }
+  const signalCats = g.suspiciousSignals.map((s) => s.category || "");
+  for (const must of ["레플리카", "정품급", "상표", "비공개", "가격", "다채널", "이미지"]) {
+    check(`counterfeit signals include category keyword: ${must}`,
+      signalCats.some((c) => c.includes(must)));
+  }
+
+  // Evidence checklist
+  check("counterfeit evidenceChecklist length >= 12",
+    Array.isArray(g.evidenceChecklist) && g.evidenceChecklist.length >= 12);
+  for (const i of g.evidenceChecklist) {
+    check(`counterfeit evidence ${i.id} has boolean required`, typeof i.required === "boolean");
+    check(`counterfeit evidence ${i.id} has label`, typeof i.label === "string" && i.label.length > 0);
+  }
+  const evLabels = g.evidenceChecklist.map((i) => i.label);
+  for (const must of ["판매게시글 URL", "상품 이미지", "로고/상표 표시 캡처", "2개 이상 채널 판매 증거", "화면 캡처", "PDF 저장본"]) {
+    check(`counterfeit evidenceChecklist includes ${must}`,
+      evLabels.some((l) => l.includes(must)));
+  }
+
+  // Pre-report checklist
+  check("counterfeit preReportChecklist length >= 8",
+    Array.isArray(g.preReportChecklist) && g.preReportChecklist.length >= 8);
+  const prLabels = g.preReportChecklist.map((i) => i.label || "");
+  check("counterfeit preReport mentions 동일 판매자 2개 이상 채널",
+    prLabels.some((l) => /동일\s*판매자\s*2개\s*이상\s*채널/.test(l)));
+  check("counterfeit preReport mentions 특허청 / 원스톱센터 공식 신고 기준",
+    prLabels.some((l) => /(특허청).*원스톱센터.*공식\s*신고\s*기준/.test(l)));
+  check("counterfeit preReport mentions 최종 제출은 사람",
+    prLabels.some((l) => /최종\s*제출[^\n]*사람/.test(l)));
+
+  // Reward caution
+  check("counterfeit rewardCaution.notGuaranteed === true",
+    g.rewardCaution?.notGuaranteed === true);
+  check("counterfeit rewardCaution.officialCheckRequired === true",
+    g.rewardCaution?.officialCheckRequired === true);
+  check("counterfeit rewardCaution.summary mentions 수령을 보장하지 않습니다",
+    /수령을\s*보장하지\s*않/.test(g.rewardCaution?.summary || ""));
+  check("counterfeit rewardCaution.notes length >= 4",
+    Array.isArray(g.rewardCaution?.notes) && g.rewardCaution.notes.length >= 4);
+
+  // Examples
+  check("counterfeit examples length >= 6", Array.isArray(g.examples) && g.examples.length >= 6);
+  const catCounts = g.examples.reduce<Record<string, number>>((acc, e) => {
+    acc[e.category] = (acc[e.category] ?? 0) + 1;
+    return acc;
+  }, {});
+  check("counterfeit examples include suspicious", (catCounts.suspicious ?? 0) >= 3);
+  check("counterfeit examples include normal", (catCounts.normal ?? 0) >= 2);
+  check("counterfeit examples include needs_review", (catCounts.needs_review ?? 0) >= 2);
+
+  // Official links
+  check("counterfeit officialLinks length >= 4",
+    Array.isArray(g.officialLinks) && g.officialLinks.length >= 4);
+  const linkText = g.officialLinks.map((l) => l.url || "").join(" ");
+  check("counterfeit officialLinks include kipo.go.kr", linkText.includes("kipo.go.kr"));
+  check("counterfeit officialLinks include koipa.re.kr", linkText.includes("koipa.re.kr"));
+  for (const l of g.officialLinks) {
+    check(`counterfeit link ${l.id} has caution`,
+      typeof l.caution === "string" && l.caution.length > 0);
+  }
+
+  // Safety notice
+  check("counterfeit guide.safetyNotice === COUNTERFEIT_GUIDE_SAFETY_NOTICE",
+    g.safetyNotice === COUNTERFEIT_GUIDE_SAFETY_NOTICE);
+  check("counterfeit safetyNotice mentions 자동으로 제출하지 않으며",
+    /자동으로\s*제출하지\s*않/.test(g.safetyNotice));
+  check("counterfeit safetyNotice mentions 포상금 수령을 보장하지 않",
+    /포상금\s*수령을\s*보장하지\s*않/.test(g.safetyNotice));
+  check("counterfeit safetyNotice mentions 위조 여부 확정은 권리자/관계기관 판단이 필요",
+    /위조\s*여부\s*확정[^\n]*권리자|관계기관/.test(g.safetyNotice));
+
+  // 금지 표현 (긍정문) — payload 전체에 들어가서는 안 됨
+  const guideJson = JSON.stringify(g);
+  const COUNTERFEIT_FORBIDDEN_AFFIRMATIVE = [
+    "위조 확정",
+    "불법 확정",
+    "범죄자",
+    "사기꾼",
+    "포상금 확정",
+    "수익 확정",
+    "신고하면 지급",
+    "무조건 지급",
+    "무조건 받을 수 있음",
+    "포상금 보장합니다",
+    "자동 신고합니다",
+    "자동 신고됩니다",
+    "바로 제출합니다",
+    "바로 제출됩니다"
+  ];
+  for (const phrase of COUNTERFEIT_FORBIDDEN_AFFIRMATIVE) {
+    check(`counterfeit guide payload excludes affirmative: ${phrase}`,
+      !guideJson.includes(phrase));
+  }
+
+  // 소스 파일 / 문서 검증
+  const cfSvcText = await readFileSafe(path.join(process.cwd(), "src", "services", "counterfeit-guide", "CounterfeitGuideService.ts"));
+  const cfRouteText = await readFileSafe(path.join(process.cwd(), "src", "routes", "counterfeitGuide.ts"));
+  const cfDocText = await readFileSafe(path.join(process.cwd(), "docs", "counterfeit_guide.md"));
+  for (const phrase of ["신고하면 지급", "무조건 지급", "무조건 받을 수 있음", "포상금 보장합니다", "범죄자", "사기꾼"]) {
+    check(`counterfeit service does not contain affirmative: ${phrase}`,
+      !cfSvcText.includes(phrase));
+    check(`counterfeit route does not contain affirmative: ${phrase}`,
+      !cfRouteText.includes(phrase));
+    check(`counterfeit docs do not contain affirmative as positive: ${phrase}`,
+      !cfDocText.includes(phrase));
+  }
+
+  // UI 마커 / 렌더 함수 / CSS
+  check("public/index.html includes counterfeitGuideCard",
+    /id="counterfeitGuideCard"/.test(indexHtml));
+  check("public/index.html includes counterfeitGuidePanel",
+    /id="counterfeitGuidePanel"/.test(indexHtml));
+  check("public/app.js exposes loadCounterfeitGuide",
+    /async\s+function\s+loadCounterfeitGuide\s*\(|function\s+loadCounterfeitGuide\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderCounterfeitGuide",
+    /function\s+renderCounterfeitGuide\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderCounterfeitReportingChannels",
+    /function\s+renderCounterfeitReportingChannels\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderCounterfeitSignals",
+    /function\s+renderCounterfeitSignals\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderCounterfeitEvidenceChecklist",
+    /function\s+renderCounterfeitEvidenceChecklist\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderCounterfeitRewardCaution",
+    /function\s+renderCounterfeitRewardCaution\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderCounterfeitExamples",
+    /function\s+renderCounterfeitExamples\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderCounterfeitOfficialLinks",
+    /function\s+renderCounterfeitOfficialLinks\s*\(/.test(appJsHome));
+  check("public/styles.css declares .counterfeit-guide-card",
+    /\.counterfeit-guide-card\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .counterfeit-checklist",
+    /\.counterfeit-checklist\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .counterfeit-warning",
+    /\.counterfeit-warning\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .counterfeit-link",
+    /\.counterfeit-link\s*\{/.test(stylesRaw));
+
+  // README + docs
+  const readmeText = await readFileSafe(path.join(process.cwd(), "README.md"));
+  check("README.md contains Counterfeit Practical Guide section",
+    /##\s*Counterfeit\s*Practical\s*Guide\b/.test(readmeText));
+  check("README.md mentions GET /api/modules/counterfeit-goods/guide",
+    /GET\s+\/api\/modules\/counterfeit-goods\/guide/.test(readmeText));
+  check("docs/counterfeit_guide.md exists",
+    await fileExists(path.join(process.cwd(), "docs", "counterfeit_guide.md")));
+  for (const phrase of ["위조 확정", "범죄자", "사기꾼", "포상금 보장합니다"]) {
+    check(`README does not contain forbidden affirmative: ${phrase}`,
+      !readmeText.includes(phrase));
+  }
+}
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);

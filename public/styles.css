@@ -1008,3 +1008,100 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
   .false-ad-checklist { grid-template-columns: 1fr; }
   .false-ad-link { width: 100%; text-align: center; }
 }
+
+/* ---------- Counterfeit Practical Guide (실전 재점검 07) ---------- */
+.counterfeit-guide-section { background: #faf5ff; }
+.counterfeit-section-title {
+  margin: 18px 0 6px; font-size: 15px; font-weight: 700;
+  color: #6b21a8;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed #e9d5ff;
+}
+.counterfeit-guide-intro p { font-size: 12.5px; margin: 6px 0 0; }
+.counterfeit-guide-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.counterfeit-guide-card {
+  background: white;
+  border: 1px solid #e9d5ff;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.counterfeit-channel-header,
+.counterfeit-signal-header {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  align-items: center; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.counterfeit-channel-title,
+.counterfeit-signal-title {
+  margin: 0; font-size: 14px; font-weight: 700; color: #581c87;
+}
+.counterfeit-channel-desc { margin: 4px 0; font-size: 13px; color: #334155; }
+.counterfeit-why { margin: 6px 0 0; font-size: 12.5px; color: #475569; }
+.counterfeit-warning {
+  margin: 6px 0 0;
+  background: #fff7ed; border: 1px solid #fed7aa;
+  color: #7c2d12; font-size: 12px;
+  padding: 5px 8px; border-radius: 6px;
+}
+.counterfeit-example-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.counterfeit-example-list li { margin: 2px 0; }
+.counterfeit-example-list code {
+  background: #f5f3ff; padding: 1px 6px; border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; color: #6b21a8;
+}
+
+.counterfeit-checklist {
+  list-style: none; padding: 0; margin: 6px 0 0;
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.counterfeit-checklist li {
+  display: grid; grid-template-columns: 48px 1fr; gap: 8px;
+  background: white; border: 1px solid #e9d5ff;
+  border-radius: 8px; padding: 8px 10px;
+  align-items: start;
+}
+.counterfeit-checklist li.required { border-color: #c4b5fd; background: #f5f3ff; }
+.counterfeit-checklist li.optional { background: #f8fafc; border-color: #e2e8f0; }
+.counterfeit-check-badge {
+  background: #8b5cf6; color: white;
+  font-size: 11px; font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-align: center;
+  align-self: start;
+}
+.counterfeit-checklist li.optional .counterfeit-check-badge { background: #94a3b8; }
+.counterfeit-check-label { font-size: 13px; font-weight: 600; color: #581c87; }
+.counterfeit-check-hint { margin-top: 2px; font-size: 11.5px; }
+
+.counterfeit-link {
+  display: inline-block; padding: 5px 10px;
+  background: #8b5cf6; color: white;
+  text-decoration: none; border-radius: 6px;
+  font-size: 12.5px; font-weight: 600;
+  word-break: break-all;
+}
+.counterfeit-link:hover { background: #7c3aed; }
+
+.counterfeit-reward-caution { background: #fff7ed; border-color: #fed7aa; }
+.counterfeit-reward-caution .counterfeit-signal-title { color: #7c2d12; }
+.counterfeit-reward-caution p { font-size: 13px; color: #7c2d12; margin: 6px 0; }
+
+.counterfeit-example { border-color: #c4b5fd; }
+.counterfeit-example-suspicious { background: #fef2f2; border-color: #fecaca; }
+.counterfeit-example-suspicious .counterfeit-signal-title { color: #991b1b; }
+.counterfeit-example-normal { background: #ecfdf5; border-color: #a7f3d0; }
+.counterfeit-example-normal .counterfeit-signal-title { color: #065f46; }
+.counterfeit-example-needs_review { background: #fffbeb; border-color: #fde68a; }
+.counterfeit-example-needs_review .counterfeit-signal-title { color: #92400e; }
+
+@media (max-width: 768px) {
+  .counterfeit-guide-grid { grid-template-columns: 1fr; }
+  .counterfeit-checklist { grid-template-columns: 1fr; }
+  .counterfeit-link { width: 100%; text-align: center; }
+}

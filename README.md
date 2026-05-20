@@ -720,6 +720,30 @@ The dashboard shows notice cards for:
 
 These notices are practical guidance only. They do not guarantee reward payment or report acceptance. 공식 기준 확인은 사람이 수행하며, 본 도구는 신고지원 / 검토 후보 도구입니다.
 
+## Counterfeit Practical Guide
+
+위조상품 온라인 판매 의심 탐지 모듈의 실전 기준을 제공합니다.
+
+포함 정보:
+
+- 특허청 신고포상금 제도
+- 지식재산침해 원스톱 신고상담센터
+- 위조상품 의심 신호
+- 필요 증거
+- 신고 전 체크리스트
+- 신고포상금 주의사항
+- 공식 링크
+
+이 가이드는 신고지원 도구 안내이며, 위조 여부 또는 포상금 지급을 확정하지 않습니다.
+특정 판매자를 형사적 표현으로 단정하지 않으며, 위조 여부 확정은 권리자/관계기관 판단이 필요합니다.
+공익레이더는 외부 신고기관에 자동으로 제출하지 않으며, 포상금 수령을 보장하지 않습니다.
+
+API:
+
+- `GET /api/modules/counterfeit-goods/guide`
+
+자세한 명세는 [`docs/counterfeit_guide.md`](./docs/counterfeit_guide.md) 참고.
+
 ## False Ad Practical Guide
 
 건강기능식품 온라인 허위·과대광고 모듈의 실전 기준을 제공합니다.

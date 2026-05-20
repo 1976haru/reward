@@ -232,6 +232,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindFalseAdGuide();
   renderFalseAdGuide(null);
   await loadFalseAdGuide();
+  bindCounterfeitGuide();
+  renderCounterfeitGuide(null);
+  await loadCounterfeitGuide();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -3219,6 +3222,198 @@ function renderFalseAdGuide(guide) {
 
     <h3 class="false-ad-section-title">공식 링크</h3>
     ${renderFalseAdOfficialLinks(guide.officialLinks)}
+  `;
+}
+
+// ---------- Counterfeit Practical Guide (실전 재점검 07) ----------
+const COUNTERFEIT_GUIDE_FALLBACK_HTML = `
+  <div class="counterfeit-guide-card counterfeit-guide-fallback">
+    <p class="muted">위조상품 신고·포상 가이드를 불러오지 못했습니다. 실전 신고 전 특허청과 지식재산침해 원스톱 신고상담센터의 공식 기준을 직접 확인하세요.</p>
+  </div>
+`;
+
+function bindCounterfeitGuide() {
+  const btn = document.getElementById("counterfeitGuideRefreshBtn");
+  if (btn) btn.addEventListener("click", loadCounterfeitGuide);
+}
+
+async function loadCounterfeitGuide() {
+  const root = document.getElementById("counterfeitGuidePanel");
+  if (!root) return;
+  try {
+    const res = await fetch("/api/modules/counterfeit-goods/guide");
+    const data = await res.json();
+    if (!data.ok || !data.guide) throw new Error(data.message || "counterfeit guide failed");
+    renderCounterfeitGuide(data.guide);
+  } catch (err) {
+    root.innerHTML = COUNTERFEIT_GUIDE_FALLBACK_HTML + `<p class="muted" style="margin-top:8px;font-size:12px;">[debug] ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderCounterfeitReportingChannels(channels) {
+  if (!Array.isArray(channels) || channels.length === 0) {
+    return `<p class="muted">신고처 정보가 없습니다.</p>`;
+  }
+  const items = channels.map((c) => `
+    <div class="counterfeit-guide-card">
+      <div class="counterfeit-channel-header">
+        <h4 class="counterfeit-channel-title">${escapeHtml(c.agencyName || "")}</h4>
+        ${c.officialUrl ? `<a class="counterfeit-link" href="${escapeAttr(c.officialUrl)}" target="_blank" rel="noopener noreferrer">공식 페이지 ↗</a>` : `<span class="badge muted">공식 페이지 직접 확인</span>`}
+      </div>
+      <p class="counterfeit-channel-desc">${escapeHtml(c.description || "")}</p>
+      <p class="counterfeit-warning">⚠ ${escapeHtml(c.caution || "")}</p>
+    </div>
+  `).join("");
+  return `<div class="counterfeit-guide-grid">${items}</div>`;
+}
+
+function renderCounterfeitSignals(signals) {
+  if (!Array.isArray(signals) || signals.length === 0) {
+    return `<p class="muted">위조상품 의심 신호가 없습니다.</p>`;
+  }
+  const levelLabel = (lv) => lv === "HIGH" ? '<span class="badge danger">HIGH 검토</span>'
+    : lv === "MEDIUM" ? '<span class="badge warn">MEDIUM 검토</span>'
+    : '<span class="badge muted">LOW 검토</span>';
+  const items = signals.map((s) => `
+    <div class="counterfeit-guide-card">
+      <div class="counterfeit-signal-header">
+        <h4 class="counterfeit-signal-title">${escapeHtml(s.category || "")}</h4>
+        ${levelLabel(s.reviewLevel || "MEDIUM")}
+      </div>
+      <ul class="counterfeit-example-list">
+        ${(s.examples || []).map((ex) => `<li><code>${escapeHtml(ex)}</code></li>`).join("")}
+      </ul>
+      <p class="counterfeit-why">${escapeHtml(s.whyItMatters || "")}</p>
+    </div>
+  `).join("");
+  return `<div class="counterfeit-guide-grid">${items}</div>`;
+}
+
+function renderCounterfeitEvidenceChecklist(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `<p class="muted">증거 체크리스트가 없습니다.</p>`;
+  }
+  return `
+    <ul class="counterfeit-checklist">
+      ${items.map((it) => `
+        <li class="${it.required ? "required" : "optional"}">
+          <span class="counterfeit-check-badge">${it.required ? "필수" : "선택"}</span>
+          <div>
+            <div class="counterfeit-check-label">${escapeHtml(it.label || "")}</div>
+            ${it.hint ? `<div class="counterfeit-check-hint muted">${escapeHtml(it.hint)}</div>` : ""}
+          </div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function renderCounterfeitPreReportChecklist(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `<p class="muted">신고 전 확인사항이 없습니다.</p>`;
+  }
+  return `
+    <ul class="counterfeit-checklist">
+      ${items.map((it) => `
+        <li class="${it.required ? "required" : "optional"}">
+          <span class="counterfeit-check-badge">${it.required ? "필수" : "선택"}</span>
+          <div class="counterfeit-check-label">${escapeHtml(it.label || "")}</div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function renderCounterfeitRewardCaution(caution) {
+  if (!caution) return "";
+  const notes = (caution.notes || []).map((n) => `<li>${escapeHtml(n)}</li>`).join("");
+  return `
+    <div class="counterfeit-guide-card counterfeit-reward-caution">
+      <h4 class="counterfeit-signal-title">${escapeHtml(caution.title || "위조상품 신고포상금 기준 안내")}</h4>
+      <p>${escapeHtml(caution.summary || "")}</p>
+      <ul class="counterfeit-example-list">${notes}</ul>
+      <p class="counterfeit-warning">⚠ 포상금 수령을 보장하지 않습니다. 위조 여부 확정은 권리자/관계기관 판단이 필요합니다.</p>
+    </div>
+  `;
+}
+
+function renderCounterfeitExamples(examples) {
+  if (!Array.isArray(examples) || examples.length === 0) {
+    return `<p class="muted">예시가 없습니다.</p>`;
+  }
+  const groups = { suspicious: [], normal: [], needs_review: [] };
+  for (const e of examples) {
+    const cat = e.category || "needs_review";
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(e);
+  }
+  const groupLabel = { suspicious: "위조상품 의심 후보", normal: "참고 예시", needs_review: "맥락 확인 필요" };
+  const cards = Object.keys(groups).map((cat) => `
+    <div class="counterfeit-guide-card counterfeit-example counterfeit-example-${cat}">
+      <h4 class="counterfeit-signal-title">${escapeHtml(groupLabel[cat] || cat)}</h4>
+      <ul class="counterfeit-example-list">
+        ${groups[cat].map((e) => `
+          <li>
+            <code>${escapeHtml(e.text || "")}</code>
+            ${e.explanation ? `<div class="counterfeit-check-hint muted">${escapeHtml(e.explanation)}</div>` : ""}
+          </li>
+        `).join("")}
+      </ul>
+    </div>
+  `).join("");
+  return `<div class="counterfeit-guide-grid">${cards}</div>`;
+}
+
+function renderCounterfeitOfficialLinks(links) {
+  if (!Array.isArray(links) || links.length === 0) {
+    return `<p class="muted">공식 링크가 없습니다.</p>`;
+  }
+  return `
+    <div class="counterfeit-guide-grid">
+      ${links.map((l) => `
+        <div class="counterfeit-guide-card">
+          <a class="counterfeit-link" href="${escapeAttr(l.url || "")}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.label || l.url || "")} ↗</a>
+          <p class="counterfeit-warning">⚠ ${escapeHtml(l.caution || "공식 기준은 변경될 수 있으므로 실전 신고 전 사람이 직접 재확인하세요.")}</p>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderCounterfeitGuide(guide) {
+  const root = document.getElementById("counterfeitGuidePanel");
+  if (!root) return;
+  if (!guide) {
+    root.innerHTML = COUNTERFEIT_GUIDE_FALLBACK_HTML;
+    return;
+  }
+  root.innerHTML = `
+    <div class="counterfeit-guide-intro">
+      <h3 class="counterfeit-section-title">${escapeHtml(guide.displayName || "위조상품 신고·포상 가이드")}</h3>
+      <p class="muted">${escapeHtml(guide.safetyNotice || "이 가이드는 신고지원용이며, 위조 여부 또는 포상금 지급을 확정하지 않습니다.")}</p>
+    </div>
+
+    <h3 class="counterfeit-section-title">신고처</h3>
+    ${renderCounterfeitReportingChannels(guide.reportingChannels)}
+
+    <h3 class="counterfeit-section-title">위조상품 의심 신호</h3>
+    <p class="muted">아래 신호는 위조 확정이 아니라, 사람이 추가 점검해야 할 위조상품 의심 후보 분류입니다.</p>
+    ${renderCounterfeitSignals(guide.suspiciousSignals)}
+
+    <h3 class="counterfeit-section-title">필요 증거 체크리스트</h3>
+    ${renderCounterfeitEvidenceChecklist(guide.evidenceChecklist)}
+
+    <h3 class="counterfeit-section-title">신고 전 확인사항</h3>
+    ${renderCounterfeitPreReportChecklist(guide.preReportChecklist)}
+
+    <h3 class="counterfeit-section-title">신고포상금 주의사항</h3>
+    ${renderCounterfeitRewardCaution(guide.rewardCaution)}
+
+    <h3 class="counterfeit-section-title">예시 문구</h3>
+    ${renderCounterfeitExamples(guide.examples)}
+
+    <h3 class="counterfeit-section-title">공식 링크</h3>
+    ${renderCounterfeitOfficialLinks(guide.officialLinks)}
   `;
 }
 
