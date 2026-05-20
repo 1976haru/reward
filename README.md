@@ -720,6 +720,25 @@ The dashboard shows notice cards for:
 
 These notices are practical guidance only. They do not guarantee reward payment or report acceptance. 공식 기준 확인은 사람이 수행하며, 본 도구는 신고지원 / 검토 후보 도구입니다.
 
+## UI Workflow
+
+공익레이더 UI는 다음 흐름으로 구성됩니다.
+
+1. 홈 (Home) — 오늘 상태와 다음 행동 추천
+2. 후보 찾기 (Discover) — 모듈/주제 선택, Scout 후보 발굴
+3. 분석/증거 (Analyze) — 본문 분석, Rule/AI/Score, 증거 패키지
+4. 검토 대기열 (Review) — Human Review Queue
+5. 신고서 초안 (Report) — 신고서 초안 흐름과 공식 신고처 빠른 이동
+6. 결과 기록 (Outcome) — Outcome Tracker
+7. 가이드 (Guide) — Q&A, Reward Registry, 모듈별 Practical Guide (아코디언)
+8. 운영/품질 (Ops) — 대시보드 상세 · Eval · Feedback · Trace · Scheduler · 프로토타입 분석
+9. 설정 (Settings) — Settings · Privacy
+
+상단 헤더는 제품명·실행 모드 배지·API 연결 상태·자동신고 없음 배지·오늘 날짜를 표시합니다.
+좌측 사이드바(데스크탑)는 워크플로우 메뉴이며, 태블릿/모바일에서는 상단 가로 스크롤 탭으로 변환됩니다.
+
+자세한 내용은 [`docs/ui_workflow.md`](./docs/ui_workflow.md) 참고.
+
 ## Subsidy Practical Guide
 
 보조금 부정수급 의심 후보 탐지 모듈의 실전 기준을 제공합니다.

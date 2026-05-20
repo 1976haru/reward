@@ -196,8 +196,192 @@ function readLS(key, fallback) {
 }
 function writeLS(key, val) { try { localStorage.setItem(key, val); } catch { /* ignore */ } }
 
+// ---------- View navigation (실전 재점검 10) ----------
+const APP_VIEWS = ["home", "discover", "analyze", "review", "report", "outcome", "guide", "ops", "settings"];
+const APP_VIEW_LS_KEY = "rewardAgent.activeView";
+
+function initialView() {
+  // URL hash 우선, 다음 localStorage, 기본 home.
+  try {
+    const hash = (location.hash || "").replace(/^#/, "").trim();
+    if (APP_VIEWS.includes(hash)) return hash;
+  } catch { /* ignore */ }
+  try {
+    const saved = localStorage.getItem(APP_VIEW_LS_KEY);
+    if (saved && APP_VIEWS.includes(saved)) return saved;
+  } catch { /* ignore */ }
+  return "home";
+}
+
+function switchView(view) {
+  if (!APP_VIEWS.includes(view)) view = "home";
+  document.querySelectorAll(".view-section[data-view]").forEach((el) => {
+    if (el.getAttribute("data-view") === view) el.classList.add("is-active");
+    else el.classList.remove("is-active");
+  });
+  document.querySelectorAll(".nav-button[data-view-target]").forEach((btn) => {
+    if (btn.getAttribute("data-view-target") === view) btn.classList.add("is-active");
+    else btn.classList.remove("is-active");
+  });
+  try { localStorage.setItem(APP_VIEW_LS_KEY, view); } catch { /* ignore */ }
+  try { history.replaceState(null, "", "#" + view); } catch { /* ignore */ }
+  const main = document.getElementById("appMain");
+  if (main && typeof main.scrollTo === "function") main.scrollTo({ top: 0, behavior: "auto" });
+  else window.scrollTo({ top: 0, behavior: "auto" });
+}
+
+function bindViewNav() {
+  // 좌측 nav + quick action + header settings 버튼 + 어디서든 data-view-target 버튼.
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    const btn = t.closest("[data-view-target]");
+    if (!btn) return;
+    const view = btn.getAttribute("data-view-target");
+    if (!view) return;
+    e.preventDefault();
+    switchView(view);
+  });
+  window.addEventListener("hashchange", () => {
+    const v = (location.hash || "").replace(/^#/, "").trim();
+    if (APP_VIEWS.includes(v)) switchView(v);
+  });
+}
+
+// ---------- Home overview (실전 재점검 10) ----------
+function renderAppHeaderMeta(data) {
+  if (!data) return;
+  const modeBadge = document.getElementById("headerModeBadge");
+  const openaiBadge = document.getElementById("headerOpenAiBadge");
+  const naverBadge = document.getElementById("headerNaverBadge");
+  const dateEl = document.getElementById("headerDate");
+  const mode = data.mode || {};
+  const api = data.apiConnections || {};
+  if (modeBadge) {
+    const rm = mode.runtimeMode || "MOCK";
+    modeBadge.textContent = "MODE: " + rm;
+    modeBadge.classList.toggle("status-chip-ok", rm === "REAL_READY");
+    modeBadge.classList.toggle("status-chip-warn", rm === "MIXED");
+    modeBadge.classList.toggle("status-chip-off", rm === "MOCK");
+  }
+  if (openaiBadge) {
+    const ok = Boolean(api.openai && api.openai.configured);
+    openaiBadge.textContent = "OpenAI: " + (ok ? "연결됨" : "미연결");
+    openaiBadge.classList.toggle("status-chip-ok", ok);
+    openaiBadge.classList.toggle("status-chip-off", !ok);
+  }
+  if (naverBadge) {
+    const ok = Boolean(api.naver && api.naver.configured);
+    naverBadge.textContent = "Naver: " + (ok ? "연결됨" : "미연결");
+    naverBadge.classList.toggle("status-chip-ok", ok);
+    naverBadge.classList.toggle("status-chip-off", !ok);
+  }
+  if (dateEl && data.todayDate) dateEl.textContent = data.todayDate;
+}
+
+function renderHomeOverview(data) {
+  const kpiRoot = document.getElementById("homeOverviewKpi");
+  const actionsRoot = document.getElementById("homeOverviewActions");
+  if (!kpiRoot && !actionsRoot) return;
+  if (!data) {
+    if (kpiRoot) kpiRoot.innerHTML = '<p class="muted">대시보드 데이터를 불러오는 중입니다. 잠시 후 다시 확인하세요.</p>';
+    if (actionsRoot) actionsRoot.innerHTML = "";
+    return;
+  }
+  const kpis = Array.isArray(data.kpis) ? data.kpis : [];
+  const homeKpis = kpis
+    .filter((k) => ["candidates_today", "in_review", "report_drafts", "submitted_records", "eval_f1", "dedupe_rate"].includes(k.key))
+    .slice(0, 6);
+  if (kpiRoot) {
+    if (homeKpis.length === 0) {
+      kpiRoot.innerHTML = '<p class="muted">표시할 KPI 가 없습니다.</p>';
+    } else {
+      kpiRoot.innerHTML = homeKpis.map((k) => `
+        <div class="home-kpi-cell kpi-${escapeAttr(k.cls || "muted")}">
+          <div class="home-kpi-label">${escapeHtml(k.label || "")}</div>
+          <div class="home-kpi-value">${escapeHtml(String(k.value))}</div>
+          ${k.hint ? `<div class="home-kpi-hint muted">${escapeHtml(k.hint)}</div>` : ""}
+        </div>
+      `).join("");
+    }
+  }
+  if (actionsRoot) {
+    actionsRoot.innerHTML = buildHomeActionsHtml(data);
+  }
+}
+
+function buildHomeActionsHtml(data) {
+  const actions = [];
+  const mode = (data.mode && data.mode.runtimeMode) || "MOCK";
+  const api = data.apiConnections || {};
+  const today = data.today || {};
+  const stage = (data.readiness && data.readiness.stage) || "";
+  const dryRun = data?.notices?.find?.(() => false); // placeholder; no-op
+  void dryRun;
+
+  if (mode === "MOCK") {
+    actions.push({
+      view: "discover",
+      label: "Mock 후보 발굴 실행",
+      desc: "현재 MOCK 모드입니다. 후보 찾기 화면에서 Mock 후보 발굴을 먼저 검증하세요."
+    });
+  }
+  if ((today.newCases ?? 0) > 0 || (today.collectedCandidates ?? 0) > 0) {
+    actions.push({
+      view: "analyze",
+      label: "후보 1건 분석하기",
+      desc: "오늘 수집된 후보가 있습니다. 분석/증거 화면에서 본문 분석을 진행하세요."
+    });
+  }
+  if ((today.inReview ?? 0) > 0) {
+    actions.push({
+      view: "review",
+      label: "검토 대기열 점검",
+      desc: `${today.inReview}건이 검토 대기 중입니다.`
+    });
+  }
+  if ((today.reportDrafts ?? 0) > 0) {
+    actions.push({
+      view: "report",
+      label: "신고서 초안 확인하기",
+      desc: `${today.reportDrafts}건의 신고서 초안이 준비되어 있습니다.`
+    });
+  }
+  if (api.openai && api.openai.configured === false) {
+    actions.push({
+      view: "settings",
+      label: "API 키 연결 상태 확인",
+      desc: "OpenAI / Naver API 키가 미연결입니다. 설정 화면에서 상태를 확인하세요."
+    });
+  }
+  actions.push({
+    view: "settings",
+    label: "개인정보 스캔 확인",
+    desc: "설정 화면 아래 개인정보 보호 카드에서 스캔/마스킹을 점검할 수 있습니다."
+  });
+  // 가장 위 3개만 사용
+  const top = actions.slice(0, 3);
+  if (top.length === 0) {
+    return '<p class="muted">현재 추천할 다음 행동이 없습니다. 좌측 메뉴에서 원하는 단계로 이동하세요.</p>';
+  }
+  const cards = top.map((a) => `
+    <button type="button" class="home-action-card" data-view-target="${escapeAttr(a.view)}">
+      <div class="home-action-label">${escapeHtml(a.label)} →</div>
+      <div class="home-action-desc muted">${escapeHtml(a.desc)}</div>
+    </button>
+  `).join("");
+  return `
+    <h4 class="home-overview-subtitle">다음 행동 추천 (현재 상태 기준)</h4>
+    <div class="home-action-grid">${cards}</div>
+    <p class="muted home-overview-stage" style="margin-top:8px;font-size:12px;">실전 가능 단계: <code>${escapeHtml(stage || "—")}</code> · 자동 신고는 수행하지 않으며, 사람 검토가 필수입니다.</p>
+  `;
+}
+
 // ---------- Boot ----------
 document.addEventListener("DOMContentLoaded", async () => {
+  bindViewNav();
+  switchView(initialView());
+  renderHomeOverview(null);
   await loadModuleRegistry();
   renderModules();
   renderGuide();
@@ -3858,12 +4042,15 @@ async function loadDashboardSummary() {
     if (root) renderDashboard(root, data);
     renderHomeNotice(data);
     renderNotices(data);
+    renderHomeOverview(data);
+    renderAppHeaderMeta(data);
   } catch (err) {
     state.dashboard.lastError = err.message;
     if (root) root.innerHTML = `<div class="code">대시보드 데이터를 불러오지 못했습니다: ${escapeHtml(err.message)}</div>`;
     if (homeRoot) homeRoot.innerHTML = `<div class="code">상태 정보를 불러오지 못했습니다: ${escapeHtml(err.message)}</div>`;
     // 공지 카드는 비어도 절대 사라지지 않게 fallback 표시
     renderNotices(null);
+    renderHomeOverview(null);
   }
 }
 

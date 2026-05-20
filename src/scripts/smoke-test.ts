@@ -1477,8 +1477,8 @@ const PRODUCT_NAME = "공익레이더";
 check("dashboard app.name === 공익레이더", dashSummary.app.name === PRODUCT_NAME);
 check("public/index.html <title> contains 공익레이더",
   /<title>[^<]*공익레이더[^<]*<\/title>/.test(indexHtml));
-check("public/index.html hero h1 is 공익레이더",
-  /<h1>\s*공익레이더\s*<\/h1>/.test(indexHtml));
+check("public/index.html primary h1 is 공익레이더",
+  /<h1[^>]*>\s*공익레이더\s*<\/h1>/.test(indexHtml));
 check("public/index.html body contains 공익레이더", indexHtml.includes(PRODUCT_NAME));
 check("README.md heading contains 공익레이더",
   /^#\s+공익레이더/m.test(readmeRaw));
@@ -3516,6 +3516,166 @@ check("outcome UI does NOT call localStorage",
     check(`README does not contain forbidden affirmative: ${phrase}`,
       !readmeText.includes(phrase));
   }
+}
+
+// 37) UI Workflow Redesign — 실전 재점검 10
+{
+  // app-shell + 9 view-section + nav + key existing IDs intact
+  check("public/index.html includes app-shell wrapper",
+    /class="app-shell"/.test(indexHtml));
+  check("public/index.html includes app-header", /class="app-header"/.test(indexHtml));
+  check("public/index.html includes app-sidebar", /class="app-sidebar"/.test(indexHtml));
+  check("public/index.html includes app-main", /class="app-main"/.test(indexHtml));
+  check("public/index.html includes app-nav", /class="app-nav"/.test(indexHtml));
+
+  const requiredViews = ["home", "discover", "analyze", "review", "report", "outcome", "guide", "ops", "settings"];
+  for (const v of requiredViews) {
+    check(`public/index.html declares view section data-view="${v}"`,
+      new RegExp(`data-view="${v}"`).test(indexHtml));
+    check(`public/index.html declares nav button data-view-target="${v}"`,
+      new RegExp(`data-view-target="${v}"`).test(indexHtml));
+  }
+  check("public/index.html declares default active view (home)",
+    /<section[^>]*class="view-section is-active"[^>]*data-view="home"/.test(indexHtml));
+
+  // Status chips in header
+  check("public/index.html includes headerModeBadge",
+    /id="headerModeBadge"/.test(indexHtml));
+  check("public/index.html includes headerOpenAiBadge",
+    /id="headerOpenAiBadge"/.test(indexHtml));
+  check("public/index.html includes headerNaverBadge",
+    /id="headerNaverBadge"/.test(indexHtml));
+  check("public/index.html includes 자동신고 없음 safety chip",
+    /자동신고\s*없음/.test(indexHtml));
+
+  // Home overview + quick actions
+  check("public/index.html includes homeOverviewCard",
+    /id="homeOverviewCard"/.test(indexHtml));
+  check("public/index.html includes homeOverviewKpi",
+    /id="homeOverviewKpi"/.test(indexHtml));
+  check("public/index.html includes homeOverviewActions",
+    /id="homeOverviewActions"/.test(indexHtml));
+  check("public/index.html includes quick-action-grid",
+    /class="quick-action-grid"/.test(indexHtml));
+
+  // Existing IDs must still be present (do not delete features)
+  const preservedIds = [
+    "homeNoticeCard", "homeNoticePanel", "noticeCardSection", "noticePanel",
+    "guideQaSection", "guideQaPanel",
+    "settingsCard", "settingsPanel",
+    "rewardRegistryCard", "rewardRegistryPanel",
+    "falseAdGuideCard", "falseAdGuidePanel",
+    "counterfeitGuideCard", "counterfeitGuidePanel",
+    "bidCollusionGuideCard", "bidCollusionGuidePanel",
+    "subsidyGuideCard", "subsidyGuidePanel",
+    "moduleList", "guidePanel",
+    "processBar", "discoveryStatus", "topicChips", "discoveryMode", "discoverBtn",
+    "candidateList", "manualSection", "analyzeForm", "url", "memo", "submitBtn",
+    "result", "evidence", "caseList",
+    "opsDashboardCard", "opsDashboard",
+    "evalDashboardCard", "evalDashboard",
+    "feedbackStatsCard", "feedbackStats",
+    "subsidyCard", "subsidyDashboard",
+    "bidCollusionCard", "bidDashboard",
+    "traceCard", "traceList",
+    "privacyCard", "privacyScanResult",
+    "outcomeCard", "outcomeCaseId", "outcomeStats", "outcomeFollowUp", "outcomeList",
+    "schedulerPanel", "schedulerRunBtn"
+  ];
+  for (const id of preservedIds) {
+    check(`public/index.html preserves existing id="${id}"`,
+      new RegExp(`id="${id}"`).test(indexHtml));
+  }
+
+  // Guide accordion (collapsed by default for module-specific guides)
+  const moduleGuideAccordions = [
+    "falseAdGuideAccordion",
+    "counterfeitGuideAccordion",
+    "bidCollusionGuideAccordion",
+    "subsidyGuideAccordion"
+  ];
+  for (const acc of moduleGuideAccordions) {
+    check(`module guide accordion ${acc} exists`,
+      new RegExp(`id="${acc}"`).test(indexHtml));
+    // Must NOT have open attribute (collapsed by default)
+    const accBlock = indexHtml.match(new RegExp(`<details[^>]*id="${acc}"[^>]*>`));
+    check(`module guide accordion ${acc} is collapsed by default`,
+      accBlock !== null && !/\sopen(\s|>)/.test(accBlock[0]));
+  }
+
+  // Safety notice retained in sidebar/footer
+  check("sidebar foot contains 자동 신고 미수행 문구",
+    /공익레이더는\s*자동\s*신고를?\s*수행하지\s*않/.test(indexHtml));
+  check("footer retained with 자동 신고 미수행 문구",
+    /자동\s*신고를?\s*수행하지\s*않습니다/.test(indexHtml));
+
+  // app.js: view nav + home overview functions
+  check("public/app.js exposes switchView",
+    /function\s+switchView\s*\(/.test(appJsHome));
+  check("public/app.js exposes bindViewNav",
+    /function\s+bindViewNav\s*\(/.test(appJsHome));
+  check("public/app.js exposes initialView",
+    /function\s+initialView\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderHomeOverview",
+    /function\s+renderHomeOverview\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderAppHeaderMeta",
+    /function\s+renderAppHeaderMeta\s*\(/.test(appJsHome));
+  check("public/app.js exposes buildHomeActionsHtml",
+    /function\s+buildHomeActionsHtml\s*\(/.test(appJsHome));
+  check("public/app.js APP_VIEWS list declared",
+    /const\s+APP_VIEWS\s*=\s*\[/.test(appJsHome));
+  check("public/app.js loadDashboardSummary calls renderHomeOverview",
+    /renderHomeOverview\s*\(\s*data\s*\)/.test(appJsHome));
+  check("public/app.js loadDashboardSummary calls renderAppHeaderMeta",
+    /renderAppHeaderMeta\s*\(\s*data\s*\)/.test(appJsHome));
+
+  // styles.css: app shell + view-section + responsive
+  check("public/styles.css declares .app-shell",
+    /\.app-shell\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .app-header",
+    /\.app-header\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .app-sidebar",
+    /\.app-sidebar\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .app-main",
+    /\.app-main\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .view-section",
+    /\.view-section\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .view-section.is-active",
+    /\.view-section\.is-active\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .nav-button",
+    /\.nav-button\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .nav-button.is-active",
+    /\.nav-button\.is-active\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .quick-action-grid",
+    /\.quick-action-grid\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .status-chip",
+    /\.status-chip\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .compact-card",
+    /\.compact-card\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .section-toolbar",
+    /\.section-toolbar\s*\{/.test(stylesRaw));
+  check("public/styles.css declares responsive @media 1024",
+    /@media\s*\(max-width:\s*1024px\)/.test(stylesRaw));
+  check("public/styles.css declares responsive @media 768",
+    /@media\s*\(max-width:\s*768px\)/.test(stylesRaw));
+  check("public/styles.css declares responsive @media 480",
+    /@media\s*\(max-width:\s*480px\)/.test(stylesRaw));
+
+  // No forbidden affirmative phrases regressed
+  const UI_FORBIDDEN_AFFIRMATIVE = ["포상금 확정", "수익 확정", "신고하면 지급", "무조건 지급", "포상금 보장합니다"];
+  for (const phrase of UI_FORBIDDEN_AFFIRMATIVE) {
+    check(`public/index.html does not contain forbidden affirmative: ${phrase}`,
+      !indexHtml.includes(phrase));
+    check(`public/app.js does not contain forbidden affirmative: ${phrase}`,
+      !appJsHome.includes(phrase));
+  }
+
+  // README + docs
+  const readmeText = await readFileSafe(path.join(process.cwd(), "README.md"));
+  check("README.md contains UI Workflow section",
+    /##\s*UI\s*Workflow\b/.test(readmeText));
+  check("docs/ui_workflow.md exists",
+    await fileExists(path.join(process.cwd(), "docs", "ui_workflow.md")));
 }
 
 if (failures.length > 0) {
