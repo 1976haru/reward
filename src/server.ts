@@ -28,6 +28,7 @@ import { traceMiddleware } from "./middleware/traceMiddleware.js";
 import { privacyRouter } from "./routes/privacy.js";
 import { outcomesRouter, caseOutcomesRouter } from "./routes/outcomes.js";
 import { guideRouter } from "./routes/guide.js";
+import { settingsRouter } from "./routes/settings.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -159,6 +160,10 @@ app.use("/api/dashboard", dashboardRouter);
 
 // 사용자 가이드 / Q&A (실전 재점검 03) — 자동 신고/포상금 보장 표현 없음.
 app.use("/api/guide", guideRouter);
+
+// Settings (실전 재점검 04) — Mock/Real 모드 / API 키 연결 / Scheduler / Privacy / Storage / Safety / Readiness 상태 조회 전용.
+// API 키 원문은 응답에 포함되지 않으며, 외부 신고기관 자동 제출 기능은 제공하지 않는다.
+app.use("/api/settings", settingsRouter);
 
 // 보조금 부정수급 의심 후보 프로토타입 (체크리스트 25) — sample 기반 분석만 지원.
 app.use("/api/subsidy", subsidyRouter);

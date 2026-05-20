@@ -2478,6 +2478,99 @@ const outcomeSection = appJs.slice(appJs.indexOf("// ---------- Outcome Tracker"
 check("outcome UI does NOT call localStorage",
   outcomeSection.length > 0 && !/localStorage\.(setItem|getItem|removeItem)\s*\(\s*['\"][^'\"]*outcome/i.test(outcomeSection));
 
+// 31) Settings — 실전 재점검 04 (설정 / 실행 환경 상태 조회 전용)
+{
+  const { settingsService, SETTINGS_SAFETY_NOTICE, maskSecretStatusOnly } =
+    await import("../services/settings/SettingsService.js");
+
+  const s = settingsService.getSettings();
+  // 핵심 응답 구조
+  check("settings.app.name === 공익레이더", s.app?.name === "공익레이더");
+  check("settings.app.port is number", typeof s.app?.port === "number" && s.app.port > 0);
+  check("settings.runtime.runtimeMode in enum",
+    ["MOCK", "MIXED", "REAL_READY"].includes(s.runtime?.runtimeMode));
+  check("settings.apiConnections.openai.configured is boolean",
+    typeof s.apiConnections?.openai?.configured === "boolean");
+  check("settings.apiConnections.naver.configured is boolean",
+    typeof s.apiConnections?.naver?.configured === "boolean");
+  check("settings.scheduler.enabled is boolean",
+    typeof s.scheduler?.enabled === "boolean");
+  check("settings.privacy.dryRun is boolean",
+    typeof s.privacy?.dryRun === "boolean");
+  check("settings.storage.dataDir present", typeof s.storage?.dataDir === "string" && s.storage.dataDir.length > 0);
+  check("settings.safety.autoSubmitAllowed === false", s.safety?.autoSubmitAllowed === false);
+  check("settings.safety.humanReviewRequired === true", s.safety?.humanReviewRequired === true);
+  check("settings.safety.approvalGate === 'enabled'", s.safety?.approvalGate === "enabled");
+  check("settings.readiness.stage present", typeof s.readiness?.stage === "string" && s.readiness.stage.length > 0);
+  check("settings.safetyNotice === SETTINGS_SAFETY_NOTICE",
+    s.safetyNotice === SETTINGS_SAFETY_NOTICE);
+
+  // API 키 원문 미노출 — payload JSON 전체에 시크릿 원문이 포함되지 않아야 한다.
+  const settingsJson = JSON.stringify(s);
+  const openAiKey = (process.env.OPENAI_API_KEY ?? "").trim();
+  const naverSecret = (process.env.NAVER_CLIENT_SECRET ?? "").trim();
+  const naverId = (process.env.NAVER_CLIENT_ID ?? "").trim();
+  check("settings payload does not contain OPENAI_API_KEY raw value",
+    openAiKey.length === 0 || !settingsJson.includes(openAiKey));
+  check("settings payload does not contain NAVER_CLIENT_SECRET raw value",
+    naverSecret.length === 0 || !settingsJson.includes(naverSecret));
+  check("settings payload does not contain NAVER_CLIENT_ID raw value",
+    naverId.length === 0 || !settingsJson.includes(naverId));
+
+  // maskSecretStatusOnly helper
+  check("maskSecretStatusOnly empty → configured false",
+    maskSecretStatusOnly("").configured === false);
+  check("maskSecretStatusOnly missing → configured false",
+    maskSecretStatusOnly(undefined).configured === false);
+  check("maskSecretStatusOnly non-empty → configured true",
+    maskSecretStatusOnly("abc").configured === true);
+  check("maskSecretStatusOnly never returns the raw value",
+    !Object.prototype.hasOwnProperty.call(maskSecretStatusOnly("super-secret-key"), "value"));
+
+  // UI 마커 / 렌더 함수 존재
+  check("public/index.html includes settingsCard id",
+    /id="settingsCard"/.test(indexHtml) || /id="settingsSection"/.test(indexHtml));
+  check("public/index.html includes settingsPanel",
+    /id="settingsPanel"/.test(indexHtml));
+  check("public/app.js exposes renderSettings",
+    /function\s+renderSettings\s*\(/.test(appJsHome));
+  check("public/app.js exposes loadSettings",
+    /async\s+function\s+loadSettings\s*\(|function\s+loadSettings\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderApiConnectionSettings",
+    /function\s+renderApiConnectionSettings\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderSafetySettings",
+    /function\s+renderSafetySettings\s*\(/.test(appJsHome));
+  check("public/styles.css declares .settings-card",
+    /\.settings-card\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .settings-badge",
+    /\.settings-badge\s*\{/.test(stylesRaw));
+
+  // README 와 docs
+  const readmeText = await readFileSafe(path.join(process.cwd(), "README.md"));
+  check("README.md contains Settings section", /##\s*Settings\b/.test(readmeText));
+  check("README.md mentions GET /api/settings", /GET\s+\/api\/settings/.test(readmeText));
+  check("docs/settings.md exists",
+    await fileExists(path.join(process.cwd(), "docs", "settings.md")));
+
+  // 금지 표현이 Settings 관련 코드/문서에 없어야 한다.
+  const settingsForbiddenPhrases = ["자동 신고 활성화", "포상금 신청 자동화"];
+  const settingsServiceText = await readFileSafe(path.join(process.cwd(), "src", "services", "settings", "SettingsService.ts"));
+  const settingsRouteText = await readFileSafe(path.join(process.cwd(), "src", "routes", "settings.ts"));
+  const settingsDocText = await readFileSafe(path.join(process.cwd(), "docs", "settings.md"));
+  for (const phrase of settingsForbiddenPhrases) {
+    check(`SettingsService does not contain forbidden phrase: ${phrase}`,
+      !settingsServiceText.includes(phrase));
+    check(`settings route does not contain forbidden phrase: ${phrase}`,
+      !settingsRouteText.includes(phrase));
+    check(`docs/settings.md does not contain forbidden phrase: ${phrase}`,
+      !settingsDocText.includes(phrase));
+    check(`README Settings block does not contain forbidden phrase: ${phrase}`,
+      !readmeText.includes(phrase));
+    check(`settings payload does not contain forbidden phrase: ${phrase}`,
+      !settingsJson.includes(phrase));
+  }
+}
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);

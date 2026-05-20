@@ -223,6 +223,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindTrace();
   bindPrivacy();
   bindOutcome();
+  bindSettings();
+  renderSettings(null);
+  await loadSettings();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -2693,6 +2696,187 @@ function renderGuideQa(guide) {
       <p class="muted">⚠ ${escapeHtml(guide.safetyNotice || "공익레이더는 자동 신고를 수행하지 않으며, 포상금 수령을 보장하지 않습니다.")}</p>
       <p class="muted">${escapeHtml(guide.rewardDisclaimer || "")}</p>
     </div>
+  `;
+}
+
+// ---------- Settings (실전 재점검 04) ----------
+const SETTINGS_FALLBACK_HTML = `
+  <div class="settings-card settings-fallback">
+    <p class="muted">설정 정보를 불러오지 못했습니다. .env와 서버 실행 상태를 확인하세요.</p>
+  </div>
+`;
+
+function bindSettings() {
+  const btn = document.getElementById("settingsRefreshBtn");
+  if (btn) btn.addEventListener("click", loadSettings);
+}
+
+async function loadSettings() {
+  const root = document.getElementById("settingsPanel");
+  if (!root) return;
+  try {
+    const res = await fetch("/api/settings");
+    const data = await res.json();
+    if (!data.ok || !data.settings) throw new Error(data.message || "settings failed");
+    renderSettings(data.settings);
+  } catch (err) {
+    root.innerHTML = SETTINGS_FALLBACK_HTML + `<p class="muted" style="margin-top:8px;font-size:12px;">[debug] ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function settingsBadge(text, kind) {
+  const cls = kind === "ok" ? "ok" : kind === "warn" ? "warn" : kind === "off" ? "off" : "";
+  return `<span class="settings-badge ${cls}">${escapeHtml(text)}</span>`;
+}
+
+function settingsRow(label, valueHtml) {
+  return `
+    <div class="settings-row">
+      <div class="settings-label">${escapeHtml(label)}</div>
+      <div class="settings-value">${valueHtml}</div>
+    </div>
+  `;
+}
+
+function renderRuntimeSettings(runtime) {
+  if (!runtime) return "";
+  const modeKind = runtime.runtimeMode === "REAL_READY" ? "ok" : runtime.runtimeMode === "MIXED" ? "warn" : "off";
+  return `
+    <div class="settings-card">
+      <h4 class="settings-card-title">실행 모드</h4>
+      ${settingsRow("Runtime mode", `${settingsBadge(runtime.runtimeMode, modeKind)} <span class="settings-hint">${escapeHtml(runtime.label || "")}</span>`)}
+      ${settingsRow("MOCK_AI", runtime.mockAi ? settingsBadge("true", "warn") : settingsBadge("false", "ok"))}
+      ${settingsRow("MOCK_SCOUT", runtime.mockScout ? settingsBadge("true", "warn") : settingsBadge("false", "ok"))}
+      ${settingsRow("USE_DB", runtime.useDb ? settingsBadge("true", "ok") : settingsBadge("false", "off"))}
+      ${settingsRow("Scout mode", settingsBadge(runtime.scoutMode || "mock", runtime.scoutMode === "real" ? "ok" : "off"))}
+      ${settingsRow("NODE_ENV", `<code>${escapeHtml(runtime.nodeEnv || "")}</code>`)}
+    </div>
+  `;
+}
+
+function renderApiConnectionSettings(api) {
+  if (!api) return "";
+  const openai = api.openai || { configured: false, label: "미연결" };
+  const naver = api.naver || { configured: false, label: "미연결" };
+  return `
+    <div class="settings-card">
+      <h4 class="settings-card-title">API 연결 상태</h4>
+      ${settingsRow("OpenAI", `${settingsBadge(openai.configured ? "연결됨" : "미연결", openai.configured ? "ok" : "off")} <span class="settings-hint">API 키 원문은 표시되지 않습니다</span>`)}
+      ${settingsRow("Naver", `${settingsBadge(naver.configured ? "연결됨" : "미연결", naver.configured ? "ok" : "off")} <span class="settings-hint">API 키 원문은 표시되지 않습니다</span>`)}
+    </div>
+  `;
+}
+
+function renderSchedulerSettings(sch) {
+  if (!sch) return "";
+  return `
+    <div class="settings-card">
+      <h4 class="settings-card-title">Scheduler</h4>
+      ${settingsRow("활성", sch.enabled ? settingsBadge("enabled", "ok") : settingsBadge("disabled", "off"))}
+      ${settingsRow("cron", `<code>${escapeHtml(sch.cron || "")}</code>`)}
+      ${settingsRow("timezone", `<code>${escapeHtml(sch.timezone || "")}</code>`)}
+      ${settingsRow("mode", `<code>${escapeHtml(sch.mode || "")}</code>`)}
+      ${settingsRow("최대 후보", `<code>${Number(sch.maxCandidates || 0)}</code>`)}
+      ${settingsRow("topics", `<span class="settings-hint">${escapeHtml((sch.topics || []).join(", ") || "—")}</span>`)}
+      ${settingsRow("sources", `<span class="settings-hint">${escapeHtml((sch.sources || []).join(", ") || "—")}</span>`)}
+    </div>
+  `;
+}
+
+function renderPrivacySettings(privacy) {
+  if (!privacy) return "";
+  const rd = privacy.retentionDays || {};
+  return `
+    <div class="settings-card">
+      <h4 class="settings-card-title">개인정보 보호</h4>
+      ${settingsRow("Masking enabled", privacy.maskingEnabled ? settingsBadge("true", "ok") : settingsBadge("false", "warn"))}
+      ${settingsRow("Privacy dry-run", privacy.dryRun ? settingsBadge("true", "ok") : settingsBadge("false", "warn"))}
+      ${settingsRow("Retention (default)", `<code>${Number(rd.default || 0)}</code> 일`)}
+      ${settingsRow("Retention (trace)", `<code>${Number(rd.trace || 0)}</code> 일`)}
+      ${settingsRow("Retention (evidence)", `<code>${Number(rd.evidence || 0)}</code> 일`)}
+      ${settingsRow("Retention (report)", `<code>${Number(rd.report || 0)}</code> 일`)}
+      ${settingsRow("Retention (feedback)", `<code>${Number(rd.feedback || 0)}</code> 일`)}
+      ${settingsRow("Retention (case)", `<code>${Number(rd.case || 0)}</code> 일`)}
+    </div>
+  `;
+}
+
+function renderStorageSettings(storage) {
+  if (!storage) return "";
+  return `
+    <div class="settings-card">
+      <h4 class="settings-card-title">저장소 경로</h4>
+      ${settingsRow("DATA_DIR", `<code class="settings-path">${escapeHtml(storage.dataDir || "")}</code>`)}
+      ${settingsRow("EVIDENCE_DIR", `<code class="settings-path">${escapeHtml(storage.evidenceDir || "")}</code>`)}
+      ${settingsRow("REPORTS_DIR", `<code class="settings-path">${escapeHtml(storage.reportsDir || "")}</code>`)}
+      ${settingsRow("TRACE_DIR", `<code class="settings-path">${escapeHtml(storage.traceDir || "")}</code>`)}
+      ${settingsRow("FEEDBACK_DIR", `<code class="settings-path">${escapeHtml(storage.feedbackDir || "")}</code>`)}
+    </div>
+  `;
+}
+
+function renderSafetySettings(safety) {
+  if (!safety) return "";
+  const notes = (safety.notes || []).map((n) => `<li>${escapeHtml(n)}</li>`).join("");
+  return `
+    <div class="settings-card">
+      <h4 class="settings-card-title">안전 설정</h4>
+      ${settingsRow("자동 제출 허용", settingsBadge(String(safety.autoSubmitAllowed === true), safety.autoSubmitAllowed === true ? "warn" : "off"))}
+      ${settingsRow("사람 검토 필요", settingsBadge(String(safety.humanReviewRequired === true), "ok"))}
+      ${settingsRow("Approval Gate", settingsBadge(String(safety.approvalGate || "enabled"), safety.approvalGate === "enabled" ? "ok" : "warn"))}
+      ${notes ? `<ul class="settings-list">${notes}</ul>` : ""}
+    </div>
+  `;
+}
+
+function renderReadinessSettings(readiness) {
+  if (!readiness) return "";
+  const stageKind = readiness.stage === "HUMAN_REVIEW_READY" || readiness.stage === "OPERATION_READY" ? "ok"
+    : readiness.stage === "API_KEY_REQUIRED" || readiness.stage === "SETUP_REQUIRED" ? "warn" : "";
+  const blocking = (readiness.blockingItems || []).map((b) => `<li>${escapeHtml(b)}</li>`).join("");
+  const next = (readiness.nextActions || []).map((b) => `<li>${escapeHtml(b)}</li>`).join("");
+  return `
+    <div class="settings-card">
+      <h4 class="settings-card-title">Readiness</h4>
+      ${settingsRow("stage", `${settingsBadge(readiness.stage || "", stageKind)} <span class="settings-hint">${escapeHtml(readiness.label || "")}</span>`)}
+      ${blocking ? `<div class="settings-sublabel">blockingItems</div><ul class="settings-list">${blocking}</ul>` : `<div class="settings-sublabel">blockingItems</div><p class="muted" style="margin:4px 0 0;font-size:12px;">없음</p>`}
+      ${next ? `<div class="settings-sublabel">nextActions</div><ul class="settings-list">${next}</ul>` : ""}
+    </div>
+  `;
+}
+
+function renderAppSettings(app) {
+  if (!app) return "";
+  return `
+    <div class="settings-card">
+      <h4 class="settings-card-title">앱 정보</h4>
+      ${settingsRow("제품명", `<strong>${escapeHtml(app.name || "공익레이더")}</strong>`)}
+      ${settingsRow("버전", `<code>${escapeHtml(app.version || "")}</code>`)}
+      ${settingsRow("환경", `<code>${escapeHtml(app.environment || "")}</code>`)}
+      ${settingsRow("포트", `<code>${Number(app.port || 0)}</code>`)}
+    </div>
+  `;
+}
+
+function renderSettings(settings) {
+  const root = document.getElementById("settingsPanel");
+  if (!root) return;
+  if (!settings) {
+    root.innerHTML = SETTINGS_FALLBACK_HTML;
+    return;
+  }
+  root.innerHTML = `
+    <div class="settings-grid">
+      ${renderAppSettings(settings.app)}
+      ${renderRuntimeSettings(settings.runtime)}
+      ${renderApiConnectionSettings(settings.apiConnections)}
+      ${renderSchedulerSettings(settings.scheduler)}
+      ${renderPrivacySettings(settings.privacy)}
+      ${renderStorageSettings(settings.storage)}
+      ${renderSafetySettings(settings.safety)}
+      ${renderReadinessSettings(settings.readiness)}
+    </div>
+    <p class="muted" style="margin-top:10px;font-size:12px;">${escapeHtml(settings.safetyNotice || "설정 화면은 상태만 표시하며 API 키 원문을 표시하지 않습니다. 외부 신고기관 자동 제출 기능은 제공하지 않습니다.")}</p>
   `;
 }
 

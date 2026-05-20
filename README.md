@@ -720,6 +720,27 @@ The dashboard shows notice cards for:
 
 These notices are practical guidance only. They do not guarantee reward payment or report acceptance. 공식 기준 확인은 사람이 수행하며, 본 도구는 신고지원 / 검토 후보 도구입니다.
 
+## Settings
+
+공익레이더는 설정 화면에서 다음 상태를 확인할 수 있습니다.
+
+- Mock/Real 모드
+- OpenAI/Naver API 연결 여부
+- Scheduler 상태
+- Privacy dry-run 상태
+- 저장소 경로
+- Approval Gate 상태
+- Readiness stage
+
+API 키 원문은 표시하지 않습니다.
+설정 화면은 조회 전용이며, 외부 신고기관 자동 제출 기능을 제공하지 않습니다.
+
+API:
+
+- `GET /api/settings`
+
+자세한 명세는 [`docs/settings.md`](./docs/settings.md) 참고.
+
 ## Guide and Q&A
 
 공익레이더는 사용자 가이드와 Q&A를 제공해 다음을 안내합니다.
