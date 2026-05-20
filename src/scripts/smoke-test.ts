@@ -3522,21 +3522,24 @@ check("outcome UI does NOT call localStorage",
 {
   // app-shell + 9 view-section + nav + key existing IDs intact
   check("public/index.html includes app-shell wrapper",
-    /class="app-shell"/.test(indexHtml));
+    /class="app-shell field-first-layout"/.test(indexHtml));
   check("public/index.html includes app-header", /class="app-header"/.test(indexHtml));
-  check("public/index.html includes app-sidebar", /class="app-sidebar"/.test(indexHtml));
   check("public/index.html includes app-main", /class="app-main"/.test(indexHtml));
-  check("public/index.html includes app-nav", /class="app-nav"/.test(indexHtml));
+  check("public/index.html includes app-secondary-nav (보조 메뉴)",
+    /class="app-secondary-nav app-nav"/.test(indexHtml));
 
-  const requiredViews = ["home", "discover", "analyze", "review", "report", "outcome", "guide", "ops", "settings"];
+  const requiredViews = ["field", "home", "discover", "analyze", "review", "report", "outcome", "guide", "ops", "settings"];
   for (const v of requiredViews) {
     check(`public/index.html declares view section data-view="${v}"`,
       new RegExp(`data-view="${v}"`).test(indexHtml));
-    check(`public/index.html declares nav button data-view-target="${v}"`,
-      new RegExp(`data-view-target="${v}"`).test(indexHtml));
+    // entry point: static data-view-target attribute OR FIELD_WORKFLOW_STEPS action.view value referenced dynamically
+    const targetRe = new RegExp(`data-view-target="${v}"`);
+    const actionRe = new RegExp(`action:\\s*\\{\\s*view:\\s*"${v}"`);
+    check(`entry point to view "${v}" exists (static nav or dynamic step action)`,
+      targetRe.test(indexHtml) || targetRe.test(appJsHome) || actionRe.test(appJsHome));
   }
-  check("public/index.html declares default active view (home)",
-    /<section[^>]*class="view-section is-active"[^>]*data-view="home"/.test(indexHtml));
+  check("public/index.html declares default active view (field)",
+    /<section[^>]*class="view-section is-active"[^>]*data-view="field"/.test(indexHtml));
 
   // Status chips in header
   check("public/index.html includes headerModeBadge",
@@ -3676,6 +3679,125 @@ check("outcome UI does NOT call localStorage",
     /##\s*UI\s*Workflow\b/.test(readmeText));
   check("docs/ui_workflow.md exists",
     await fileExists(path.join(process.cwd(), "docs", "ui_workflow.md")));
+}
+
+// 38) Field-first redesign — 실전 재점검 11
+{
+  // HTML markers for new shell + field view
+  check("public/index.html declares field-first-layout class",
+    /class="app-shell field-first-layout"/.test(indexHtml));
+  check("public/index.html declares field view section",
+    /<section[^>]*class="view-section is-active"[^>]*data-view="field"/.test(indexHtml));
+  check("public/index.html declares field-layout grid",
+    /class="field-layout"/.test(indexHtml));
+  check("public/index.html declares field-sidebar",
+    /class="field-sidebar"/.test(indexHtml) && /id="fieldSidebar"/.test(indexHtml));
+  check("public/index.html declares field-workspace",
+    /class="field-workspace"/.test(indexHtml) && /id="fieldWorkspace"/.test(indexHtml));
+  check("public/index.html declares context-panel",
+    /class="context-panel"/.test(indexHtml) && /id="fieldContextPanel"/.test(indexHtml));
+  check("public/index.html secondary nav contains 분야 button",
+    /data-view-target="field"[^>]*>\s*분야/.test(indexHtml));
+  check("public/index.html secondary nav contains 대시보드 button",
+    /data-view-target="home"[^>]*>\s*대시보드/.test(indexHtml));
+  check("public/index.html secondary nav contains 가이드 button",
+    /data-view-target="guide"[^>]*>\s*가이드/.test(indexHtml));
+  check("public/index.html secondary nav contains 운영/품질 button",
+    /data-view-target="ops"[^>]*>\s*운영\/?품질/.test(indexHtml));
+  check("public/index.html secondary nav contains 설정 button",
+    /data-view-target="settings"[^>]*>\s*설정/.test(indexHtml));
+  check("public/index.html field shell safety note retained",
+    /자동\s*신고를?\s*수행하지\s*않/.test(indexHtml));
+
+  // app.js: FIELD_DEFINITIONS + helpers
+  check("public/app.js declares FIELD_DEFINITIONS",
+    /const\s+FIELD_DEFINITIONS\s*=\s*\[/.test(appJsHome));
+  check("public/app.js declares FIELD_WORKFLOW_STEPS",
+    /const\s+FIELD_WORKFLOW_STEPS\s*=\s*\[/.test(appJsHome));
+  for (const fid of ["false_ad", "counterfeit_goods", "subsidy_fraud", "bid_collusion", "origin_labeling"]) {
+    check(`public/app.js FIELD_DEFINITIONS includes id ${fid}`,
+      new RegExp(`id:\\s*"${fid}"`).test(appJsHome));
+  }
+  for (const fn of [
+    "renderFieldSidebar", "renderFieldWorkspace", "renderFieldContext",
+    "selectField", "setFieldStep", "initFieldFirst", "bindFieldFirst",
+    "renderWorkflowStepperHtml", "renderStepPanelHtml"
+  ]) {
+    check(`public/app.js exposes ${fn}`,
+      new RegExp(`function\\s+${fn}\\s*\\(`).test(appJsHome));
+  }
+  check("public/app.js initialView defaults to field",
+    /return\s+"field"/.test(appJsHome));
+  check("public/app.js APP_VIEWS lists field first",
+    /APP_VIEWS\s*=\s*\["field"/.test(appJsHome));
+  check("public/app.js boot calls bindFieldFirst",
+    /bindFieldFirst\s*\(\s*\)/.test(appJsHome));
+  check("public/app.js boot calls initFieldFirst",
+    /initFieldFirst\s*\(\s*\)/.test(appJsHome));
+
+  // app.js: per-field labels present (Korean labels)
+  for (const must of [
+    "건강기능식품 허위·과대광고",
+    "위조상품 온라인 판매",
+    "보조금 부정수급",
+    "입찰담합",
+    "원산지 표시 위반"
+  ]) {
+    check(`public/app.js FIELD_DEFINITIONS label includes ${must}`,
+      appJsHome.includes(must));
+  }
+  // origin_labeling must be marked upcoming
+  check("public/app.js origin_labeling has upcoming statusKind",
+    /id:\s*"origin_labeling"[\s\S]{0,400}statusKind:\s*"upcoming"/.test(appJsHome));
+
+  // CSS: field-first classes + responsive
+  for (const cls of [
+    ".app-shell.field-first-layout",
+    ".field-layout",
+    ".field-sidebar",
+    ".field-card",
+    ".field-card.is-active",
+    ".field-workspace",
+    ".field-header",
+    ".workflow-stepper",
+    ".workflow-step",
+    ".workflow-step.is-active",
+    ".workflow-step.is-done",
+    ".workflow-step.is-disabled",
+    ".step-panel",
+    ".step-panel-actions",
+    ".context-panel",
+    ".context-card",
+    ".app-secondary-nav",
+    ".quick-status-bar-item",
+    ".compact-kpi-grid",
+    ".assistant-note",
+    ".field-status",
+    ".field-status-available",
+    ".field-status-prototype",
+    ".field-status-upcoming"
+  ]) {
+    check(`public/styles.css declares ${cls}`,
+      new RegExp(cls.replace(/\./g, "\\.") + "\\s*\\{").test(stylesRaw));
+  }
+  check("public/styles.css declares responsive @media 1200",
+    /@media\s*\(max-width:\s*1200px\)/.test(stylesRaw));
+  check("public/styles.css declares responsive @media 900",
+    /@media\s*\(max-width:\s*900px\)/.test(stylesRaw));
+  check("public/styles.css declares responsive @media 600",
+    /@media\s*\(max-width:\s*600px\)/.test(stylesRaw));
+
+  // Forbidden affirmative regression
+  const FIELD_FORBIDDEN_AFFIRMATIVE = [
+    "포상금 확정", "수익 확정", "신고하면 지급", "무조건 지급",
+    "포상금 보장합니다", "위법 확정입니다", "담합 확정입니다", "부정수급 확정입니다"
+  ];
+  for (const phrase of FIELD_FORBIDDEN_AFFIRMATIVE) {
+    check(`public/index.html does not contain forbidden affirmative: ${phrase}`,
+      !indexHtml.includes(phrase));
+    check(`public/app.js does not contain forbidden affirmative: ${phrase}`,
+      !appJsHome.includes(phrase));
+  }
 }
 
 if (failures.length > 0) {

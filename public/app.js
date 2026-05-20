@@ -196,12 +196,12 @@ function readLS(key, fallback) {
 }
 function writeLS(key, val) { try { localStorage.setItem(key, val); } catch { /* ignore */ } }
 
-// ---------- View navigation (실전 재점검 10) ----------
-const APP_VIEWS = ["home", "discover", "analyze", "review", "report", "outcome", "guide", "ops", "settings"];
+// ---------- View navigation (실전 재점검 10·11) ----------
+const APP_VIEWS = ["field", "home", "discover", "analyze", "review", "report", "outcome", "guide", "ops", "settings"];
 const APP_VIEW_LS_KEY = "rewardAgent.activeView";
 
 function initialView() {
-  // URL hash 우선, 다음 localStorage, 기본 home.
+  // URL hash 우선, 다음 localStorage, 기본 field (신고분야 선택 화면).
   try {
     const hash = (location.hash || "").replace(/^#/, "").trim();
     if (APP_VIEWS.includes(hash)) return hash;
@@ -210,7 +210,7 @@ function initialView() {
     const saved = localStorage.getItem(APP_VIEW_LS_KEY);
     if (saved && APP_VIEWS.includes(saved)) return saved;
   } catch { /* ignore */ }
-  return "home";
+  return "field";
 }
 
 function switchView(view) {
@@ -377,9 +377,457 @@ function buildHomeActionsHtml(data) {
   `;
 }
 
+// ---------- Field-first workflow (실전 재점검 11) ----------
+const FIELD_DEFINITIONS = [
+  {
+    id: "false_ad",
+    label: "건강기능식품 허위·과대광고",
+    short: "허위·과대광고 검토 후보",
+    statusLabel: "1차 MVP · 사용 가능",
+    statusKind: "available",
+    agency: "식품의약품안전처",
+    description: "건강기능식품 광고에서 질병 치료·완치·예방 표현을 검토 후보로 탐지합니다. 법 위반 확정이 아니며, 신고 전 사람이 공식 기준을 확인해야 합니다.",
+    reward: "공식 기준 확인 필요 · 포상금 수령 보장 없음",
+    guideViewTarget: "guide",
+    guideApi: "/api/modules/false-ad/guide",
+    enabledStepsCount: 9,
+    evidence: ["원본 URL", "광고 문구 원문", "상품명·광고 제목", "의심 문구 위치", "화면 캡처", "PDF 저장본", "수집일시", "판매자 공개 정보"],
+    reportingChannels: ["식품의약품안전처 — 온라인 불법유통 신고", "국민신문고", "관할 보건소 / 지자체"],
+    cautions: [
+      "질병 치료·완치·예방 표현은 검토 후보이며 위반 확정이 아닙니다.",
+      "식약처 공식 신고 안내를 사람이 직접 확인해야 합니다.",
+      "포상금 수령을 보장하지 않습니다."
+    ],
+    officialUrl: "https://www.mfds.go.kr/wpge/m_660/de010410l001.do",
+    workflowNote: "건강기능식품 광고에서 질병 치료·완치·예방 표현을 검토 후보로 탐지합니다. 법 위반 확정이 아니며, 신고 전 사람이 공식 기준을 확인해야 합니다."
+  },
+  {
+    id: "counterfeit_goods",
+    label: "위조상품 온라인 판매",
+    short: "위조상품 의심 판매글 검토",
+    statusLabel: "룰 기반 · 사용 가능",
+    statusKind: "available",
+    agency: "특허청 / 지식재산침해 원스톱 신고상담센터",
+    description: "위조상품 의심 판매글을 검토 후보로 정리합니다. 위조 여부는 확정하지 않습니다.",
+    reward: "공식 기준 확인 필요 · 포상금 수령 보장 없음",
+    guideViewTarget: "guide",
+    guideApi: "/api/modules/counterfeit-goods/guide",
+    enabledStepsCount: 9,
+    evidence: ["판매게시글 URL", "상품명", "브랜드/상표 표시", "상품 이미지", "로고/상표 표시 캡처", "가격", "판매자 공개 정보", "동일 판매자 추정 증거", "2개 이상 채널 판매 증거"],
+    reportingChannels: ["특허청 — 위조상품 신고포상금제도", "지식재산침해 원스톱 신고상담센터", "상표(위조상품) 침해신고"],
+    cautions: [
+      "위조 여부 확정 판단은 권리자/관계기관 판단이 필요합니다.",
+      "특정 판매자를 형사적 표현으로 단정하지 않습니다.",
+      "포상금 수령을 보장하지 않습니다."
+    ],
+    officialUrl: "https://www.kipo.go.kr/ko/kpoContentView.do?menuCd=SCD0200346",
+    workflowNote: "위조상품 의심 판매글을 검토 후보로 정리합니다. 위조 여부는 확정하지 않습니다."
+  },
+  {
+    id: "subsidy_fraud",
+    label: "보조금 부정수급",
+    short: "공개 보조금 자료 검토 후보",
+    statusLabel: "프로토타입",
+    statusKind: "prototype",
+    agency: "국민권익위원회 / 청렴포털 · 보조금 관리기관 · 관할 지자체",
+    description: "공개 보조금 자료에서 반복 수급, 동일 주소, 결과물 부족 등 검토 신호를 찾습니다. 부정수급 확정이 아닙니다.",
+    reward: "공식 기준 확인 필요 · 보상금/포상금 수령 보장 없음",
+    guideViewTarget: "guide",
+    guideApi: "/api/modules/subsidy-fraud/guide",
+    enabledStepsCount: 2,
+    evidence: ["보조사업명", "교부기관", "교부금액", "사업 공고 URL", "정산/결과 보고 자료", "반복 수급 근거", "공개자료 원본 URL"],
+    reportingChannels: ["국민권익위원회 / 청렴포털", "국민신문고", "보조금 관리기관 / 관할 지자체 감사부서"],
+    cautions: [
+      "공공자료만 사용합니다. 비공개·로그인 자료는 다루지 않습니다.",
+      "부정수급 확정 표현 없이 공개자료 기반 검토 후보로 분류합니다.",
+      "보상금/포상금 수령을 보장하지 않습니다."
+    ],
+    officialUrl: "https://www.clean.go.kr/menu.es?mid=a10613010000",
+    workflowNote: "공개 보조금 자료에서 반복 수급, 동일 주소, 결과물 부족 등 검토 신호를 찾습니다. 부정수급 확정이 아닙니다."
+  },
+  {
+    id: "bid_collusion",
+    label: "입찰담합",
+    short: "정형 입찰 데이터 검토 패턴",
+    statusLabel: "프로토타입",
+    statusKind: "prototype",
+    agency: "공정거래위원회 / 국민신문고",
+    description: "정형 입찰 데이터에서 반복 업체군, 순환 낙찰, 좁은 투찰 간격 등 검토 패턴을 분석합니다. 담합 확정이 아닙니다.",
+    reward: "공식 기준 확인 필요 · 포상금 수령 보장 없음",
+    guideViewTarget: "guide",
+    guideApi: "/api/modules/bid-collusion/guide",
+    enabledStepsCount: 2,
+    evidence: ["입찰공고번호", "발주기관", "참여업체 목록", "업체별 투찰금액·률", "낙찰자/낙찰률", "반복 참여 업체군 근거", "원본 공개자료 URL"],
+    reportingChannels: ["공정거래위원회 — 신고포상금 안내", "공정거래위원회 — 담합 신고 안내", "국민신문고"],
+    cautions: [
+      "정형 입찰 데이터 기반 검토 패턴이며, 담합 확정 판단이 아닙니다.",
+      "특정 업체를 형사적 표현으로 단정하지 않습니다.",
+      "포상금 수령을 보장하지 않습니다."
+    ],
+    officialUrl: "https://www.ftc.go.kr/www/contents.do?key=402",
+    workflowNote: "정형 입찰 데이터에서 반복 업체군, 순환 낙찰, 좁은 투찰 간격 등 검토 패턴을 분석합니다. 담합 확정이 아닙니다."
+  },
+  {
+    id: "origin_labeling",
+    label: "원산지 표시 위반",
+    short: "온라인 원산지 표시 검토 (준비 중)",
+    statusLabel: "준비 중",
+    statusKind: "upcoming",
+    agency: "국립농산물품질관리원 / 관세청 / 지자체",
+    description: "온라인 판매글의 원산지 표시 누락·오기 의심 신호 모듈은 준비 중입니다. 현재 분석 파이프라인은 연결되어 있지 않습니다.",
+    reward: "공식 기준 확인 필요 · 포상금 수령 보장 없음",
+    guideViewTarget: "guide",
+    guideApi: null,
+    enabledStepsCount: 1,
+    evidence: ["판매게시글 URL", "상품명", "원산지 표기 위치", "표기 변경 이력(있을 경우)", "수집일시"],
+    reportingChannels: ["국립농산물품질관리원", "관세청", "관할 지자체"],
+    cautions: [
+      "이 모듈은 준비 중입니다. 분석 결과를 생성하지 않습니다.",
+      "원산지 표시 위반 여부는 관계기관 공식 판단이 필요합니다.",
+      "포상금 수령을 보장하지 않습니다."
+    ],
+    officialUrl: "",
+    workflowNote: "원산지 표시 위반 모듈은 준비 중입니다. 사용 가능해지면 본 화면에서 단계별 워크플로우가 활성화됩니다."
+  }
+];
+
+const FIELD_LS_KEY = "rewardAgent.selectedFieldId";
+const FIELD_STEP_LS_KEY = "rewardAgent.fieldCurrentStep";
+
+const FIELD_WORKFLOW_STEPS = [
+  { id: 1, label: "제도 확인", desc: "분야별 신고처·필요 증거·주의사항을 사람이 직접 확인합니다.", action: { view: "guide", label: "가이드 화면 열기" } },
+  { id: 2, label: "후보 찾기", desc: "Scout/Mock 후보 발굴 또는 수동 URL 분석으로 검토 후보를 찾습니다.", action: { view: "discover", label: "후보 찾기 화면 열기" } },
+  { id: 3, label: "수집/추출", desc: "본문 수집과 텍스트 추출로 분석 입력을 준비합니다.", action: { view: "analyze", label: "분석/증거 화면 열기" } },
+  { id: 4, label: "룰 탐지", desc: "RuleAgent 가 모듈별 키워드/조합 규칙을 적용해 의심 문구를 표시합니다.", action: { view: "analyze", label: "분석/증거 화면 열기" } },
+  { id: 5, label: "AI 분석/점수화", desc: "AnalyzerAgent + ScoringAgent 가 문맥 검토 의견과 우선순위 점수를 만듭니다.", action: { view: "analyze", label: "분석/증거 화면 열기" } },
+  { id: 6, label: "증거 패키지", desc: "HTML/TEXT/Screenshot/PDF/Manifest 등 증거 패키지를 저장합니다.", action: { view: "analyze", label: "분석/증거 화면 열기" } },
+  { id: 7, label: "신고서 초안", desc: "Markdown/Text/DOCX 신고서 초안을 다운로드해 사람이 검토합니다.", action: { view: "report", label: "신고서 초안 화면 열기" } },
+  { id: 8, label: "사람 검토", desc: "Review Queue 에서 사람이 검토·승인·보류·폐기와 메모를 남깁니다.", action: { view: "review", label: "검토 대기열 열기" } },
+  { id: 9, label: "결과 기록", desc: "사용자가 공식 창구에서 직접 제출한 결과를 Outcome Tracker 에 기록합니다.", action: { view: "outcome", label: "결과 기록 화면 열기" } }
+];
+
+const fieldState = {
+  selectedFieldId: null,
+  stepByField: {}
+};
+
+function getFieldDef(fieldId) {
+  return FIELD_DEFINITIONS.find((f) => f.id === fieldId) || null;
+}
+
+function loadFieldState() {
+  try {
+    const saved = localStorage.getItem(FIELD_LS_KEY);
+    if (saved && FIELD_DEFINITIONS.some((f) => f.id === saved)) {
+      fieldState.selectedFieldId = saved;
+    }
+  } catch { /* ignore */ }
+  try {
+    const raw = localStorage.getItem(FIELD_STEP_LS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") fieldState.stepByField = parsed;
+    }
+  } catch { /* ignore */ }
+}
+
+function persistFieldState() {
+  try {
+    if (fieldState.selectedFieldId) localStorage.setItem(FIELD_LS_KEY, fieldState.selectedFieldId);
+    localStorage.setItem(FIELD_STEP_LS_KEY, JSON.stringify(fieldState.stepByField));
+  } catch { /* ignore */ }
+}
+
+function bindFieldFirst() {
+  document.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    const fieldCard = t.closest("[data-field-id]");
+    if (fieldCard) {
+      const fid = fieldCard.getAttribute("data-field-id");
+      const def = getFieldDef(fid);
+      if (!def) return;
+      e.preventDefault();
+      selectField(fid);
+      return;
+    }
+    const stepEl = t.closest("[data-field-step]");
+    if (stepEl && !stepEl.classList.contains("is-disabled")) {
+      const stepNum = Number(stepEl.getAttribute("data-field-step"));
+      if (Number.isInteger(stepNum) && fieldState.selectedFieldId) {
+        e.preventDefault();
+        setFieldStep(fieldState.selectedFieldId, stepNum);
+      }
+      return;
+    }
+    if (t.matches("[data-field-advance]")) {
+      e.preventDefault();
+      const fid = fieldState.selectedFieldId;
+      if (!fid) return;
+      const def = getFieldDef(fid);
+      if (!def) return;
+      const cur = fieldState.stepByField[fid] || 1;
+      const max = Math.min(def.enabledStepsCount || 1, FIELD_WORKFLOW_STEPS.length);
+      const next = Math.min(cur + 1, max);
+      setFieldStep(fid, next);
+      return;
+    }
+    if (t.matches("[data-field-back]")) {
+      e.preventDefault();
+      const fid = fieldState.selectedFieldId;
+      if (!fid) return;
+      const cur = fieldState.stepByField[fid] || 1;
+      const prev = Math.max(cur - 1, 1);
+      setFieldStep(fid, prev);
+      return;
+    }
+  });
+}
+
+function selectField(fieldId) {
+  const def = getFieldDef(fieldId);
+  if (!def) return;
+  fieldState.selectedFieldId = fieldId;
+  if (!fieldState.stepByField[fieldId]) fieldState.stepByField[fieldId] = 1;
+  persistFieldState();
+  renderFieldSidebar();
+  renderFieldWorkspace(fieldId);
+  renderFieldContext(fieldId);
+}
+
+function setFieldStep(fieldId, stepNum) {
+  const def = getFieldDef(fieldId);
+  if (!def) return;
+  const max = Math.min(def.enabledStepsCount || 1, FIELD_WORKFLOW_STEPS.length);
+  const clamped = Math.max(1, Math.min(stepNum, max));
+  fieldState.stepByField[fieldId] = clamped;
+  persistFieldState();
+  renderFieldWorkspace(fieldId);
+  renderFieldContext(fieldId);
+}
+
+function fieldStatusBadgeHtml(def) {
+  if (!def) return "";
+  let cls = "field-status";
+  if (def.statusKind === "available") cls += " field-status-available";
+  else if (def.statusKind === "prototype") cls += " field-status-prototype";
+  else cls += " field-status-upcoming";
+  return `<span class="${cls}">${escapeHtml(def.statusLabel || "")}</span>`;
+}
+
+function renderFieldSidebar() {
+  const root = document.getElementById("fieldSidebar");
+  if (!root) return;
+  const cards = FIELD_DEFINITIONS.map((def) => {
+    const isActive = def.id === fieldState.selectedFieldId;
+    return `
+      <button type="button" class="field-card ${isActive ? "is-active" : ""} field-card-${escapeAttr(def.statusKind || "upcoming")}" data-field-id="${escapeAttr(def.id)}">
+        <div class="field-card-row">
+          <span class="field-card-label">${escapeHtml(def.label)}</span>
+          ${fieldStatusBadgeHtml(def)}
+        </div>
+        <p class="field-card-desc">${escapeHtml(def.short || "")}</p>
+        <p class="field-card-agency"><strong>신고처:</strong> ${escapeHtml(def.agency || "")}</p>
+        <p class="field-card-reward muted">${escapeHtml(def.reward || "")}</p>
+      </button>
+    `;
+  }).join("");
+  root.innerHTML = `
+    <div class="field-sidebar-header">
+      <h3 class="field-sidebar-title">신고 분야</h3>
+      <p class="muted" style="font-size:12px;margin:2px 0 0;">분야를 클릭하면 해당 분야 전용 워크플로우가 나타납니다.</p>
+    </div>
+    <div class="field-card-list">${cards}</div>
+  `;
+}
+
+function renderWorkflowStepperHtml(def, currentStep) {
+  const maxEnabled = Math.min(def.enabledStepsCount || 1, FIELD_WORKFLOW_STEPS.length);
+  return `
+    <ol class="workflow-stepper">
+      ${FIELD_WORKFLOW_STEPS.map((s) => {
+        const enabled = s.id <= maxEnabled;
+        let cls = "workflow-step";
+        if (!enabled) cls += " is-disabled";
+        else if (s.id < currentStep) cls += " is-done";
+        else if (s.id === currentStep) cls += " is-active";
+        return `
+          <li class="${cls}" data-field-step="${s.id}" ${enabled ? "" : "aria-disabled=\"true\""}>
+            <span class="step-num">${s.id < currentStep ? "✓" : s.id}</span>
+            <span class="step-label">${escapeHtml(s.label)}</span>
+          </li>
+        `;
+      }).join("")}
+    </ol>
+  `;
+}
+
+function renderStepPanelHtml(def, currentStep) {
+  const step = FIELD_WORKFLOW_STEPS.find((s) => s.id === currentStep) || FIELD_WORKFLOW_STEPS[0];
+  const maxEnabled = Math.min(def.enabledStepsCount || 1, FIELD_WORKFLOW_STEPS.length);
+  const enabled = step.id <= maxEnabled;
+  const action = step.action;
+  const canAdvance = enabled && currentStep < maxEnabled;
+  const canBack = currentStep > 1;
+
+  const stepExtra = stepPanelExtraHtml(def, step);
+
+  return `
+    <article class="step-panel ${enabled ? "" : "is-disabled"}">
+      <div class="step-panel-header">
+        <div>
+          <span class="step-panel-num">단계 ${step.id}/9</span>
+          <h4 class="step-panel-title">${escapeHtml(step.label)}</h4>
+        </div>
+        <span class="step-panel-status ${enabled ? (currentStep === step.id ? "is-active" : "") : "is-disabled"}">
+          ${enabled ? (currentStep === step.id ? "진행 중" : "진행 가능") : "현재 분야에서는 비활성"}
+        </span>
+      </div>
+      <p class="step-panel-desc">${escapeHtml(step.desc)}</p>
+      ${stepExtra}
+      <div class="step-panel-actions">
+        ${action && enabled ? `<button type="button" class="primary" data-view-target="${escapeAttr(action.view)}">${escapeHtml(action.label)} →</button>` : ""}
+        ${canBack ? `<button type="button" class="ghost" data-field-back>이전 단계</button>` : ""}
+        ${canAdvance ? `<button type="button" class="ghost" data-field-advance>다음 단계로 이동</button>` : ""}
+      </div>
+      <p class="step-panel-safety muted">⚠ 공익레이더는 자동 신고를 수행하지 않으며, 포상금 수령을 보장하지 않습니다. 모든 제출은 사람이 공식 창구에서 직접 진행합니다.</p>
+    </article>
+  `;
+}
+
+function stepPanelExtraHtml(def, step) {
+  if (step.id === 1) {
+    return `
+      <div class="step-panel-extra">
+        <p><strong>신고처 후보:</strong> ${escapeHtml(def.agency || "")}</p>
+        ${def.officialUrl ? `<p><a class="report-official-link" href="${escapeAttr(def.officialUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(def.officialUrl)} ↗</a></p>` : ""}
+        <ul class="step-panel-list">
+          ${(def.cautions || []).map((c) => `<li>${escapeHtml(c)}</li>`).join("")}
+        </ul>
+      </div>
+    `;
+  }
+  if (step.id === 7) {
+    return `
+      <p class="step-panel-extra muted">신고서 초안은 사용자가 검토·수정한 뒤 외부 공식 신고기관에 <strong>직접 제출</strong>합니다. 자동 제출 기능은 제공되지 않습니다.</p>
+    `;
+  }
+  if (step.id === 9) {
+    return `
+      <p class="step-panel-extra muted">결과 기록은 사용자가 공식 창구에서 직접 확인한 처리 결과를 내부 기록으로 저장합니다. 시스템이 자동 조회·제출하지 않습니다.</p>
+    `;
+  }
+  return "";
+}
+
+function renderFieldWorkspace(fieldId) {
+  const empty = document.getElementById("fieldWorkspaceEmpty");
+  const body = document.getElementById("fieldWorkspaceBody");
+  if (!empty || !body) return;
+  const def = getFieldDef(fieldId);
+  if (!def) {
+    empty.removeAttribute("hidden");
+    body.setAttribute("hidden", "");
+    body.innerHTML = "";
+    return;
+  }
+  empty.setAttribute("hidden", "");
+  body.removeAttribute("hidden");
+  const currentStep = fieldState.stepByField[fieldId] || 1;
+
+  body.innerHTML = `
+    <div class="card field-header">
+      <div class="field-header-row">
+        <div>
+          <h3 class="field-header-title">${escapeHtml(def.label)}</h3>
+          <p class="field-header-desc muted">${escapeHtml(def.workflowNote || def.description || "")}</p>
+        </div>
+        ${fieldStatusBadgeHtml(def)}
+      </div>
+      <div class="field-header-meta">
+        <span class="quick-status-bar-item"><strong>신고처:</strong> ${escapeHtml(def.agency || "")}</span>
+        <span class="quick-status-bar-item"><strong>포상/보상:</strong> ${escapeHtml(def.reward || "공식 기준 확인 필요")}</span>
+        <span class="quick-status-bar-item"><strong>자동 신고:</strong> 없음</span>
+        <span class="quick-status-bar-item"><strong>현재 단계:</strong> ${currentStep}/${FIELD_WORKFLOW_STEPS.length}</span>
+      </div>
+    </div>
+
+    <div class="card workflow-stepper-card">
+      <h4 class="step-panel-title" style="margin:0 0 6px;">워크플로우</h4>
+      <p class="muted" style="margin:0 0 8px;font-size:12px;">단계는 사용자가 직접 클릭해 이동할 수 있습니다. 비활성 단계는 현재 분야에서 진행되지 않습니다.</p>
+      ${renderWorkflowStepperHtml(def, currentStep)}
+    </div>
+
+    ${renderStepPanelHtml(def, currentStep)}
+  `;
+}
+
+function renderFieldContext(fieldId) {
+  const root = document.getElementById("fieldContextPanel");
+  if (!root) return;
+  const def = getFieldDef(fieldId);
+  if (!def) {
+    root.innerHTML = `
+      <div class="context-card context-card-empty">
+        <h4>컨텍스트 패널</h4>
+        <p class="muted">신고분야를 선택하면 해당 분야의 신고처·수집해야 할 자료·주의사항과 현재 단계에서 해야 할 일을 여기에 표시합니다.</p>
+      </div>
+    `;
+    return;
+  }
+  const currentStep = fieldState.stepByField[fieldId] || 1;
+  const currentStepDef = FIELD_WORKFLOW_STEPS.find((s) => s.id === currentStep) || FIELD_WORKFLOW_STEPS[0];
+  const channels = (def.reportingChannels || []).map((c) => `<li>${escapeHtml(c)}</li>`).join("");
+  const evidence = (def.evidence || []).map((e) => `<li>${escapeHtml(e)}</li>`).join("");
+  const cautions = (def.cautions || []).map((c) => `<li>${escapeHtml(c)}</li>`).join("");
+
+  root.innerHTML = `
+    <div class="context-card">
+      <h4>신고처</h4>
+      <ul class="context-list">${channels || '<li class="muted">—</li>'}</ul>
+      ${def.officialUrl ? `<a class="context-link" href="${escapeAttr(def.officialUrl)}" target="_blank" rel="noopener noreferrer">공식 페이지 ↗</a>` : ""}
+    </div>
+    <div class="context-card">
+      <h4>수집해야 할 자료</h4>
+      <ul class="context-list">${evidence || '<li class="muted">—</li>'}</ul>
+    </div>
+    <div class="context-card">
+      <h4>주의사항</h4>
+      <ul class="context-list">${cautions || '<li class="muted">—</li>'}</ul>
+    </div>
+    <div class="context-card context-current-step">
+      <h4>현재 단계에서 해야 할 일</h4>
+      <p><strong>${escapeHtml(currentStepDef.label)}</strong></p>
+      <p class="muted">${escapeHtml(currentStepDef.desc)}</p>
+    </div>
+    <div class="context-card context-card-safety">
+      <h4>안전 안내</h4>
+      <p class="muted">공익레이더는 외부 신고기관에 자동으로 제출하지 않으며, 포상금 수령을 보장하지 않습니다. 최종 신고 제출은 사용자가 공식 창구에서 직접 진행합니다.</p>
+      ${def.guideViewTarget && def.guideApi ? `<button type="button" class="ghost" data-view-target="${escapeAttr(def.guideViewTarget)}">${escapeHtml(def.label)} 가이드 자세히 보기 →</button>` : ""}
+    </div>
+  `;
+}
+
+function initFieldFirst() {
+  loadFieldState();
+  // 기본 선택: 저장된 분야 또는 첫 사용 가능 분야.
+  if (!fieldState.selectedFieldId) {
+    const firstAvailable = FIELD_DEFINITIONS.find((f) => f.statusKind === "available");
+    fieldState.selectedFieldId = firstAvailable ? firstAvailable.id : FIELD_DEFINITIONS[0].id;
+  }
+  if (!fieldState.stepByField[fieldState.selectedFieldId]) {
+    fieldState.stepByField[fieldState.selectedFieldId] = 1;
+  }
+  renderFieldSidebar();
+  renderFieldWorkspace(fieldState.selectedFieldId);
+  renderFieldContext(fieldState.selectedFieldId);
+}
+
 // ---------- Boot ----------
 document.addEventListener("DOMContentLoaded", async () => {
   bindViewNav();
+  bindFieldFirst();
+  initFieldFirst();
   switchView(initialView());
   renderHomeOverview(null);
   await loadModuleRegistry();

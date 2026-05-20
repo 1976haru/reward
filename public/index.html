@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="app-shell">
+  <div class="app-shell field-first-layout">
     <!-- ===== Header ===== -->
     <header class="app-header" id="appHeader">
       <div class="app-brand-block">
@@ -20,49 +20,55 @@
         <span class="status-chip" id="headerNaverBadge" title="Naver Search API 키 연결 여부">Naver: —</span>
         <span class="status-chip status-chip-safety" title="공익레이더는 자동 신고를 수행하지 않습니다.">자동신고 없음</span>
         <span class="status-chip" id="headerDate" title="오늘 날짜 (UTC)">—</span>
-        <button class="ghost" type="button" data-view-target="settings" id="headerSettingsBtn">설정</button>
       </div>
-    </header>
-
-    <!-- ===== Sidebar / Nav ===== -->
-    <aside class="app-sidebar" id="appSidebar" aria-label="워크플로우 메뉴">
-      <nav class="app-nav">
-        <button class="nav-button is-active" type="button" data-view-target="home">
-          <span class="nav-button-num">1</span>홈
-        </button>
-        <button class="nav-button" type="button" data-view-target="discover">
-          <span class="nav-button-num">2</span>후보 찾기
-        </button>
-        <button class="nav-button" type="button" data-view-target="analyze">
-          <span class="nav-button-num">3</span>분석/증거
-        </button>
-        <button class="nav-button" type="button" data-view-target="review">
-          <span class="nav-button-num">4</span>검토 대기열
-        </button>
-        <button class="nav-button" type="button" data-view-target="report">
-          <span class="nav-button-num">5</span>신고서 초안
-        </button>
-        <button class="nav-button" type="button" data-view-target="outcome">
-          <span class="nav-button-num">6</span>결과 기록
-        </button>
-        <button class="nav-button" type="button" data-view-target="guide">
-          <span class="nav-button-num">7</span>가이드
-        </button>
-        <button class="nav-button" type="button" data-view-target="ops">
-          <span class="nav-button-num">8</span>운영/품질
-        </button>
-        <button class="nav-button" type="button" data-view-target="settings">
-          <span class="nav-button-num">9</span>설정
-        </button>
+      <nav class="app-secondary-nav app-nav" aria-label="보조 메뉴">
+        <button class="nav-button is-active" type="button" data-view-target="field">분야</button>
+        <button class="nav-button" type="button" data-view-target="home">대시보드</button>
+        <button class="nav-button" type="button" data-view-target="guide">가이드</button>
+        <button class="nav-button" type="button" data-view-target="ops">운영/품질</button>
+        <button class="nav-button" type="button" data-view-target="settings">설정</button>
       </nav>
-      <p class="app-sidebar-foot">공익레이더는 자동 신고를 수행하지 않습니다. 모든 제출은 사람이 공식 창구에서 직접 진행해야 합니다.</p>
-    </aside>
+    </header>
 
     <!-- ===== Main ===== -->
     <main class="app-main" id="appMain">
 
+      <!-- ===== Field View (실전 재점검 11 — Field-first Redesign) ===== -->
+      <section class="view-section is-active" data-view="field" id="viewField">
+        <div class="section-toolbar">
+          <h2 class="view-title">신고 분야 선택</h2>
+          <p class="view-subtitle">먼저 신고분야를 선택하세요. 선택한 분야에 맞춰 후보 발굴부터 신고서 초안까지 순서대로 진행합니다. 분야별 신고처·필요 증거·주의사항은 오른쪽 패널에서 확인할 수 있습니다.</p>
+        </div>
+
+        <div class="field-layout">
+          <aside class="field-sidebar" id="fieldSidebar" aria-label="신고 분야 목록">
+            <p class="muted" id="fieldSidebarLoading">신고 분야 목록을 불러오는 중...</p>
+          </aside>
+
+          <section class="field-workspace" id="fieldWorkspace" aria-label="선택된 신고분야 워크플로우">
+            <div id="fieldWorkspaceEmpty">
+              <div class="card field-empty-card">
+                <h3>먼저 좌측에서 신고분야를 선택하세요.</h3>
+                <p class="muted">분야를 클릭하면 해당 분야 전용 워크플로우(제도 확인 → 후보 찾기 → 분석 → 증거 → 신고서 → 사람 검토 → 결과 기록)가 표시됩니다.</p>
+                <p class="muted">공익레이더는 자동 신고를 수행하지 않으며, 포상금 수령을 보장하지 않습니다. 모든 신고 제출은 사용자가 공식 창구에서 직접 진행합니다.</p>
+              </div>
+            </div>
+            <div id="fieldWorkspaceBody" hidden></div>
+          </section>
+
+          <aside class="context-panel" id="fieldContextPanel" aria-label="선택된 분야 컨텍스트">
+            <div class="context-card context-card-empty">
+              <h4>컨텍스트 패널</h4>
+              <p class="muted">신고분야를 선택하면 해당 분야의 신고처·수집해야 할 자료·주의사항과 현재 단계에서 해야 할 일을 여기에 표시합니다.</p>
+            </div>
+          </aside>
+        </div>
+
+        <p class="muted field-shell-note">⚠ 공익레이더는 자동 신고를 수행하지 않습니다. 모든 신고 제출은 사람이 공식 창구에서 직접 진행합니다. 포상금 수령을 보장하지 않습니다.</p>
+      </section>
+
       <!-- ===== Home View ===== -->
-      <section class="view-section is-active" data-view="home" id="viewHome">
+      <section class="view-section" data-view="home" id="viewHome">
         <div class="section-toolbar">
           <h2 class="view-title">홈 — 오늘 해야 할 일</h2>
           <p class="view-subtitle">현재 상태와 다음 행동을 한눈에 확인하세요. 가이드/운영/설정은 좌측 메뉴에서 별도 화면으로 이동합니다.</p>

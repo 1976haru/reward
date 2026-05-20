@@ -720,22 +720,28 @@ The dashboard shows notice cards for:
 
 These notices are practical guidance only. They do not guarantee reward payment or report acceptance. 공식 기준 확인은 사람이 수행하며, 본 도구는 신고지원 / 검토 후보 도구입니다.
 
-## UI Workflow
+## UI Workflow (Field-first Redesign)
 
-공익레이더 UI는 다음 흐름으로 구성됩니다.
+공익레이더 UI는 **신고 분야 선택 → 분야별 단계 워크플로우 진행** 흐름으로 구성됩니다.
 
-1. 홈 (Home) — 오늘 상태와 다음 행동 추천
-2. 후보 찾기 (Discover) — 모듈/주제 선택, Scout 후보 발굴
-3. 분석/증거 (Analyze) — 본문 분석, Rule/AI/Score, 증거 패키지
-4. 검토 대기열 (Review) — Human Review Queue
-5. 신고서 초안 (Report) — 신고서 초안 흐름과 공식 신고처 빠른 이동
-6. 결과 기록 (Outcome) — Outcome Tracker
-7. 가이드 (Guide) — Q&A, Reward Registry, 모듈별 Practical Guide (아코디언)
-8. 운영/품질 (Ops) — 대시보드 상세 · Eval · Feedback · Trace · Scheduler · 프로토타입 분석
-9. 설정 (Settings) — Settings · Privacy
+기본 화면(`#field`) 구조:
+
+- **좌측 사이드바**: 신고 분야 목록 (5종) — 건강기능식품 허위·과대광고 / 위조상품 온라인 판매 / 보조금 부정수급 / 입찰담합 / 원산지 표시 위반(준비 중)
+- **중앙 워크스페이스**: 선택한 분야의 9단계 워크플로우 — 제도 확인 → 후보 찾기 → 수집/추출 → 룰 탐지 → AI 분석/점수화 → 증거 패키지 → 신고서 초안 → 사람 검토 → 결과 기록
+- **우측 컨텍스트 패널**: 선택한 분야의 신고처 · 수집해야 할 자료 · 주의사항 · 현재 단계에서 해야 할 일
+
+각 단계 패널의 "화면 열기" 버튼은 기존 보조 뷰(후보 찾기/분석/검토/신고서/결과 기록)로 이동합니다.
+
+상단 보조 메뉴는 다음 5개입니다.
+
+1. 분야 (`field`) — 신고분야 선택 메인 화면
+2. 대시보드 (`home`) — 오늘 상태와 다음 행동 추천
+3. 가이드 (`guide`) — Q&A · Reward Registry · 모듈별 Practical Guide
+4. 운영/품질 (`ops`) — 대시보드 상세 · Eval · Feedback · Trace · Scheduler · 프로토타입 분석
+5. 설정 (`settings`) — Settings · Privacy
 
 상단 헤더는 제품명·실행 모드 배지·API 연결 상태·자동신고 없음 배지·오늘 날짜를 표시합니다.
-좌측 사이드바(데스크탑)는 워크플로우 메뉴이며, 태블릿/모바일에서는 상단 가로 스크롤 탭으로 변환됩니다.
+이전 워크플로우 사이드바(홈/후보찾기/분석/검토/신고서/결과/가이드/운영/설정 9버튼)는 제거되었고, 해당 뷰들은 보조 메뉴 또는 분야 워크스페이스의 단계 액션에서 진입할 수 있습니다.
 
 자세한 내용은 [`docs/ui_workflow.md`](./docs/ui_workflow.md) 참고.
 
