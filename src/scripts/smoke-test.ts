@@ -2717,6 +2717,193 @@ check("outcome UI does NOT call localStorage",
   }
 }
 
+// 33) False Ad Practical Guide — 실전 재점검 06
+{
+  const { falseAdGuideService, FALSE_AD_GUIDE_SAFETY_NOTICE } =
+    await import("../services/false-ad-guide/FalseAdGuideService.js");
+
+  const g = falseAdGuideService.getGuide();
+
+  // 구조
+  check("false ad guide schemaVersion 1.0.0", g.schemaVersion === "1.0.0");
+  check("false ad guide moduleId false_ad", g.moduleId === "false_ad");
+  check("false ad guide displayName non-empty",
+    typeof g.displayName === "string" && g.displayName.length > 0);
+
+  // Reporting channels
+  check("reportingChannels length >= 3",
+    Array.isArray(g.reportingChannels) && g.reportingChannels.length >= 3);
+  const channelAgencies = g.reportingChannels.map((c) => c.agencyName || "");
+  check("reportingChannels include 식품의약품안전처",
+    channelAgencies.some((a) => /식품의약품안전처/.test(a)));
+  check("reportingChannels include 국민신문고",
+    channelAgencies.some((a) => /국민신문고/.test(a)));
+  check("reportingChannels include 관할 보건소/지자체",
+    channelAgencies.some((a) => /지자체|보건소/.test(a)));
+  for (const c of g.reportingChannels) {
+    check(`reporting channel ${c.id} has caution`,
+      typeof c.caution === "string" && c.caution.length > 0);
+  }
+
+  // Prohibited claim types
+  check("prohibitedClaimTypes length >= 6",
+    Array.isArray(g.prohibitedClaimTypes) && g.prohibitedClaimTypes.length >= 6);
+  for (const t of g.prohibitedClaimTypes) {
+    check(`claim type ${t.id} has >=3 examples`,
+      Array.isArray(t.examples) && t.examples.length >= 3);
+    check(`claim type ${t.id} whyItMatters mentions 검토`,
+      typeof t.whyItMatters === "string" && /검토/.test(t.whyItMatters));
+    check(`claim type ${t.id} reviewLevel in enum`,
+      ["HIGH", "MEDIUM", "LOW"].includes(t.reviewLevel));
+  }
+  const claimCategories = g.prohibitedClaimTypes.map((t) => t.category || "");
+  check("includes 질병 치료 category",
+    claimCategories.some((c) => /질병\s*치료/.test(c)));
+  check("includes 질병 완치 category",
+    claimCategories.some((c) => /질병\s*완치/.test(c)));
+  check("includes 질병 예방 category",
+    claimCategories.some((c) => /질병\s*예방/.test(c)));
+  check("includes 의약품 오인 category",
+    claimCategories.some((c) => /의약품\s*오인/.test(c)));
+  check("includes 과장 효능 category",
+    claimCategories.some((c) => /과장\s*효능/.test(c)));
+  check("includes 신체 기능 / 해독 category",
+    claimCategories.some((c) => /해독|신체\s*기능/.test(c)));
+
+  // Evidence checklist
+  check("evidenceChecklist length >= 8",
+    Array.isArray(g.evidenceChecklist) && g.evidenceChecklist.length >= 8);
+  for (const i of g.evidenceChecklist) {
+    check(`evidence ${i.id} has boolean required`, typeof i.required === "boolean");
+    check(`evidence ${i.id} has label`, typeof i.label === "string" && i.label.length > 0);
+  }
+  const evLabels = g.evidenceChecklist.map((i) => i.label);
+  for (const must of ["원본 URL", "수집일시", "광고 문구 원문", "화면 캡처", "PDF 저장본"]) {
+    check(`evidenceChecklist includes ${must}`,
+      evLabels.some((l) => l.includes(must)));
+  }
+
+  // Pre-report checklist
+  check("preReportChecklist length >= 6",
+    Array.isArray(g.preReportChecklist) && g.preReportChecklist.length >= 6);
+  const prLabels = g.preReportChecklist.map((i) => i.label || "");
+  check("preReport mentions 공개 URL",
+    prLabels.some((l) => /공개\s*URL/.test(l)));
+  check("preReport mentions 식약처 공식 신고 페이지",
+    prLabels.some((l) => /식약처\s*공식\s*신고/.test(l)));
+  check("preReport mentions 최종 제출은 사람",
+    prLabels.some((l) => /최종\s*제출[^\n]*사람/.test(l)));
+
+  // Reward caution
+  check("rewardCaution.notGuaranteed === true", g.rewardCaution?.notGuaranteed === true);
+  check("rewardCaution.officialCheckRequired === true",
+    g.rewardCaution?.officialCheckRequired === true);
+  check("rewardCaution.summary mentions 수령을 보장하지 않습니다",
+    /수령을\s*보장하지\s*않/.test(g.rewardCaution?.summary || ""));
+  check("rewardCaution.notes length >= 4",
+    Array.isArray(g.rewardCaution?.notes) && g.rewardCaution.notes.length >= 4);
+
+  // Examples
+  check("examples length >= 6", Array.isArray(g.examples) && g.examples.length >= 6);
+  const catCounts = g.examples.reduce<Record<string, number>>((acc, e) => {
+    acc[e.category] = (acc[e.category] ?? 0) + 1;
+    return acc;
+  }, {});
+  check("examples include suspicious", (catCounts.suspicious ?? 0) >= 3);
+  check("examples include normal", (catCounts.normal ?? 0) >= 2);
+  check("examples include needs_review", (catCounts.needs_review ?? 0) >= 2);
+
+  // Official links
+  check("officialLinks length >= 4",
+    Array.isArray(g.officialLinks) && g.officialLinks.length >= 4);
+  const linkText = g.officialLinks.map((l) => l.url || "").join(" ");
+  check("officialLinks include mfds.go.kr", linkText.includes("mfds.go.kr"));
+  check("officialLinks include law.go.kr", linkText.includes("law.go.kr"));
+  for (const l of g.officialLinks) {
+    check(`officialLink ${l.id} has caution`,
+      typeof l.caution === "string" && l.caution.length > 0);
+  }
+
+  // Safety notice
+  check("guide.safetyNotice === FALSE_AD_GUIDE_SAFETY_NOTICE",
+    g.safetyNotice === FALSE_AD_GUIDE_SAFETY_NOTICE);
+  check("safetyNotice mentions 자동으로 제출하지 않으며",
+    /자동으로\s*제출하지\s*않/.test(g.safetyNotice));
+  check("safetyNotice mentions 포상금 수령을 보장하지 않",
+    /포상금\s*수령을\s*보장하지\s*않/.test(g.safetyNotice));
+
+  // 금지 표현 (긍정문) — payload 전체에 들어가서는 안 됨
+  const guideJson = JSON.stringify(g);
+  const FALSE_AD_FORBIDDEN_AFFIRMATIVE = [
+    "포상금 확정",
+    "수익 확정",
+    "신고하면 지급",
+    "무조건 지급",
+    "무조건 받을 수 있음",
+    "포상금 보장합니다",
+    "위법 확정입니다",
+    "불법 확정입니다",
+    "자동 신고합니다",
+    "자동 신고됩니다",
+    "바로 제출합니다",
+    "바로 제출됩니다"
+  ];
+  for (const phrase of FALSE_AD_FORBIDDEN_AFFIRMATIVE) {
+    check(`false ad guide payload excludes affirmative: ${phrase}`,
+      !guideJson.includes(phrase));
+  }
+
+  // 소스 파일 / 문서 검증
+  const falseAdSvcText = await readFileSafe(path.join(process.cwd(), "src", "services", "false-ad-guide", "FalseAdGuideService.ts"));
+  const falseAdRouteText = await readFileSafe(path.join(process.cwd(), "src", "routes", "falseAdGuide.ts"));
+  const falseAdDocText = await readFileSafe(path.join(process.cwd(), "docs", "false_ad_guide.md"));
+  for (const phrase of ["신고하면 지급", "무조건 지급", "무조건 받을 수 있음", "포상금 보장합니다"]) {
+    check(`false ad service does not contain affirmative: ${phrase}`,
+      !falseAdSvcText.includes(phrase));
+    check(`false ad route does not contain affirmative: ${phrase}`,
+      !falseAdRouteText.includes(phrase));
+    check(`false ad docs do not contain affirmative as positive: ${phrase}`,
+      !falseAdDocText.includes(phrase));
+  }
+
+  // UI 마커 / 렌더 함수 / CSS
+  check("public/index.html includes falseAdGuideCard",
+    /id="falseAdGuideCard"/.test(indexHtml));
+  check("public/index.html includes falseAdGuidePanel",
+    /id="falseAdGuidePanel"/.test(indexHtml));
+  check("public/app.js exposes loadFalseAdGuide",
+    /async\s+function\s+loadFalseAdGuide\s*\(|function\s+loadFalseAdGuide\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderFalseAdGuide",
+    /function\s+renderFalseAdGuide\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderFalseAdReportingChannels",
+    /function\s+renderFalseAdReportingChannels\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderFalseAdClaimTypes",
+    /function\s+renderFalseAdClaimTypes\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderFalseAdEvidenceChecklist",
+    /function\s+renderFalseAdEvidenceChecklist\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderFalseAdRewardCaution",
+    /function\s+renderFalseAdRewardCaution\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderFalseAdExamples",
+    /function\s+renderFalseAdExamples\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderFalseAdOfficialLinks",
+    /function\s+renderFalseAdOfficialLinks\s*\(/.test(appJsHome));
+  check("public/styles.css declares .false-ad-guide-card",
+    /\.false-ad-guide-card\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .false-ad-checklist",
+    /\.false-ad-checklist\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .false-ad-warning",
+    /\.false-ad-warning\s*\{/.test(stylesRaw));
+
+  // README + docs
+  const readmeText = await readFileSafe(path.join(process.cwd(), "README.md"));
+  check("README.md contains False Ad Practical Guide section",
+    /##\s*False\s*Ad\s*Practical\s*Guide\b/.test(readmeText));
+  check("README.md mentions GET /api/modules/false-ad/guide",
+    /GET\s+\/api\/modules\/false-ad\/guide/.test(readmeText));
+  check("docs/false_ad_guide.md exists",
+    await fileExists(path.join(process.cwd(), "docs", "false_ad_guide.md")));
+}
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);

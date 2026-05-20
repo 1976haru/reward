@@ -720,6 +720,28 @@ The dashboard shows notice cards for:
 
 These notices are practical guidance only. They do not guarantee reward payment or report acceptance. 공식 기준 확인은 사람이 수행하며, 본 도구는 신고지원 / 검토 후보 도구입니다.
 
+## False Ad Practical Guide
+
+건강기능식품 온라인 허위·과대광고 모듈의 실전 기준을 제공합니다.
+
+포함 정보:
+
+- 식약처 신고처
+- 금지/검토 표현 유형
+- 필요 증거
+- 신고 전 체크리스트
+- 신고포상금 주의사항
+- 공식 링크
+
+이 가이드는 신고지원 도구 안내이며, 법 위반 또는 포상금 지급을 확정하지 않습니다.
+공익레이더는 외부 신고기관에 자동으로 제출하지 않으며, 포상금 수령을 보장하지 않습니다.
+
+API:
+
+- `GET /api/modules/false-ad/guide`
+
+자세한 명세는 [`docs/false_ad_guide.md`](./docs/false_ad_guide.md) 참고.
+
 ## Reward Registry
 
 공익레이더는 모듈별 신고포상금·보상금 제도 안내를 제공합니다.

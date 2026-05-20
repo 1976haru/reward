@@ -30,6 +30,7 @@ import { outcomesRouter, caseOutcomesRouter } from "./routes/outcomes.js";
 import { guideRouter } from "./routes/guide.js";
 import { settingsRouter } from "./routes/settings.js";
 import { rewardProgramsRouter } from "./routes/rewardPrograms.js";
+import { falseAdGuideRouter } from "./routes/falseAdGuide.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -82,6 +83,11 @@ app.get("/api/health", (_req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// False Ad 모듈 실전 가이드 (실전 재점검 06) — /api/modules/false-ad/guide
+// 자동 신고/법 위반 확정/포상금 보장 표현 없음. 라우터를 /api/modules/:moduleId 핸들러보다 먼저 마운트해
+// 같은 prefix 매칭이 가로채지 않게 한다.
+app.use("/api/modules/false-ad", falseAdGuideRouter);
 
 app.get("/api/modules", (_req, res) => {
   res.json({

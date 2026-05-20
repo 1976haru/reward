@@ -911,3 +911,100 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
   .reward-program-grid { grid-template-columns: 1fr; }
   .reward-program-link { width: 100%; text-align: center; }
 }
+
+/* ---------- False Ad Practical Guide (실전 재점검 06) ---------- */
+.false-ad-guide-section { background: #f0f9ff; }
+.false-ad-section-title {
+  margin: 18px 0 6px; font-size: 15px; font-weight: 700;
+  color: #075985;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed #bae6fd;
+}
+.false-ad-guide-intro p { font-size: 12.5px; margin: 6px 0 0; }
+.false-ad-guide-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.false-ad-guide-card {
+  background: white;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.false-ad-channel-header,
+.false-ad-claim-header {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  align-items: center; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.false-ad-channel-title,
+.false-ad-claim-title {
+  margin: 0; font-size: 14px; font-weight: 700; color: #0c4a6e;
+}
+.false-ad-channel-desc { margin: 4px 0; font-size: 13px; color: #334155; }
+.false-ad-why { margin: 6px 0 0; font-size: 12.5px; color: #475569; }
+.false-ad-warning {
+  margin: 6px 0 0;
+  background: #fff7ed; border: 1px solid #fed7aa;
+  color: #7c2d12; font-size: 12px;
+  padding: 5px 8px; border-radius: 6px;
+}
+.false-ad-example-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.false-ad-example-list li { margin: 2px 0; }
+.false-ad-example-list code {
+  background: #f1f5f9; padding: 1px 6px; border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; color: #0c4a6e;
+}
+
+.false-ad-checklist {
+  list-style: none; padding: 0; margin: 6px 0 0;
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.false-ad-checklist li {
+  display: grid; grid-template-columns: 48px 1fr; gap: 8px;
+  background: white; border: 1px solid #bae6fd;
+  border-radius: 8px; padding: 8px 10px;
+  align-items: start;
+}
+.false-ad-checklist li.required { border-color: #93c5fd; background: #eff6ff; }
+.false-ad-checklist li.optional { background: #f8fafc; border-color: #e2e8f0; }
+.false-ad-check-badge {
+  background: #0ea5e9; color: white;
+  font-size: 11px; font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-align: center;
+  align-self: start;
+}
+.false-ad-checklist li.optional .false-ad-check-badge { background: #94a3b8; }
+.false-ad-check-label { font-size: 13px; font-weight: 600; color: #0c4a6e; }
+.false-ad-check-hint { margin-top: 2px; font-size: 11.5px; }
+
+.false-ad-link {
+  display: inline-block; padding: 5px 10px;
+  background: #0ea5e9; color: white;
+  text-decoration: none; border-radius: 6px;
+  font-size: 12.5px; font-weight: 600;
+  word-break: break-all;
+}
+.false-ad-link:hover { background: #0284c7; }
+
+.false-ad-reward-caution { background: #fff7ed; border-color: #fed7aa; }
+.false-ad-reward-caution .false-ad-claim-title { color: #7c2d12; }
+.false-ad-reward-caution p { font-size: 13px; color: #7c2d12; margin: 6px 0; }
+
+.false-ad-example-card { border-color: #93c5fd; }
+.false-ad-example-suspicious { background: #fef2f2; border-color: #fecaca; }
+.false-ad-example-suspicious .false-ad-claim-title { color: #991b1b; }
+.false-ad-example-normal { background: #ecfdf5; border-color: #a7f3d0; }
+.false-ad-example-normal .false-ad-claim-title { color: #065f46; }
+.false-ad-example-needs_review { background: #fffbeb; border-color: #fde68a; }
+.false-ad-example-needs_review .false-ad-claim-title { color: #92400e; }
+
+@media (max-width: 768px) {
+  .false-ad-guide-grid { grid-template-columns: 1fr; }
+  .false-ad-checklist { grid-template-columns: 1fr; }
+  .false-ad-link { width: 100%; text-align: center; }
+}

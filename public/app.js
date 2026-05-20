@@ -229,6 +229,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindRewardRegistry();
   renderRewardPrograms(null);
   await loadRewardPrograms();
+  bindFalseAdGuide();
+  renderFalseAdGuide(null);
+  await loadFalseAdGuide();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -3024,6 +3027,198 @@ function renderRewardPrograms(payload) {
     ${renderRewardProgramFilter(programs)}
     <div class="reward-program-grid">${cards}</div>
     <p class="muted" style="margin-top:8px;font-size:12px;">신고포상금·보상금은 공식 기준과 처리 결과에 따라 달라지며, 공익레이더는 수령을 보장하지 않습니다.</p>
+  `;
+}
+
+// ---------- False Ad Practical Guide (실전 재점검 06) ----------
+const FALSE_AD_GUIDE_FALLBACK_HTML = `
+  <div class="false-ad-guide-card false-ad-guide-fallback">
+    <p class="muted">건강기능식품 신고·포상 가이드를 불러오지 못했습니다. 실전 신고 전 식약처 공식 기준을 직접 확인하세요.</p>
+  </div>
+`;
+
+function bindFalseAdGuide() {
+  const btn = document.getElementById("falseAdGuideRefreshBtn");
+  if (btn) btn.addEventListener("click", loadFalseAdGuide);
+}
+
+async function loadFalseAdGuide() {
+  const root = document.getElementById("falseAdGuidePanel");
+  if (!root) return;
+  try {
+    const res = await fetch("/api/modules/false-ad/guide");
+    const data = await res.json();
+    if (!data.ok || !data.guide) throw new Error(data.message || "false ad guide failed");
+    renderFalseAdGuide(data.guide);
+  } catch (err) {
+    root.innerHTML = FALSE_AD_GUIDE_FALLBACK_HTML + `<p class="muted" style="margin-top:8px;font-size:12px;">[debug] ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderFalseAdReportingChannels(channels) {
+  if (!Array.isArray(channels) || channels.length === 0) {
+    return `<p class="muted">신고처 정보가 없습니다.</p>`;
+  }
+  const items = channels.map((c) => `
+    <div class="false-ad-guide-card">
+      <div class="false-ad-channel-header">
+        <h4 class="false-ad-channel-title">${escapeHtml(c.agencyName || "")}</h4>
+        ${c.officialUrl ? `<a class="false-ad-link" href="${escapeAttr(c.officialUrl)}" target="_blank" rel="noopener noreferrer">공식 페이지 ↗</a>` : `<span class="badge muted">관할 지자체 공식 홈페이지 확인</span>`}
+      </div>
+      <p class="false-ad-channel-desc">${escapeHtml(c.description || "")}</p>
+      <p class="false-ad-warning">⚠ ${escapeHtml(c.caution || "")}</p>
+    </div>
+  `).join("");
+  return `<div class="false-ad-guide-grid">${items}</div>`;
+}
+
+function renderFalseAdClaimTypes(types) {
+  if (!Array.isArray(types) || types.length === 0) {
+    return `<p class="muted">금지/검토 표현 유형이 없습니다.</p>`;
+  }
+  const levelLabel = (lv) => lv === "HIGH" ? '<span class="badge danger">HIGH 검토</span>'
+    : lv === "MEDIUM" ? '<span class="badge warn">MEDIUM 검토</span>'
+    : '<span class="badge muted">LOW 검토</span>';
+  const items = types.map((t) => `
+    <div class="false-ad-guide-card">
+      <div class="false-ad-claim-header">
+        <h4 class="false-ad-claim-title">${escapeHtml(t.category || "")}</h4>
+        ${levelLabel(t.reviewLevel || "MEDIUM")}
+      </div>
+      <ul class="false-ad-example-list">
+        ${(t.examples || []).map((ex) => `<li><code>${escapeHtml(ex)}</code></li>`).join("")}
+      </ul>
+      <p class="false-ad-why">${escapeHtml(t.whyItMatters || "")}</p>
+    </div>
+  `).join("");
+  return `<div class="false-ad-guide-grid">${items}</div>`;
+}
+
+function renderFalseAdEvidenceChecklist(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `<p class="muted">증거 체크리스트가 없습니다.</p>`;
+  }
+  return `
+    <ul class="false-ad-checklist">
+      ${items.map((it) => `
+        <li class="${it.required ? "required" : "optional"}">
+          <span class="false-ad-check-badge">${it.required ? "필수" : "선택"}</span>
+          <div>
+            <div class="false-ad-check-label">${escapeHtml(it.label || "")}</div>
+            ${it.hint ? `<div class="false-ad-check-hint muted">${escapeHtml(it.hint)}</div>` : ""}
+          </div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function renderFalseAdPreReportChecklist(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `<p class="muted">신고 전 확인사항이 없습니다.</p>`;
+  }
+  return `
+    <ul class="false-ad-checklist">
+      ${items.map((it) => `
+        <li class="${it.required ? "required" : "optional"}">
+          <span class="false-ad-check-badge">${it.required ? "필수" : "선택"}</span>
+          <div class="false-ad-check-label">${escapeHtml(it.label || "")}</div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function renderFalseAdRewardCaution(caution) {
+  if (!caution) return "";
+  const notes = (caution.notes || []).map((n) => `<li>${escapeHtml(n)}</li>`).join("");
+  return `
+    <div class="false-ad-guide-card false-ad-reward-caution">
+      <h4 class="false-ad-claim-title">${escapeHtml(caution.title || "신고포상금 지급 기준 안내")}</h4>
+      <p>${escapeHtml(caution.summary || "")}</p>
+      <ul class="false-ad-example-list">${notes}</ul>
+      <p class="false-ad-warning">⚠ 포상금 수령을 보장하지 않습니다. 공식 기준 확인 필요.</p>
+    </div>
+  `;
+}
+
+function renderFalseAdExamples(examples) {
+  if (!Array.isArray(examples) || examples.length === 0) {
+    return `<p class="muted">예시가 없습니다.</p>`;
+  }
+  const groups = { suspicious: [], normal: [], needs_review: [] };
+  for (const e of examples) {
+    const cat = e.category || "needs_review";
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(e);
+  }
+  const groupLabel = { suspicious: "검토 후보 (의심)", normal: "허용 범위 예시", needs_review: "맥락 확인 필요" };
+  const cards = Object.keys(groups).map((cat) => `
+    <div class="false-ad-guide-card false-ad-example-card false-ad-example-${cat}">
+      <h4 class="false-ad-claim-title">${escapeHtml(groupLabel[cat] || cat)}</h4>
+      <ul class="false-ad-example-list">
+        ${groups[cat].map((e) => `
+          <li>
+            <code>${escapeHtml(e.text || "")}</code>
+            ${e.explanation ? `<div class="false-ad-check-hint muted">${escapeHtml(e.explanation)}</div>` : ""}
+          </li>
+        `).join("")}
+      </ul>
+    </div>
+  `).join("");
+  return `<div class="false-ad-guide-grid">${cards}</div>`;
+}
+
+function renderFalseAdOfficialLinks(links) {
+  if (!Array.isArray(links) || links.length === 0) {
+    return `<p class="muted">공식 링크가 없습니다.</p>`;
+  }
+  return `
+    <div class="false-ad-guide-grid">
+      ${links.map((l) => `
+        <div class="false-ad-guide-card">
+          <a class="false-ad-link" href="${escapeAttr(l.url || "")}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.label || l.url || "")} ↗</a>
+          <p class="false-ad-warning">⚠ ${escapeHtml(l.caution || "공식 기준은 변경될 수 있으므로 실전 신고 전 사람이 직접 재확인하세요.")}</p>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderFalseAdGuide(guide) {
+  const root = document.getElementById("falseAdGuidePanel");
+  if (!root) return;
+  if (!guide) {
+    root.innerHTML = FALSE_AD_GUIDE_FALLBACK_HTML;
+    return;
+  }
+  root.innerHTML = `
+    <div class="false-ad-guide-intro">
+      <h3 class="false-ad-section-title">${escapeHtml(guide.displayName || "건강기능식품 신고·포상 가이드")}</h3>
+      <p class="muted">${escapeHtml(guide.safetyNotice || "이 가이드는 신고지원용이며, 법 위반 또는 포상금 지급을 확정하지 않습니다.")}</p>
+    </div>
+
+    <h3 class="false-ad-section-title">신고처</h3>
+    ${renderFalseAdReportingChannels(guide.reportingChannels)}
+
+    <h3 class="false-ad-section-title">금지/검토 표현 유형</h3>
+    <p class="muted">아래 표현 유형은 위법 확정이 아니라, 사람이 추가 점검해야 할 검토 후보입니다.</p>
+    ${renderFalseAdClaimTypes(guide.prohibitedClaimTypes)}
+
+    <h3 class="false-ad-section-title">필요 증거 체크리스트</h3>
+    ${renderFalseAdEvidenceChecklist(guide.evidenceChecklist)}
+
+    <h3 class="false-ad-section-title">신고 전 확인사항</h3>
+    ${renderFalseAdPreReportChecklist(guide.preReportChecklist)}
+
+    <h3 class="false-ad-section-title">신고포상금 주의사항</h3>
+    ${renderFalseAdRewardCaution(guide.rewardCaution)}
+
+    <h3 class="false-ad-section-title">예시 문구</h3>
+    ${renderFalseAdExamples(guide.examples)}
+
+    <h3 class="false-ad-section-title">공식 링크</h3>
+    ${renderFalseAdOfficialLinks(guide.officialLinks)}
   `;
 }
 
