@@ -720,6 +720,29 @@ The dashboard shows notice cards for:
 
 These notices are practical guidance only. They do not guarantee reward payment or report acceptance. 공식 기준 확인은 사람이 수행하며, 본 도구는 신고지원 / 검토 후보 도구입니다.
 
+## Bid Collusion Practical Guide
+
+입찰담합 의심 패턴 분석 모듈의 실전 기준을 제공합니다.
+
+포함 정보:
+
+- 공정거래위원회 신고처 (담합 신고 / 신고포상금 안내 / 국민신문고 연계)
+- 입찰담합 의심 패턴 (반복 업체군, 순환 낙찰, 들러리, 낙찰률 군집 등)
+- 수집할 입찰자료 (정형 데이터: 공고/개찰/투찰금액·률/순위 등)
+- 신고 전 체크리스트
+- 신고포상금 주의사항 (공식 안내상 최대 30억 원 — 단 수령 보장 아님, 공식 기준 확인 필요)
+- 공식 링크
+
+이 가이드는 신고지원 도구 안내이며, 담합 여부 또는 포상금 지급을 단정하지 않습니다.
+특정 업체를 형사적 표현으로 단정하지 않으며, 담합 여부 확정은 공정거래위원회 등 관계기관의 공식 조사·조치 결과에 따라 달라집니다.
+공익레이더는 외부 신고기관에 자동으로 제출하지 않으며, 포상금 수령을 보장하지 않습니다.
+
+API:
+
+- `GET /api/modules/bid-collusion/guide`
+
+자세한 명세는 [`docs/bid_collusion_guide.md`](./docs/bid_collusion_guide.md) 참고.
+
 ## Counterfeit Practical Guide
 
 위조상품 온라인 판매 의심 탐지 모듈의 실전 기준을 제공합니다.

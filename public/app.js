@@ -235,6 +235,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindCounterfeitGuide();
   renderCounterfeitGuide(null);
   await loadCounterfeitGuide();
+  bindBidCollusionGuide();
+  renderBidCollusionGuide(null);
+  await loadBidCollusionGuide();
   await loadTopics();
   await loadCandidates();
   await loadQueue();
@@ -3414,6 +3417,198 @@ function renderCounterfeitGuide(guide) {
 
     <h3 class="counterfeit-section-title">공식 링크</h3>
     ${renderCounterfeitOfficialLinks(guide.officialLinks)}
+  `;
+}
+
+// ---------- Bid Collusion Practical Guide (실전 재점검 08) ----------
+const BID_COLLUSION_GUIDE_FALLBACK_HTML = `
+  <div class="bid-collusion-guide-card bid-collusion-guide-fallback">
+    <p class="muted">공정위 담합 신고·포상 가이드를 불러오지 못했습니다. 실전 신고 전 공정거래위원회 공식 페이지에서 최신 신고서 양식과 포상금 기준을 직접 확인하세요.</p>
+  </div>
+`;
+
+function bindBidCollusionGuide() {
+  const btn = document.getElementById("bidCollusionGuideRefreshBtn");
+  if (btn) btn.addEventListener("click", loadBidCollusionGuide);
+}
+
+async function loadBidCollusionGuide() {
+  const root = document.getElementById("bidCollusionGuidePanel");
+  if (!root) return;
+  try {
+    const res = await fetch("/api/modules/bid-collusion/guide");
+    const data = await res.json();
+    if (!data.ok || !data.guide) throw new Error(data.message || "bid collusion guide failed");
+    renderBidCollusionGuide(data.guide);
+  } catch (err) {
+    root.innerHTML = BID_COLLUSION_GUIDE_FALLBACK_HTML + `<p class="muted" style="margin-top:8px;font-size:12px;">[debug] ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderBidCollusionReportingChannels(channels) {
+  if (!Array.isArray(channels) || channels.length === 0) {
+    return `<p class="muted">신고처 정보가 없습니다.</p>`;
+  }
+  const items = channels.map((c) => `
+    <div class="bid-collusion-guide-card">
+      <div class="bid-collusion-channel-header">
+        <h4 class="bid-collusion-channel-title">${escapeHtml(c.agencyName || "")}</h4>
+        ${c.officialUrl ? `<a class="bid-collusion-link" href="${escapeAttr(c.officialUrl)}" target="_blank" rel="noopener noreferrer">공식 페이지 ↗</a>` : `<span class="badge muted">공식 페이지 직접 확인</span>`}
+      </div>
+      <p class="bid-collusion-channel-desc">${escapeHtml(c.description || "")}</p>
+      <p class="bid-collusion-warning">⚠ ${escapeHtml(c.caution || "")}</p>
+    </div>
+  `).join("");
+  return `<div class="bid-collusion-guide-grid">${items}</div>`;
+}
+
+function renderBidCollusionPatterns(patterns) {
+  if (!Array.isArray(patterns) || patterns.length === 0) {
+    return `<p class="muted">담합 의심 패턴이 없습니다.</p>`;
+  }
+  const levelLabel = (lv) => lv === "HIGH" ? '<span class="badge danger">HIGH 검토</span>'
+    : lv === "MEDIUM" ? '<span class="badge warn">MEDIUM 검토</span>'
+    : '<span class="badge muted">LOW 검토</span>';
+  const items = patterns.map((p) => `
+    <div class="bid-collusion-guide-card">
+      <div class="bid-collusion-pattern-header">
+        <h4 class="bid-collusion-pattern-title">${escapeHtml(p.category || "")}</h4>
+        ${levelLabel(p.reviewLevel || "MEDIUM")}
+      </div>
+      <ul class="bid-collusion-example-list">
+        ${(p.examples || []).map((ex) => `<li><code>${escapeHtml(ex)}</code></li>`).join("")}
+      </ul>
+      <p class="bid-collusion-why">${escapeHtml(p.whyItMatters || "")}</p>
+    </div>
+  `).join("");
+  return `<div class="bid-collusion-guide-grid">${items}</div>`;
+}
+
+function renderBidCollusionEvidenceChecklist(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `<p class="muted">증거 체크리스트가 없습니다.</p>`;
+  }
+  return `
+    <ul class="bid-collusion-checklist">
+      ${items.map((it) => `
+        <li class="${it.required ? "required" : "optional"}">
+          <span class="bid-collusion-check-badge">${it.required ? "필수" : "선택"}</span>
+          <div>
+            <div class="bid-collusion-check-label">${escapeHtml(it.label || "")}</div>
+            ${it.hint ? `<div class="bid-collusion-check-hint muted">${escapeHtml(it.hint)}</div>` : ""}
+          </div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function renderBidCollusionPreReportChecklist(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `<p class="muted">신고 전 확인사항이 없습니다.</p>`;
+  }
+  return `
+    <ul class="bid-collusion-checklist">
+      ${items.map((it) => `
+        <li class="${it.required ? "required" : "optional"}">
+          <span class="bid-collusion-check-badge">${it.required ? "필수" : "선택"}</span>
+          <div class="bid-collusion-check-label">${escapeHtml(it.label || "")}</div>
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+function renderBidCollusionRewardCaution(caution) {
+  if (!caution) return "";
+  const notes = (caution.notes || []).map((n) => `<li>${escapeHtml(n)}</li>`).join("");
+  return `
+    <div class="bid-collusion-guide-card bid-collusion-reward-caution">
+      <h4 class="bid-collusion-pattern-title">${escapeHtml(caution.title || "공정위 담합 신고포상금 기준 안내")}</h4>
+      <p>${escapeHtml(caution.summary || "")}</p>
+      <ul class="bid-collusion-example-list">${notes}</ul>
+      <p class="bid-collusion-warning">⚠ 포상금 수령을 보장하지 않습니다. 담합 여부와 지급 여부는 공정위 조치 결과에 따라 달라집니다.</p>
+    </div>
+  `;
+}
+
+function renderBidCollusionExamples(examples) {
+  if (!Array.isArray(examples) || examples.length === 0) {
+    return `<p class="muted">예시가 없습니다.</p>`;
+  }
+  const groups = { suspicious: [], normal: [], needs_review: [] };
+  for (const e of examples) {
+    const cat = e.category || "needs_review";
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(e);
+  }
+  const groupLabel = { suspicious: "담합 의심 패턴 후보", normal: "참고 예시", needs_review: "맥락 확인 필요" };
+  const cards = Object.keys(groups).map((cat) => `
+    <div class="bid-collusion-guide-card bid-collusion-example bid-collusion-example-${cat}">
+      <h4 class="bid-collusion-pattern-title">${escapeHtml(groupLabel[cat] || cat)}</h4>
+      <ul class="bid-collusion-example-list">
+        ${groups[cat].map((e) => `
+          <li>
+            <code>${escapeHtml(e.text || "")}</code>
+            ${e.explanation ? `<div class="bid-collusion-check-hint muted">${escapeHtml(e.explanation)}</div>` : ""}
+          </li>
+        `).join("")}
+      </ul>
+    </div>
+  `).join("");
+  return `<div class="bid-collusion-guide-grid">${cards}</div>`;
+}
+
+function renderBidCollusionOfficialLinks(links) {
+  if (!Array.isArray(links) || links.length === 0) {
+    return `<p class="muted">공식 링크가 없습니다.</p>`;
+  }
+  return `
+    <div class="bid-collusion-guide-grid">
+      ${links.map((l) => `
+        <div class="bid-collusion-guide-card">
+          <a class="bid-collusion-link" href="${escapeAttr(l.url || "")}" target="_blank" rel="noopener noreferrer">${escapeHtml(l.label || l.url || "")} ↗</a>
+          <p class="bid-collusion-warning">⚠ ${escapeHtml(l.caution || "공식 기준은 변경될 수 있으므로 실전 신고 전 사람이 직접 재확인하세요.")}</p>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderBidCollusionGuide(guide) {
+  const root = document.getElementById("bidCollusionGuidePanel");
+  if (!root) return;
+  if (!guide) {
+    root.innerHTML = BID_COLLUSION_GUIDE_FALLBACK_HTML;
+    return;
+  }
+  root.innerHTML = `
+    <div class="bid-collusion-guide-intro">
+      <h3 class="bid-collusion-section-title">${escapeHtml(guide.displayName || "공정위 담합 신고·포상 가이드")}</h3>
+      <p class="muted">${escapeHtml(guide.safetyNotice || "이 가이드는 신고지원용이며, 담합 여부 또는 포상금 지급을 확정하지 않습니다.")}</p>
+    </div>
+
+    <h3 class="bid-collusion-section-title">신고처</h3>
+    ${renderBidCollusionReportingChannels(guide.reportingChannels)}
+
+    <h3 class="bid-collusion-section-title">담합 의심 패턴</h3>
+    <p class="muted">아래 패턴은 담합 단정이 아니라, 사람이 추가 검토할 입찰담합 의심 패턴 후보입니다.</p>
+    ${renderBidCollusionPatterns(guide.suspiciousPatterns)}
+
+    <h3 class="bid-collusion-section-title">필요 증거 체크리스트</h3>
+    ${renderBidCollusionEvidenceChecklist(guide.evidenceChecklist)}
+
+    <h3 class="bid-collusion-section-title">신고 전 확인사항</h3>
+    ${renderBidCollusionPreReportChecklist(guide.preReportChecklist)}
+
+    <h3 class="bid-collusion-section-title">신고포상금 주의사항</h3>
+    ${renderBidCollusionRewardCaution(guide.rewardCaution)}
+
+    <h3 class="bid-collusion-section-title">예시 패턴</h3>
+    ${renderBidCollusionExamples(guide.examples)}
+
+    <h3 class="bid-collusion-section-title">공식 링크</h3>
+    ${renderBidCollusionOfficialLinks(guide.officialLinks)}
   `;
 }
 

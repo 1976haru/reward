@@ -3097,6 +3097,201 @@ check("outcome UI does NOT call localStorage",
   }
 }
 
+// 35) Bid Collusion Practical Guide — 실전 재점검 08
+{
+  const { bidCollusionGuideService, BID_COLLUSION_GUIDE_SAFETY_NOTICE } =
+    await import("../services/bid-collusion-guide/BidCollusionGuideService.js");
+
+  const g = bidCollusionGuideService.getGuide();
+
+  // 구조
+  check("bid collusion guide schemaVersion 1.0.0", g.schemaVersion === "1.0.0");
+  check("bid collusion guide moduleId bid_collusion", g.moduleId === "bid_collusion");
+  check("bid collusion guide displayName non-empty",
+    typeof g.displayName === "string" && g.displayName.length > 0);
+
+  // Reporting channels
+  check("bid collusion reportingChannels length >= 3",
+    Array.isArray(g.reportingChannels) && g.reportingChannels.length >= 3);
+  const channelAgencies = g.reportingChannels.map((c) => c.agencyName || "");
+  check("bid collusion reportingChannels include 공정거래위원회",
+    channelAgencies.some((a) => /공정거래위원회/.test(a)));
+  check("bid collusion reportingChannels include 국민신문고",
+    channelAgencies.some((a) => /국민신문고/.test(a)));
+  const channelUrls = g.reportingChannels.map((c) => c.officialUrl || "").join(" ");
+  check("bid collusion reportingChannels include ftc.go.kr",
+    channelUrls.includes("ftc.go.kr"));
+  for (const c of g.reportingChannels) {
+    check(`bid collusion channel ${c.id} has caution`,
+      typeof c.caution === "string" && c.caution.length > 0);
+  }
+
+  // Suspicious patterns
+  check("bid collusion suspiciousPatterns length >= 8",
+    Array.isArray(g.suspiciousPatterns) && g.suspiciousPatterns.length >= 8);
+  for (const p of g.suspiciousPatterns) {
+    check(`bid collusion pattern ${p.id} has >=2 examples`,
+      Array.isArray(p.examples) && p.examples.length >= 2);
+    check(`bid collusion pattern ${p.id} whyItMatters mentions 검토`,
+      typeof p.whyItMatters === "string" && /검토/.test(p.whyItMatters));
+    check(`bid collusion pattern ${p.id} reviewLevel in enum`,
+      ["HIGH", "MEDIUM", "LOW"].includes(p.reviewLevel));
+  }
+  const patternCats = g.suspiciousPatterns.map((p) => p.category || "");
+  for (const must of ["반복", "순환", "들러리", "투찰", "낙찰률", "낮은 경쟁", "계약"]) {
+    check(`bid collusion patterns include category keyword: ${must}`,
+      patternCats.some((c) => c.includes(must)));
+  }
+
+  // Evidence checklist
+  check("bid collusion evidenceChecklist length >= 17",
+    Array.isArray(g.evidenceChecklist) && g.evidenceChecklist.length >= 17);
+  for (const i of g.evidenceChecklist) {
+    check(`bid collusion evidence ${i.id} has boolean required`,
+      typeof i.required === "boolean");
+    check(`bid collusion evidence ${i.id} has label`,
+      typeof i.label === "string" && i.label.length > 0);
+  }
+  const evLabels = g.evidenceChecklist.map((i) => i.label);
+  for (const must of ["입찰공고번호", "발주기관", "낙찰금액", "낙찰률", "참여업체 목록", "업체별 투찰금액", "원본 공개자료 URL"]) {
+    check(`bid collusion evidenceChecklist includes ${must}`,
+      evLabels.some((l) => l.includes(must)));
+  }
+
+  // Pre-report checklist
+  check("bid collusion preReportChecklist length >= 8",
+    Array.isArray(g.preReportChecklist) && g.preReportChecklist.length >= 8);
+  const prLabels = g.preReportChecklist.map((i) => i.label || "");
+  check("bid collusion preReport mentions 공정위 신고서 양식",
+    prLabels.some((l) => /공정위\s*신고서\s*양식/.test(l)));
+  check("bid collusion preReport mentions 단일 입찰",
+    prLabels.some((l) => /단일\s*입찰/.test(l)));
+  check("bid collusion preReport mentions 최종 제출은 사람",
+    prLabels.some((l) => /최종\s*제출[^\n]*사람/.test(l)));
+
+  // Reward caution
+  check("bid collusion rewardCaution.notGuaranteed === true",
+    g.rewardCaution?.notGuaranteed === true);
+  check("bid collusion rewardCaution.officialCheckRequired === true",
+    g.rewardCaution?.officialCheckRequired === true);
+  check("bid collusion rewardCaution.summary mentions 수령을 보장하지 않습니다",
+    /수령을\s*보장하지\s*않/.test(g.rewardCaution?.summary || ""));
+  check("bid collusion rewardCaution.summary mentions 최대 30억 원",
+    /최대\s*30\s*억\s*원/.test(g.rewardCaution?.summary || ""));
+  check("bid collusion rewardCaution.notes length >= 4",
+    Array.isArray(g.rewardCaution?.notes) && g.rewardCaution.notes.length >= 4);
+
+  // Examples
+  check("bid collusion examples length >= 6", Array.isArray(g.examples) && g.examples.length >= 6);
+  const catCounts = g.examples.reduce<Record<string, number>>((acc, e) => {
+    acc[e.category] = (acc[e.category] ?? 0) + 1;
+    return acc;
+  }, {});
+  check("bid collusion examples include suspicious", (catCounts.suspicious ?? 0) >= 3);
+  check("bid collusion examples include normal", (catCounts.normal ?? 0) >= 2);
+  check("bid collusion examples include needs_review", (catCounts.needs_review ?? 0) >= 2);
+
+  // Official links
+  check("bid collusion officialLinks length >= 4",
+    Array.isArray(g.officialLinks) && g.officialLinks.length >= 4);
+  const linkText = g.officialLinks.map((l) => l.url || "").join(" ");
+  check("bid collusion officialLinks include ftc.go.kr",
+    linkText.includes("ftc.go.kr"));
+  for (const l of g.officialLinks) {
+    check(`bid collusion link ${l.id} has caution`,
+      typeof l.caution === "string" && l.caution.length > 0);
+  }
+
+  // Safety notice
+  check("bid collusion guide.safetyNotice === BID_COLLUSION_GUIDE_SAFETY_NOTICE",
+    g.safetyNotice === BID_COLLUSION_GUIDE_SAFETY_NOTICE);
+  check("bid collusion safetyNotice mentions 자동으로 제출하지 않으며",
+    /자동으로\s*제출하지\s*않/.test(g.safetyNotice));
+  check("bid collusion safetyNotice mentions 포상금 수령을 보장하지 않",
+    /포상금\s*수령을\s*보장하지\s*않/.test(g.safetyNotice));
+  check("bid collusion safetyNotice mentions 공정거래위원회",
+    /공정거래위원회/.test(g.safetyNotice));
+
+  // 금지 표현 (긍정문) — payload 전체에 들어가서는 안 됨
+  const guideJson = JSON.stringify(g);
+  const BID_FORBIDDEN_AFFIRMATIVE = [
+    "담합 확정",
+    "불법 확정",
+    "범죄자",
+    "사기꾼",
+    "포상금 확정",
+    "수익 확정",
+    "신고하면 지급",
+    "무조건 지급",
+    "무조건 받을 수 있음",
+    "포상금 보장합니다",
+    "자동 신고합니다",
+    "자동 신고됩니다",
+    "바로 제출합니다",
+    "바로 제출됩니다"
+  ];
+  for (const phrase of BID_FORBIDDEN_AFFIRMATIVE) {
+    check(`bid collusion guide payload excludes affirmative: ${phrase}`,
+      !guideJson.includes(phrase));
+  }
+
+  // 소스 파일 / 문서 검증
+  const bidSvcText = await readFileSafe(path.join(process.cwd(), "src", "services", "bid-collusion-guide", "BidCollusionGuideService.ts"));
+  const bidRouteText = await readFileSafe(path.join(process.cwd(), "src", "routes", "bidCollusionGuide.ts"));
+  const bidDocText = await readFileSafe(path.join(process.cwd(), "docs", "bid_collusion_guide.md"));
+  for (const phrase of ["신고하면 지급", "무조건 지급", "무조건 받을 수 있음", "포상금 보장합니다", "범죄자", "사기꾼", "담합 확정"]) {
+    check(`bid collusion service does not contain affirmative: ${phrase}`,
+      !bidSvcText.includes(phrase));
+    check(`bid collusion route does not contain affirmative: ${phrase}`,
+      !bidRouteText.includes(phrase));
+    check(`bid collusion docs do not contain affirmative as positive: ${phrase}`,
+      !bidDocText.includes(phrase));
+  }
+
+  // UI 마커 / 렌더 함수 / CSS
+  check("public/index.html includes bidCollusionGuideCard",
+    /id="bidCollusionGuideCard"/.test(indexHtml));
+  check("public/index.html includes bidCollusionGuidePanel",
+    /id="bidCollusionGuidePanel"/.test(indexHtml));
+  check("public/app.js exposes loadBidCollusionGuide",
+    /async\s+function\s+loadBidCollusionGuide\s*\(|function\s+loadBidCollusionGuide\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderBidCollusionGuide",
+    /function\s+renderBidCollusionGuide\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderBidCollusionReportingChannels",
+    /function\s+renderBidCollusionReportingChannels\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderBidCollusionPatterns",
+    /function\s+renderBidCollusionPatterns\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderBidCollusionEvidenceChecklist",
+    /function\s+renderBidCollusionEvidenceChecklist\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderBidCollusionRewardCaution",
+    /function\s+renderBidCollusionRewardCaution\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderBidCollusionExamples",
+    /function\s+renderBidCollusionExamples\s*\(/.test(appJsHome));
+  check("public/app.js exposes renderBidCollusionOfficialLinks",
+    /function\s+renderBidCollusionOfficialLinks\s*\(/.test(appJsHome));
+  check("public/styles.css declares .bid-collusion-guide-card",
+    /\.bid-collusion-guide-card\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .bid-collusion-checklist",
+    /\.bid-collusion-checklist\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .bid-collusion-warning",
+    /\.bid-collusion-warning\s*\{/.test(stylesRaw));
+  check("public/styles.css declares .bid-collusion-link",
+    /\.bid-collusion-link\s*\{/.test(stylesRaw));
+
+  // README + docs
+  const readmeText = await readFileSafe(path.join(process.cwd(), "README.md"));
+  check("README.md contains Bid Collusion Practical Guide section",
+    /##\s*Bid\s*Collusion\s*Practical\s*Guide\b/.test(readmeText));
+  check("README.md mentions GET /api/modules/bid-collusion/guide",
+    /GET\s+\/api\/modules\/bid-collusion\/guide/.test(readmeText));
+  check("docs/bid_collusion_guide.md exists",
+    await fileExists(path.join(process.cwd(), "docs", "bid_collusion_guide.md")));
+  for (const phrase of ["담합 확정", "범죄자", "사기꾼", "포상금 보장합니다"]) {
+    check(`README does not contain forbidden affirmative: ${phrase}`,
+      !readmeText.includes(phrase));
+  }
+}
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);
