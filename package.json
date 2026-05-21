@@ -11,6 +11,7 @@
     "test": "tsx src/scripts/smoke-test.ts",
     "check": "npm run build && npm run test",
     "check:policy": "node scripts/check-approval-gate.js",
+    "test:approval": "tsx tests/approvalGate.test.ts",
     "playwright:install": "playwright install chromium",
     "eval:generate": "tsx scripts/generate-eval-set.ts",
     "health": "node scripts/health-check.js",

@@ -120,3 +120,68 @@ npm run check:policy
 - 코드 리뷰 가이드: PR 템플릿에 "본 PR이 자동 제출/자동 로그인을 도입하지 않음을 확인" 체크박스
 - 의존성 정책: HTTP 클라이언트 사용 시 외부 신고기관 도메인 allowlist 차단 (현재 미구현, 향후 옵션)
 - 빌드 시 `check:policy`를 `prepublish` 또는 CI에서 자동 실행
+
+---
+
+## 11. Workflow Gate States (체크리스트 3)
+
+본 절은 §4 의 Case 상태 머신(`DRAFT/REVIEW/.../SUBMITTED/REJECTED`) 과는 별개로, **신고 보상형 흐름의 승인 게이트 상태**를 정의한다. AI 가 직접 신고하지 못하도록 단계 사이에 명시적 "사람 승인" 단계를 강제한다.
+
+### 11.1 허용 상태 (Allowed Gate States)
+
+| 상태값 | 의미 |
+|---|---|
+| `draft_created` | 신고서 초안 생성 (사람 검토 대상 아님 — 생성만 됨) |
+| `evidence_packaged` | 증거 패키지 생성 완료 |
+| `human_review_required` | 사람 검토 필요. 자동 단계는 여기서 멈춘다 |
+| `human_approved` | 사람이 "외부 창구에 직접 제출 가능" 하다고 승인 |
+| `manually_submitted` | 사람이 외부 기관에 직접 제출 후 접수번호 기록 |
+| `rejected` | 사람이 신고 부적합으로 폐기 |
+| `needs_more_evidence` | 증거 보완 필요 |
+
+### 11.2 금지 상태 (Forbidden Gate States)
+
+다음 값은 **상태 머신·코드·UI 어디에서도 사용되지 않는다.** 정적 검사(`npm run check:policy`)가 src/public 에서 이 리터럴을 발견하면 실패한다.
+
+| 금지 상태값 | 사유 |
+|---|---|
+| `ai_submitted` | AI 가 외부 기관에 제출했다는 의미 — 본 시스템은 수행하지 않음 |
+| `auto_submitted` | 시스템 자동 제출 — 금지 |
+| `submitted_without_review` | 사람 검토 없이 제출됨 — 금지 |
+| `reward_claim_auto_submitted` | 보상금/포상금 자동 신청 — 금지 |
+
+### 11.3 필수 승인 로그 (Required Approval Log)
+
+`approveForManualSubmission`, `rejectCase`, `requestMoreEvidence`, `confirmManualSubmission` 호출 시 반환되는 승인 로그 엔트리는 최소한 다음 필드를 포함한다.
+
+| 필드 | 필수 | 비고 |
+|---|---|---|
+| `caseId` | ✅ | Case 식별자 |
+| `reviewerId` 또는 `reviewerName` | ✅ | 검토자(사람) 식별. 둘 중 하나는 반드시 존재 |
+| `decision` | ✅ | `approved` / `rejected` / `needs_more_evidence` / `manually_submitted_confirmed` |
+| `reviewedAt` | ✅ | ISO 8601 UTC 타임스탬프 |
+| `reason` | ✅ | 결정 사유 (자유 텍스트, 마스킹 권장) |
+| `evidencePackageId` | ✅ (approve/confirm 단계) | 검토 대상 증거 패키지 ID |
+| `draftReportId` | ✅ (approve/confirm 단계) | 검토 대상 신고서 초안 ID |
+| `manualSubmissionConfirmed` | confirm 단계에서 `true` 고정 | 사람이 외부 창구에 직접 제출했다는 확인 |
+| `externalReceiptNo` | confirm 단계에서만 입력 | 외부 기관에서 부여한 접수번호 (수동 제출 후에만) |
+
+승인 로그는 호출자가 영속화한다(예: `data/approval/{yyyy-mm-dd}.jsonl` 또는 기존 Trace Log 와 연결). 본 모듈은 순수 함수로 구성되어 테스트 결정성을 보장하며, 영속화는 별도 어댑터의 책임이다.
+
+### 11.4 운영 원칙 (Operational Principles)
+
+- 신고서 **초안 생성은 신고가 아니다.** `draft_created` / `evidence_packaged` 는 단순 산출물 생성 상태다.
+- 증거 패키지 생성은 신고가 아니다.
+- 사람이 외부 신고기관에 **직접 제출하고 접수번호를 입력**해야 `manually_submitted` 상태가 된다.
+- 접수번호(`externalReceiptNo`)가 없으면 `manually_submitted` 상태로 변경할 수 없다.
+- `human_approved` 가 아닌 상태에서 `confirmManualSubmission` 호출은 거부된다.
+- `submittedByHuman === true` 가 아니면 `confirmManualSubmission` 은 거부된다.
+- `aiSubmitted` / `autoSubmitted` / `submittedWithoutReview` / `rewardClaimAutoSubmitted` 플래그가 truthy 이면 `blockAutoSubmission` 이 `ApprovalGateError` 를 throw 한다.
+- AI 는 신고 가능성 판단·우선순위 점수화·초안 생성·증거 정리까지의 **보조 작업만** 수행한다.
+
+### 11.5 코드 위치
+
+- 정책/타입/런타임 가드: [`src/policy/approvalGate.ts`](../src/policy/approvalGate.ts)
+- 워크플로우 함수(체크리스트 3): [`src/policy/approvalWorkflow.ts`](../src/policy/approvalWorkflow.ts)
+- 정적 검사: [`scripts/check-approval-gate.js`](../scripts/check-approval-gate.js) (`npm run check:policy`)
+- 테스트: [`tests/approvalGate.test.ts`](../tests/approvalGate.test.ts) (`npm run test:approval`)

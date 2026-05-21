@@ -20,10 +20,12 @@
 4. **사람이 최종 검토** — Review Queue에서 승인/보류/반려/메모 가능, 사람 검토 없이는 다음 단계로 진행 불가
 5. **신고 후 결과 추적** — 사람이 공식 창구에 직접 제출한 뒤 접수번호·처리상태·결과를 Outcome Tracker에 기록
 
-설계 원칙(자세한 정책은 [`docs/OPERATING_POLICY.md`](./docs/OPERATING_POLICY.md), [`docs/PRD.md`](./docs/PRD.md), [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md), [`scope.md`](./scope.md) 참고):
+설계 원칙(자세한 정책은 [`docs/OPERATING_POLICY.md`](./docs/OPERATING_POLICY.md), [`docs/PRD.md`](./docs/PRD.md), [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md), [`docs/approval_gate.md`](./docs/approval_gate.md), [`scope.md`](./scope.md) 참고):
 
-- **자동 신고 금지** — 외부 신고기관에 어떤 형태로도 자동 제출/자동 로그인하지 않습니다.
-- **사람 검토 필수** — AI 결과는 참고자료이며, 신고 여부는 항상 사람이 결정합니다.
+- **자동 신고 금지** — 외부 신고기관에 어떤 형태로도 자동 제출/자동 로그인하지 않습니다. 코드/UI/문서/정적 검사 4중 차단([`docs/approval_gate.md`](./docs/approval_gate.md)).
+- **사람 검토·승인 필수** — AI 결과는 참고자료이며, 신고서 초안은 사람 검토를 거치고 사람이 명시적으로 승인(`human_approved`)해야 다음 단계로 갑니다.
+- **신고서 초안 ≠ 실제 신고 제출** — 초안 생성·증거 패키지 생성은 신고가 아닙니다. 사람이 외부 공식 창구에 직접 제출한 뒤 **접수번호(`externalReceiptNo`)를 입력**해야 `manually_submitted` 로 기록됩니다.
+- **승인 로그 필수** — 모든 검토 결정은 `caseId / reviewer / decision / reason / evidencePackageId / draftReportId / reviewedAt` 가 포함된 승인 로그를 남깁니다.
 - **증거 기반 신고 원칙** — 의심사례는 항상 원본 URL, 수집일시, 캡처/PDF, 추출 텍스트, 해시 manifest 등 추적 가능한 증거와 함께 정리됩니다.
 - **법률 자문 대체 아님** — 본 프로젝트는 **법률 자문을 대체하지 않으며, 보상금·포상금 지급을 보장하지 않습니다.** 공식 기준은 [국가법령정보센터](https://www.law.go.kr) 와 각 신고기관 공식 페이지에서 직접 확인해야 합니다. 내부 운영 기준 상세는 [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md) 참고.
 

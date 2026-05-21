@@ -27,10 +27,24 @@ const DANGEROUS_IDENTIFIERS = [
   /\bautoLogin\s*\(/,
   /\bsubmitReport\s*\(/,
   /\bclaimReward\s*\(/,
+  /\bsubmitToAgencyAutomatically\s*\(/,
+  /\baiSubmitReport\s*\(/,
+  /\bsubmitWithoutReview\s*\(/,
   /\bautoSubmit\s*[:=]/,
   /\bsendToAgency\s*[:=]/,
   /\bagencyLogin\s*[:=]/,
-  /\bautoLogin\s*[:=]/
+  /\bautoLogin\s*[:=]/,
+  /\bsubmitToAgencyAutomatically\s*[:=]/,
+  /\baiSubmitReport\s*[:=]/,
+  /\bsubmitWithoutReview\s*[:=]/
+];
+
+// 금지 상태 리터럴 — src/public 에 등장하면 위반. docs 와 정책 파일은 예외.
+const FORBIDDEN_STATUS_LITERALS = [
+  "ai_submitted",
+  "auto_submitted",
+  "submitted_without_review",
+  "reward_claim_auto_submitted"
 ];
 
 // UI 버튼/링크에서 금지 문구. 주변 ±80자에 부정 마커가 있으면 안전 문맥으로 간주.
@@ -46,6 +60,7 @@ const NEGATIVE_MARKERS = /(금지|아닙니다|아니다|아니라|아니며|않
 // 검사 제외 파일 (정책/문서 본문 — 의도적으로 금지 표현을 나열)
 const EXCLUDED_FILES = new Set([
   "src/policy/approvalGate.ts",
+  "src/policy/approvalWorkflow.ts",
   "src/utils/validation.ts",
   "src/agents/AnalyzerAgent.ts",
   "src/services/ReportService.ts",
@@ -115,6 +130,25 @@ async function scanFile(filePath) {
         });
       }
       idx += needle.length;
+    }
+  }
+
+  // 금지 상태 리터럴 검사 — src/public 의 실제 구현에서 사용되면 정책 위반.
+  // 예외 파일(approvalWorkflow.ts 등 정책 정의 파일)은 EXCLUDED_FILES 로 이미 제외됨.
+  for (const literal of FORBIDDEN_STATUS_LITERALS) {
+    const re = new RegExp(`["'\`]${literal}["'\`]`, "g");
+    let m;
+    while ((m = re.exec(content)) !== null) {
+      const idx = m.index;
+      const lineNo = content.slice(0, idx).split(/\r?\n/).length;
+      const lineText = content.split(/\r?\n/)[lineNo - 1]?.trim() ?? "";
+      findings.push({
+        file: rel,
+        line: lineNo,
+        kind: "forbidden_status_literal",
+        pattern: literal,
+        snippet: lineText.slice(0, 200)
+      });
     }
   }
 }

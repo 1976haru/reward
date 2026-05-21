@@ -46,10 +46,21 @@
 ### 2.3 강제 수단
 
 - 코드 수준: `src/policy/approvalGate.ts` 와 상태 전이 코드에서 금지 동작 호출 시 거부
+- 워크플로우 수준: `src/policy/approvalWorkflow.ts` 가 `createReviewRequest → approveForManualSubmission → confirmManualSubmission` 단계를 강제하고, `blockAutoSubmission` 이 자동 제출 플래그/금지 상태값을 즉시 throw
 - API 수준: `GET /api/policy/approval-gate` 가 항상 위 정책을 그대로 반환
-- 정적 검사: `npm run check:policy` 가 금지 동작 키워드를 코드에서 스캔
+- 정적 검사: `npm run check:policy` 가 금지 동작 키워드 + 금지 상태 리터럴(`ai_submitted`/`auto_submitted`/`submitted_without_review`/`reward_claim_auto_submitted`) 을 src/public 에서 스캔
+- 테스트: `npm run test:approval` 이 워크플로우 게이트 시나리오 17건을 통과해야 함
 - UI 수준: 자동 제출 / 자동 로그인 / 자동 양식 입력 버튼은 만들지 않는다
 - 상태 수준: `SUBMITTED` 전이는 `confirmManualSubmission: true` 와 `reviewerName` 둘 다 요구
+
+### 2.4 워크플로우 게이트 요약 (체크리스트 3)
+
+자세한 상태 정의·승인 로그 필드·운영 원칙은 [`approval_gate.md`](./approval_gate.md) §11 참고.
+
+- 허용 상태(7): `draft_created`, `evidence_packaged`, `human_review_required`, `human_approved`, `manually_submitted`, `rejected`, `needs_more_evidence`
+- 금지 상태(4): `ai_submitted`, `auto_submitted`, `submitted_without_review`, `reward_claim_auto_submitted`
+- 신고서 초안 / 증거 패키지 생성은 **신고가 아니다.** `human_approved` + `externalReceiptNo` + `submittedByHuman=true` 가 모두 갖춰져야 `manually_submitted` 로 기록 가능
+- 승인 로그 필수 필드: `caseId / reviewer / decision / reviewedAt / reason / evidencePackageId / draftReportId`, confirm 단계에서는 추가로 `manualSubmissionConfirmed` 와 `externalReceiptNo`
 
 ---
 
