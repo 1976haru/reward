@@ -933,7 +933,14 @@ API:
 - **공개자료만** 분석합니다. 비공개 페이지·로그인 우회·개인정보 수집은 금지됩니다.
 - AI 분석은 참고용이며, **최종 신고 여부는 사람이 판단**합니다.
 - **법률 자문을 대체하지 않습니다.** 공직자 사용자는 직무상 비공개 정보 업로드 금지 등 추가 주의가 필요합니다.
-- 자세한 정책은 [`scope.md`](./scope.md), [`mvp_scope.md`](./mvp_scope.md), [`docs/PRD.md`](./docs/PRD.md), [`docs/OPERATING_POLICY.md`](./docs/OPERATING_POLICY.md), [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md), [`docs/REPORT_LANGUAGE_GUIDE.md`](./docs/REPORT_LANGUAGE_GUIDE.md), [`docs/approval_gate.md`](./docs/approval_gate.md), [`docs/PRE_SUBMISSION_FACT_CHECKLIST.md`](./docs/PRE_SUBMISSION_FACT_CHECKLIST.md), [`docs/privacy_policy.md`](./docs/privacy_policy.md), [`docs/agency_research.md`](./docs/agency_research.md)를 참고하세요.
+- 자세한 정책은 [`scope.md`](./scope.md), [`mvp_scope.md`](./mvp_scope.md), [`docs/PRD.md`](./docs/PRD.md), [`docs/OPERATING_POLICY.md`](./docs/OPERATING_POLICY.md), [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md), [`docs/REPORT_LANGUAGE_GUIDE.md`](./docs/REPORT_LANGUAGE_GUIDE.md), [`docs/approval_gate.md`](./docs/approval_gate.md), [`docs/PRE_SUBMISSION_FACT_CHECKLIST.md`](./docs/PRE_SUBMISSION_FACT_CHECKLIST.md), [`docs/privacy_policy.md`](./docs/privacy_policy.md), [`docs/DATA_SOURCE_MAP_GOSIMS.md`](./docs/DATA_SOURCE_MAP_GOSIMS.md), [`docs/agency_research.md`](./docs/agency_research.md)를 참고하세요.
+
+## Data Source Maps
+
+향후 수집기가 사용할 공개자료의 출처·필드·접근 방법·공개 범위·제한사항을 정리한 조사 문서입니다. 수집기는 별도 단계에서 구현됩니다.
+
+- **국고보조금 (e나라도움 / 공개 통계센터):** [`docs/DATA_SOURCE_MAP_GOSIMS.md`](./docs/DATA_SOURCE_MAP_GOSIMS.md) — 보조사업·내역사업·보조사업자·집행/정산 공개 범위 분류, 22개 필드 후보, CSV/엑셀/TXT/API 접근 방법, 비공개·개인정보 제한사항, 수집기 스키마 초안([`src/types/gosimsDataSource.ts`](./src/types/gosimsDataSource.ts)).
+- 검증: `npm run test:datasource-map` — 필수 섹션·URL·정책 키워드·스키마 export 정적 검증.
 
 ## Claude Code 작업 방식
 
