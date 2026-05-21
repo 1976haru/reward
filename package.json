@@ -20,6 +20,7 @@
     "test:datasource-map": "tsx tests/dataSourceMap.test.ts",
     "test:public-api-candidates": "tsx tests/publicApiCandidates.test.ts",
     "test:local-gov-targets": "tsx tests/localGovCollectionTargets.test.ts",
+    "test:g2b-linkage": "tsx tests/g2bContractLinkage.test.ts",
     "playwright:install": "playwright install chromium",
     "eval:generate": "tsx scripts/generate-eval-set.ts",
     "health": "node scripts/health-check.js",
