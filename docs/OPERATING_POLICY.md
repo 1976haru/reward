@@ -310,4 +310,52 @@
 
 ---
 
-본 문서는 공익레이더가 "정보검색 서비스"가 아니라 **사람 검토 기반의 신고 보조 시스템**으로 운영되도록 보장하기 위한 운영 정책이다. 본 문서와 모듈별 가이드/도구 동작이 충돌할 경우, 본 문서와 [`scope.md`](../scope.md), [`LEGAL_REVIEW.md`](./LEGAL_REVIEW.md) 가 우선한다.
+## 11. 표현 통제 원칙 (Neutral Language Policy)
+
+본 절은 [`REPORT_LANGUAGE_GUIDE.md`](./REPORT_LANGUAGE_GUIDE.md) 의 핵심 원칙을 운영정책으로 끌어와 매일 지켜야 할 형태로 정리한 것이다. 상세 금지/권장 표현표와 표준 면책 문구는 [`REPORT_LANGUAGE_GUIDE.md`](./REPORT_LANGUAGE_GUIDE.md) 참고.
+
+### 11.1 단정 표현 금지
+
+- 사용자 노출 산출물(AI 리포트 / 신고서 초안 / 대시보드 / API 응답 메시지 / UI 카드 / 응답 문구 본문)에서 "확정 / 범죄 / 불법 / 사기 / 유죄 / 고의 범행 / 반드시 신고 / 무조건 신고 / 처벌 대상 확정 / 환수 대상 확정 / 보상금 지급 확정" 같은 단정 표현은 사용하지 않는다.
+- 단정 표현이 산출물에 남으면 sanitize 단계(`sanitizeReportText`) 또는 정적 검사(`npm run check:language`) 가 차단한다.
+
+### 11.2 비방·낙인 표현 금지
+
+- 특정 개인·사업자·단체를 "부정수급자 / 범죄자 / 사기꾼 / 허위 수급자 / 위법 행위자" 등으로 부르는 산출물은 만들지 않는다.
+- 대체 표현: "관련 사업자(검토 필요)", "의심 사례 관련 대상", "검토 후보".
+
+### 11.3 중립 표현 사용
+
+- 의심·검토·후보 중심으로 표현한다: **의심 신호 / 검토 필요 / 추가 확인 필요 / 위험 신호 / 이상 패턴 / 신고 후보 / 제보 후보 / 검토 후보 / 가능성 / 추정 / 정황 / 자료상 불일치 / 반복 수급 패턴 / 중복 가능성 / 목적 외 사용 의심 / 정산 확인 필요 / 기관 검토 필요 / 사람이 최종 판단 필요**.
+- 표 형식 매핑은 [`REPORT_LANGUAGE_GUIDE.md`](./REPORT_LANGUAGE_GUIDE.md) §3 (금지→대체) 및 §4 (상황→권장) 참고.
+
+### 11.4 AI 리포트 문구 검수
+
+- AnalyzerAgent / ScoringAgent / ReportService 산출물은 [`REPORT_LANGUAGE_GUIDE.md`](./REPORT_LANGUAGE_GUIDE.md) §5 의 규칙을 따른다.
+- 위험도는 "위험 점수" / "검토 우선순위" 로만 표현하고, 등급은 ScoringAgent 의 4단계(최우선 검토 / 우선 검토 / 검토 필요 / 낮음) 라벨을 그대로 쓴다.
+- AnalyzerAgent 응답에는 항상 `notLegalConclusion: true` / `rewardGuaranteed: false` 가 설정되어야 하며, sanitize 가 금지 표현을 자동 치환한다.
+
+### 11.5 신고서 초안 문구 검수
+
+- 신고서 초안 머리말은 "신고합니다" 가 아니라 **"신고 검토 초안"** / **"제보 검토 초안"** 으로 표시한다.
+- 본문에 "본 문서는 자동 제출되지 않았으며, 사람이 검토 후 수동 제출해야 합니다." 문구를 포함한다.
+- ReportService 의 sanitize 치환 테이블이 단정 표현을 중립 표현으로 강제 치환한다.
+- 자세한 형식은 [`report_draft.md`](./report_draft.md), 언어 규칙은 [`REPORT_LANGUAGE_GUIDE.md`](./REPORT_LANGUAGE_GUIDE.md) §6 참고.
+
+### 11.6 대시보드 문구 검수
+
+- "부정수급자 목록" 금지 → "의심 사례 후보 목록" 권장.
+- "신고 완료" 는 접수번호(`externalReceiptNo`) 가 있는 수동 제출 이후에만 표시.
+- "AI 판정" 대신 "AI 분석 결과" / "AI 검토 보조 결과" 사용.
+- 자세한 규칙은 [`REPORT_LANGUAGE_GUIDE.md`](./REPORT_LANGUAGE_GUIDE.md) §7.
+
+### 11.7 강제 수단
+
+- 정적 검사: `npm run check:language` — README / docs / src / public / tests / scripts 에서 금지 표현 검출. 부정 컨텍스트(아닙니다 / 단정하지 / 표현 없이 / 금지 / sanitize 등) 윈도우와 정의/테스트/가이드 파일 화이트리스트는 예외.
+- 통합 정책 검사: `npm run check:policy` 는 `check-approval-gate.js` 와 `check-language-policy.js` 를 모두 실행한다.
+- 테스트: `npm run test:language` 가 금지/허용/예외 시나리오를 검증한다.
+- 런타임 치환: `sanitizeReportText` (ReportService) / AnalyzerAgent `validateAnalysisResult` 가 금지 표현을 중립 표현으로 자동 치환한다.
+
+---
+
+본 문서는 공익레이더가 "정보검색 서비스"가 아니라 **사람 검토 기반의 신고 보조 시스템**으로 운영되도록 보장하기 위한 운영 정책이다. 본 문서와 모듈별 가이드/도구 동작이 충돌할 경우, 본 문서와 [`scope.md`](../scope.md), [`LEGAL_REVIEW.md`](./LEGAL_REVIEW.md), [`REPORT_LANGUAGE_GUIDE.md`](./REPORT_LANGUAGE_GUIDE.md) 가 우선한다.
