@@ -148,6 +148,7 @@ export const FILE_WHITELIST = new Set([
   // 테스트 (검사 대상 문자열을 입력으로 사용)
   "tests/languagePolicy.test.ts",
   "tests/languagePolicy.test.js",
+  "tests/preSubmissionFactCheck.test.ts",
   // sanitize 룰 정의 / LLM 프롬프트 / 평가셋 — 금지어 자체가 의도적으로 등장
   "src/agents/AnalyzerAgent.ts",
   "src/agents/scoring_rules.ts",

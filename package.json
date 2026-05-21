@@ -16,6 +16,7 @@
     "test:approval": "tsx tests/approvalGate.test.ts",
     "test:language": "tsx tests/languagePolicy.test.ts",
     "test:privacy": "tsx tests/privacyGuard.test.ts",
+    "test:fact-check": "tsx tests/preSubmissionFactCheck.test.ts",
     "playwright:install": "playwright install chromium",
     "eval:generate": "tsx scripts/generate-eval-set.ts",
     "health": "node scripts/health-check.js",

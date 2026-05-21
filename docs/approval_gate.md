@@ -185,3 +185,67 @@ npm run check:policy
 - 워크플로우 함수(체크리스트 3): [`src/policy/approvalWorkflow.ts`](../src/policy/approvalWorkflow.ts)
 - 정적 검사: [`scripts/check-approval-gate.js`](../scripts/check-approval-gate.js) (`npm run check:policy`)
 - 테스트: [`tests/approvalGate.test.ts`](../tests/approvalGate.test.ts) (`npm run test:approval`)
+
+---
+
+## 12. Pre-Submission Fact Check Gate (체크리스트 6)
+
+본 절은 [`PRE_SUBMISSION_FACT_CHECKLIST.md`](./PRE_SUBMISSION_FACT_CHECKLIST.md) 의 운영 기준을 승인 게이트로 코드화한 것이다. `human_review_required → human_approved` 전이 사이에 **사실관계 점검 게이트(`fact_check_completed`)** 가 강제된다.
+
+### 12.1 게이트 흐름
+
+```
+draft_created
+    ↓ (증거 패키지 / 신고서 초안 생성)
+evidence_packaged
+    ↓ (Review Queue 에 등록)
+human_review_required
+    ↓ (체크리스트 6: 사실관계 점검 — createFactCheckResult)
+fact_check_completed   ← 본 게이트
+    ↓ (approveForManualSubmission, factCheckResult 첨부 필수)
+human_approved
+    ↓ (사람이 외부 공식 창구에서 직접 제출)
+    ↓ (confirmManualSubmission, externalReceiptNo + submittedByHuman)
+manually_submitted
+```
+
+### 12.2 통과 조건
+
+`requireFactCheckBeforeApproval(reviewData)` 가 다음을 모두 검증한다 ([`../src/policy/factCheckGate.ts`](../src/policy/factCheckGate.ts)).
+
+- `reviewData.factCheckResult` 가 존재
+- `factCheckResult.status === "completed"` — 11개 필수 확인 플래그가 모두 `true`
+- `factCheckResult.decision === "approved"` — 검토자가 수동 제출 가능으로 판단
+- `factCheckResult.caseId === reviewData.caseId` — Case 일치
+
+위 조건 중 하나라도 어긋나면 `FactCheckGateError` 가 throw 된다. 따라서:
+
+- **`fact_check_completed` 없이 `human_approved` 불가.**
+- **`manually_submitted` 는 `human_approved` + `externalReceiptNo` + `submittedByHuman === true` 가 모두 있어야 가능** (`confirmManualSubmission` §11.4 운영 원칙).
+
+### 12.3 11개 필수 확인 플래그
+
+`FACT_CHECK_REQUIRED_FLAGS`:
+
+`publicSourceConfirmed`, `originalUrlConfirmed`, `amountConfirmed`, `periodConfirmed`, `recipientConfirmed`, `projectNameConfirmed`, `suspicionBasisConfirmed`, `counterExplanationReviewed`, `privacyChecked`, `neutralLanguageChecked`, `evidencePackageConfirmed`
+
+세부 정의는 [`PRE_SUBMISSION_FACT_CHECKLIST.md`](./PRE_SUBMISSION_FACT_CHECKLIST.md) §3.
+
+### 12.4 승인 로그 보강
+
+`ApprovalLogEntry` 가 `factCheckId`, `factCheckSummary` 필드를 가질 수 있다. `approveForManualSubmission(reviewData)` 가 `reviewData.factCheckResult` 를 받으면 자동으로:
+
+- 사실관계 게이트 통과 검증
+- 로그에 `factCheckId` 와 `factCheckSummary` (중립 표현 한 줄) 첨부
+
+`summarizeFactCheck(result)` 가 만들어내는 요약 예시:
+
+> "사실관계 점검 11/11 항목 확인 완료 — 수동 제출 검토 가능."
+> "사실관계 점검 보완 필요 (8/11 확인, 누락: amountConfirmed, periodConfirmed, recipientConfirmed)."
+
+### 12.5 코드 위치
+
+- 게이트 함수 / 타입: [`../src/policy/factCheckGate.ts`](../src/policy/factCheckGate.ts) (`createFactCheckResult`, `requireFactCheckBeforeApproval`, `summarizeFactCheck`, `FactCheckResult`, `FactCheckSummary`, `FactCheckGateError`)
+- 승인 워크플로우 연계: [`../src/policy/approvalWorkflow.ts`](../src/policy/approvalWorkflow.ts) (`ReviewData.factCheckResult`, `ApprovalLogEntry.factCheckId/factCheckSummary`)
+- 테스트: [`../tests/preSubmissionFactCheck.test.ts`](../tests/preSubmissionFactCheck.test.ts) (`npm run test:fact-check`)
+- 정책 문서: [`PRE_SUBMISSION_FACT_CHECKLIST.md`](./PRE_SUBMISSION_FACT_CHECKLIST.md), [`OPERATING_POLICY.md`](./OPERATING_POLICY.md) §12

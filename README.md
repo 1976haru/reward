@@ -24,6 +24,7 @@
 
 - **자동 신고 금지** — 외부 신고기관에 어떤 형태로도 자동 제출/자동 로그인하지 않습니다. 코드/UI/문서/정적 검사 4중 차단([`docs/approval_gate.md`](./docs/approval_gate.md)).
 - **사람 검토·승인 필수** — AI 결과는 참고자료이며, 신고서 초안은 사람 검토를 거치고 사람이 명시적으로 승인(`human_approved`)해야 다음 단계로 갑니다.
+- **신고 전 사실관계 점검 필수** — `human_approved` 전이에는 **공개자료 여부 / 원문 URL / 금액 / 기간 / 수급기관 / 사업명 / 의심근거 / 반대 가능성 / 개인정보 점검 / 단정 표현 점검 / 증거 패키지** 11개 항목을 사람이 확인해야 합니다. 점검표 항목과 데이터 구조는 [`docs/PRE_SUBMISSION_FACT_CHECKLIST.md`](./docs/PRE_SUBMISSION_FACT_CHECKLIST.md), 게이트 강제는 [`src/policy/factCheckGate.ts`](./src/policy/factCheckGate.ts) (`requireFactCheckBeforeApproval`), 테스트는 `npm run test:fact-check` 입니다. 검토자 승인 없이는 신고서 확정 불가.
 - **신고서 초안 ≠ 실제 신고 제출** — 초안 생성·증거 패키지 생성은 신고가 아닙니다. 사람이 외부 공식 창구에 직접 제출한 뒤 **접수번호(`externalReceiptNo`)를 입력**해야 `manually_submitted` 로 기록됩니다.
 - **승인 로그 필수** — 모든 검토 결정은 `caseId / reviewer / decision / reason / evidencePackageId / draftReportId / reviewedAt` 가 포함된 승인 로그를 남깁니다.
 - **증거 기반 신고 원칙** — 의심사례는 항상 원본 URL, 수집일시, 캡처/PDF, 추출 텍스트, 해시 manifest 등 추적 가능한 증거와 함께 정리됩니다.
@@ -932,7 +933,7 @@ API:
 - **공개자료만** 분석합니다. 비공개 페이지·로그인 우회·개인정보 수집은 금지됩니다.
 - AI 분석은 참고용이며, **최종 신고 여부는 사람이 판단**합니다.
 - **법률 자문을 대체하지 않습니다.** 공직자 사용자는 직무상 비공개 정보 업로드 금지 등 추가 주의가 필요합니다.
-- 자세한 정책은 [`scope.md`](./scope.md), [`mvp_scope.md`](./mvp_scope.md), [`docs/PRD.md`](./docs/PRD.md), [`docs/OPERATING_POLICY.md`](./docs/OPERATING_POLICY.md), [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md), [`docs/REPORT_LANGUAGE_GUIDE.md`](./docs/REPORT_LANGUAGE_GUIDE.md), [`docs/approval_gate.md`](./docs/approval_gate.md), [`docs/agency_research.md`](./docs/agency_research.md)를 참고하세요.
+- 자세한 정책은 [`scope.md`](./scope.md), [`mvp_scope.md`](./mvp_scope.md), [`docs/PRD.md`](./docs/PRD.md), [`docs/OPERATING_POLICY.md`](./docs/OPERATING_POLICY.md), [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md), [`docs/REPORT_LANGUAGE_GUIDE.md`](./docs/REPORT_LANGUAGE_GUIDE.md), [`docs/approval_gate.md`](./docs/approval_gate.md), [`docs/PRE_SUBMISSION_FACT_CHECKLIST.md`](./docs/PRE_SUBMISSION_FACT_CHECKLIST.md), [`docs/privacy_policy.md`](./docs/privacy_policy.md), [`docs/agency_research.md`](./docs/agency_research.md)를 참고하세요.
 
 ## Claude Code 작업 방식
 

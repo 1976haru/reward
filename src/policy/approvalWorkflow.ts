@@ -8,6 +8,8 @@
 //
 // 본 모듈은 src/policy/approvalGate.ts (정책 상수 + 런타임 가드) 와 함께 사용한다.
 
+import { requireFactCheckBeforeApproval, summarizeFactCheck } from "./factCheckGate.js";
+
 // ---------- 상태 정의 ----------
 
 export const ALLOWED_GATE_STATUSES = [
@@ -91,6 +93,14 @@ export interface ReviewData extends ReviewerInfo {
   reason: string;
   evidencePackageId?: string;
   draftReportId?: string;
+  /**
+   * 신고 전 사실관계 점검 결과 (체크리스트 6).
+   * approveForManualSubmission 에 전달되면 requireFactCheckBeforeApproval 가드가 강제된다.
+   * 본 필드가 없으면 점검 게이트는 비활성 — 라우터/호출자가 별도로 강제할 수 있다.
+   */
+  factCheckResult?: import("./factCheckGate.js").FactCheckResult;
+  /** 외부 시스템에서 영속화된 사실관계 점검표를 가리키는 ID (감사 로그용). */
+  factCheckId?: string;
 }
 
 export interface SubmissionData extends ReviewerInfo {
@@ -120,6 +130,10 @@ export interface ApprovalLogEntry {
   resultingStatus: AllowedGateStatus;
   manualSubmissionConfirmed?: true;
   externalReceiptNo?: string;
+  /** 체크리스트 6: 사실관계 점검표 ID (있으면 감사 로그에 함께 남긴다). */
+  factCheckId?: string;
+  /** 체크리스트 6: 사실관계 점검 요약 (중립 표현). */
+  factCheckSummary?: string;
 }
 
 export interface BlockAutoSubmissionPayload {
@@ -206,6 +220,16 @@ export function approveForManualSubmission(reviewData: ReviewData): ApprovalLogE
       "approveForManualSubmission 은 draftReportId 가 필요합니다."
     );
   }
+
+  // 체크리스트 6: factCheckResult 가 첨부되면 사실관계 점검 게이트를 강제한다.
+  // (factCheckResult 가 없으면 기존 호출자 호환을 위해 게이트 비활성 — 라우터/호출자 책임으로 분리한다.
+  //  외부에서 강제하려면 requireFactCheckBeforeApproval(reviewData) 를 호출자 측에서 직접 사용한다.)
+  let factCheckSummaryMsg: string | undefined;
+  if (reviewData.factCheckResult) {
+    const fc = requireFactCheckBeforeApproval(reviewData);
+    factCheckSummaryMsg = summarizeFactCheck(fc).message;
+  }
+
   return {
     caseId: reviewData.caseId,
     reviewerId: reviewData.reviewerId,
@@ -215,7 +239,9 @@ export function approveForManualSubmission(reviewData: ReviewData): ApprovalLogE
     reason: reviewData.reason,
     evidencePackageId: reviewData.evidencePackageId,
     draftReportId: reviewData.draftReportId,
-    resultingStatus: "human_approved"
+    resultingStatus: "human_approved",
+    factCheckId: reviewData.factCheckResult?.factCheckId ?? reviewData.factCheckId,
+    factCheckSummary: factCheckSummaryMsg
   };
 }
 

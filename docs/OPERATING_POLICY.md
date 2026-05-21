@@ -370,4 +370,57 @@
 
 ---
 
-본 문서는 공익레이더가 "정보검색 서비스"가 아니라 **사람 검토 기반의 신고 보조 시스템**으로 운영되도록 보장하기 위한 운영 정책이다. 본 문서와 모듈별 가이드/도구 동작이 충돌할 경우, 본 문서와 [`scope.md`](../scope.md), [`LEGAL_REVIEW.md`](./LEGAL_REVIEW.md), [`REPORT_LANGUAGE_GUIDE.md`](./REPORT_LANGUAGE_GUIDE.md) 가 우선한다.
+## 12. 신고 전 사실관계 점검 원칙 (체크리스트 6)
+
+본 절은 [`PRE_SUBMISSION_FACT_CHECKLIST.md`](./PRE_SUBMISSION_FACT_CHECKLIST.md) (필수 확인 항목 15개 + 데이터 구조) 와 [`approval_gate.md`](./approval_gate.md) §12 (Pre-Submission Fact Check Gate) 의 운영 요약이다. 무고 / 허위신고 / 명예훼손 / 과잉신고 위험을 줄이기 위한 내부 운영 기준이다.
+
+### 12.1 신고 전 사실관계 점검표 필수
+
+- 신고서 초안이 만들어진 모든 Case 는 **수동 제출 검토 대상으로 전환되기 전에** 사실관계 점검표를 통과해야 한다.
+- 점검표는 사람 검토자가 작성하며, 코드로는 `createFactCheckResult(input)` 가 결과 객체를 만든다.
+- 데이터 구조와 항목 정의는 [`PRE_SUBMISSION_FACT_CHECKLIST.md`](./PRE_SUBMISSION_FACT_CHECKLIST.md) §3·§8.
+
+### 12.2 필수 확인 항목
+
+- 공개자료 여부 (`publicSourceConfirmed`)
+- 원문 URL (`originalUrlConfirmed`)
+- 금액 (`amountConfirmed`)
+- 기간 (`periodConfirmed`)
+- 수급기관 (`recipientConfirmed`)
+- 사업명 (`projectNameConfirmed`)
+- 의심근거 (`suspicionBasisConfirmed`)
+- 반대 가능성 (`counterExplanationReviewed`)
+- 개인정보 제거 (`privacyChecked`)
+- 단정 표현 제거 (`neutralLanguageChecked`)
+- 증거 패키지 (`evidencePackageConfirmed`)
+
+11개 플래그가 모두 `true` 이어야 `status === "completed"` 가 된다.
+
+### 12.3 검토자 승인 없이는 신고서 확정 불가
+
+- `human_approved` 로 전이하려면 사실관계 점검표 `status === "completed"` + `decision === "approved"` 가 필요하다 (`requireFactCheckBeforeApproval`).
+- `approveForManualSubmission(reviewData)` 는 `reviewData.factCheckResult` 가 첨부되면 자동으로 게이트를 강제한다 — 미첨부 시 라우터/호출자가 직접 게이트를 호출해야 한다.
+- `manually_submitted` 는 추가로 `externalReceiptNo` + `submittedByHuman === true` 가 필요하다 ([`approval_gate.md`](./approval_gate.md) §11.4).
+
+### 12.4 신고서 초안과 확정 구분
+
+- **초안 (draft)**: AI 가 자료를 정리해 만든 검토용 문서 — 외부 제출 대상 아님.
+- **확정 (`human_approved`)**: 사람이 점검표 + 증거 + 신고처 후보를 확인하고 수동 제출 가능으로 승인한 상태.
+- **실제 제출 (`manually_submitted`)**: 사람이 외부 공식 창구에 직접 제출 후 접수번호를 기록한 상태.
+
+### 12.5 점검 항목 누락 시 차단
+
+- 11개 플래그 중 하나라도 누락 → `status === "incomplete"` → `requireFactCheckBeforeApproval` 가 `INCOMPLETE_FACT_CHECK` throw.
+- `decision !== "approved"` → `FACT_CHECK_NOT_APPROVED` throw.
+- `factCheckResult.caseId` 가 Case 와 불일치 → `FACT_CHECK_CASE_MISMATCH` throw.
+- 누락 항목은 `missingFields` 배열로 제공되며, `summarizeFactCheck` 가 중립 표현으로 한 줄 요약을 만들어 UI/로그에 표시한다.
+
+### 12.6 강제 수단
+
+- 테스트: `npm run test:fact-check` — 점검표 생성·게이트·요약·승인 차단 12개 시나리오.
+- 통합: `approveForManualSubmission` 가 점검표를 받으면 게이트를 자동 강제, 승인 로그에 `factCheckId` / `factCheckSummary` 함께 기록.
+- 정책 문서: [`PRE_SUBMISSION_FACT_CHECKLIST.md`](./PRE_SUBMISSION_FACT_CHECKLIST.md), [`approval_gate.md`](./approval_gate.md) §12.
+
+---
+
+본 문서는 공익레이더가 "정보검색 서비스"가 아니라 **사람 검토 기반의 신고 보조 시스템**으로 운영되도록 보장하기 위한 운영 정책이다. 본 문서와 모듈별 가이드/도구 동작이 충돌할 경우, 본 문서와 [`scope.md`](../scope.md), [`LEGAL_REVIEW.md`](./LEGAL_REVIEW.md), [`REPORT_LANGUAGE_GUIDE.md`](./REPORT_LANGUAGE_GUIDE.md), [`PRE_SUBMISSION_FACT_CHECKLIST.md`](./PRE_SUBMISSION_FACT_CHECKLIST.md) 가 우선한다.
