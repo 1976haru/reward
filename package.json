@@ -18,6 +18,7 @@
     "test:privacy": "tsx tests/privacyGuard.test.ts",
     "test:fact-check": "tsx tests/preSubmissionFactCheck.test.ts",
     "test:datasource-map": "tsx tests/dataSourceMap.test.ts",
+    "test:public-api-candidates": "tsx tests/publicApiCandidates.test.ts",
     "playwright:install": "playwright install chromium",
     "eval:generate": "tsx scripts/generate-eval-set.ts",
     "health": "node scripts/health-check.js",
