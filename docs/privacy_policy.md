@@ -127,3 +127,103 @@ ADDRESS_LIKE   → [masked-address]
 - 더 정교한 PII detector (NER 기반)
 - 감사로그 보존 정책 별도화 (감사로그 자체의 삭제도 별도 권한)
 - 데이터 export 기능 (GDPR 본인 정보 열람·내려받기 대응 시)
+
+---
+
+# 개인정보 처리 기준 (체크리스트 5)
+
+본 절은 [`OPERATING_POLICY.md`](./OPERATING_POLICY.md) §5 (개인정보 최소 수집) 및 [`LEGAL_REVIEW.md`](./LEGAL_REVIEW.md) §6 (신고자 보호) 와 함께 운영되며, 코드 차원 강제는 [`../src/policy/privacyGuard.ts`](../src/policy/privacyGuard.ts) (`sanitizeForStorage` / `sanitizeForAI` / `assertNoForbiddenPersonalData`) 와 [`../scripts/check-privacy-policy.js`](../scripts/check-privacy-policy.js) 로 보장한다.
+
+## A. 문서 목적
+
+- 공익레이더 / 보조금 신고 보상형 AI 에이전트의 **개인정보 최소수집 원칙**을 정의한다.
+- 본 시스템은 **공개자료 중심 분석**을 원칙으로 한다.
+- 신고자, 피신고자, 제3자의 **불필요한 개인정보 수집·저장을 금지**한다.
+- 본 절은 **법률 자문을 대체하지 않는다.** 구체 사안은 [개인정보보호위원회](https://www.pipc.go.kr) 및 변호사·법무팀의 검토가 필요하다.
+
+## B. 기본 원칙
+
+- 필요한 **최소 정보만** 처리한다.
+- 공개자료 중심으로 분석한다 (공시·공공데이터·공개 사업 공고 등).
+- **주민번호 / 계좌번호 / 민감정보는 수집하지 않는다.**
+- 입력 자료에 개인정보가 포함된 경우 **저장 전 마스킹**하거나 차단한다 (`sanitizeForStorage`).
+- 신고자 신원정보는 증거 패키지와 **분리 저장**한다.
+- AI 프롬프트에는 불필요한 개인정보를 넣지 않는다 (`sanitizeForAI`).
+- 로그에는 원문 개인정보를 남기지 않는다.
+
+## C. 저장 금지 정보
+
+| 구분 | 예시 | 처리 기준 |
+|---|---|---|
+| 고유식별정보 | 주민등록번호, 외국인등록번호, 여권번호, 운전면허번호 | **저장 금지**, 발견 시 차단(`assertNoForbiddenPersonalData`) 또는 마스킹(`maskResidentRegistrationNumber`) |
+| 금융정보 | 계좌번호, 카드번호 | **저장 금지**, 발견 시 차단 또는 마스킹(`maskBankAccount`) |
+| 연락처 | 휴대폰번호, 개인 이메일 | 원칙적 저장 금지, 필요 시 마스킹(`maskPhoneNumber` / `maskEmail`) |
+| 상세주소 | 동·호수 포함 주소, 개인 주거지 주소 | 저장 금지 또는 시·군·구 수준으로 축약(`maskDetailedAddress`) |
+| 민감정보 | 건강정보, 정치적 견해, 종교, 범죄경력, 노동조합 가입, 성생활 등 | **저장 금지** — `sensitive_keyword` 로 탐지되며 AI 프롬프트에서는 `[민감정보 제거]` 로 대체 |
+| 미성년자 정보 | 아동 이름, 학교, 연락처 등 | **저장 금지** |
+| 신고자 신원정보 | 이름, 소속, 연락처 | **최소 수집**, 분리 저장, 외부 노출 금지 |
+
+## D. 허용 정보
+
+| 구분 | 예시 | 처리 기준 |
+|---|---|---|
+| 공개 사업정보 | 사업명, 공고 URL, 지원 금액, 사업 기간 | 수집 가능 |
+| 공개 기관정보 | 기관명, 부서명, 대표 연락처 | 수집 가능 |
+| 공개 단체정보 | 법인명, 단체명, 공개 주소 | 수집 가능, 개인 주거지 주소는 마스킹 |
+| 공개 감사자료 | 감사 결과, 환수 결정, 처분 결과 | 수집 가능 |
+| 공개 공시자료 | 보조금 교부·정산·성과 자료 | 수집 가능 |
+
+## E. 마스킹 기준
+
+| 정보 유형 | 원문 예시 | 마스킹 예시 | 구현 함수 |
+|---|---|---|---|
+| 주민등록번호 | `900101-1234567` | `900101-*******` | `maskResidentRegistrationNumber` |
+| 휴대폰번호 | `010-1234-5678` | `010-****-5678` | `maskPhoneNumber` |
+| 이메일 | `user@example.com` | `u***@example.com` | `maskEmail` |
+| 계좌번호 | `계좌 123-456-789012` | `계좌 123-***-******` | `maskBankAccount` |
+| 상세주소 | `서울시 OO구 OO로 10, 101동 202호` | `서울시 OO구` | `maskDetailedAddress` |
+| 이름 | `신고자: 홍길동` | `신고자: 홍*동` | `maskName` |
+| 통합 적용 | (위 모두) | (위 모두) | `maskSensitiveText` |
+
+> 본 표의 원문 예시값은 정책 문서·테스트 픽스처 외에는 사용자 노출 영역에 사용되지 않는다. 정적 검사(`check-privacy-policy.js`) 가 본 문서를 화이트리스트에 등록한다.
+
+## F. AI 프롬프트 개인정보 원칙
+
+- AI 분석 요청에는 원칙적으로 개인정보를 포함하지 않는다.
+- 분석에 필요하지 않은 **이름, 연락처, 계좌, 상세주소**는 호출 전 제거한다 (`sanitizeForAI`).
+- **민감정보가 포함된 문서는 AI 에 전달하지 않는다.** 민감정보 키워드는 호출 전 `[민감정보 제거]` 로 대체된다.
+- AI 결과물에도 개인정보가 재노출되지 않도록 검사한다 (기존 `validateAnalysisResult` + 본 모듈).
+
+## G. 로그·증거 패키지 원칙
+
+- 로그에는 원문 개인정보를 저장하지 않는다 (기존 Trace Log `maskSensitive` + `sanitizeForStorage` 보강).
+- 증거 패키지에는 공개자료 URL 과 공개문서 중심으로 저장한다.
+- 신고자 신원정보는 별도 저장하고 증거 패키지와 분리한다.
+- 다운로드한 문서에 개인정보가 포함된 경우 마스킹본과 원본 보관 정책을 분리한다.
+- 원본 보관이 꼭 필요한 경우 접근권한을 제한하고 감사로그(Trace) 를 남긴다.
+
+## H. 삭제·보관 원칙
+
+- 분석에 필요 없는 개인정보는 즉시 삭제한다 (POST `/api/privacy/delete`, dry-run 기본).
+- 신고 부적합 또는 폐기 케이스의 개인정보는 보관하지 않는다.
+- 보관 기간은 최소화한다 (§5 Retention Policy 표 참고).
+- 사용자가 삭제를 요청하면 관련 데이터를 삭제하거나 비식별화한다.
+
+## I. 제품 반영 요구사항
+
+| ID | 요구사항 | 우선순위 | 반영 위치 | 완료 기준 |
+|---|---|---|---|---|
+| PRIVACY-001 | 저장 금지 필드 정의 | P0 | `docs/privacy_policy.md` §C, `src/policy/privacyGuard.ts` (`FORBIDDEN_PERSONAL_DATA_TYPES`) | 금지 필드 목록 존재 |
+| PRIVACY-002 | 개인정보 마스킹 함수 | P0 | `src/policy/privacyGuard.ts` (`maskResidentRegistrationNumber` 등 6종) | 주민번호/계좌/연락처/주소/이름 마스킹 |
+| PRIVACY-003 | 저장 전 검사 | P0 | `src/policy/privacyGuard.ts` (`sanitizeForStorage`, `assertNoForbiddenPersonalData`) | 금지 정보 발견 시 차단 또는 마스킹 |
+| PRIVACY-004 | AI 프롬프트 전 정제 | P0 | `src/policy/privacyGuard.ts` (`sanitizeForAI`) | 개인정보 제거/마스킹 후 호출 |
+| PRIVACY-005 | 로그 원문 개인정보 금지 | P0 | 기존 `TraceLogger.maskSensitive` + 본 가드 | 원문 개인정보 로그 금지 |
+| PRIVACY-006 | 테스트 | P0 | `tests/privacyGuard.test.ts` | `npm run test:privacy` 통과 |
+| PRIVACY-007 | 공개자료 중심 원칙 | P0 | `README.md`, `docs/OPERATING_POLICY.md` §5 | 공개자료 중심 명시 |
+
+## J. 강제 수단 요약
+
+- 정적 검사: `npm run check:privacy` (`scripts/check-privacy-policy.js`) — 사용자 노출 텍스트에 원문 RRN / 휴대폰 / 이메일 / 계좌 패턴 / 민감 키워드가 남아있는지 README · docs · src · public · tests · scripts 에서 스캔. 정책 문서 / 테스트 픽스처 / 마스킹 정의 코드는 화이트리스트.
+- 통합 정책 검사: `npm run check:policy` — approval-gate / language-policy / privacy-policy 세 검사를 한 번에 실행.
+- 테스트: `npm run test:privacy` — 마스킹 함수·검출·sanitize 시나리오 검증.
+- 런타임 정책: `sanitizeForStorage`, `sanitizeForAI`, `assertNoForbiddenPersonalData` 를 저장/AI 호출 직전에 호출.

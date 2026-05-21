@@ -28,6 +28,7 @@
 - **승인 로그 필수** — 모든 검토 결정은 `caseId / reviewer / decision / reason / evidencePackageId / draftReportId / reviewedAt` 가 포함된 승인 로그를 남깁니다.
 - **증거 기반 신고 원칙** — 의심사례는 항상 원본 URL, 수집일시, 캡처/PDF, 추출 텍스트, 해시 manifest 등 추적 가능한 증거와 함께 정리됩니다.
 - **단정·비방 표현 금지 / 중립 표현 사용** — 본 시스템은 **위법 여부를 확정하지 않습니다.** 단정·낙인 표현 대신 "의심 신호 / 검토 필요 후보 / 위험 신호 / 추정 / 가능성" 같은 중립 표현만 사용합니다. 금지/권장 표현표는 [`docs/REPORT_LANGUAGE_GUIDE.md`](./docs/REPORT_LANGUAGE_GUIDE.md) 참고, 강제 수단은 `npm run check:language` / `npm run test:language`.
+- **공개자료 중심 분석 / 개인정보 최소수집** — 본 시스템은 공개자료(공시 / 공공데이터 / 공개 사업 공고) 중심으로 분석하며, 주민번호 / 계좌번호 / 휴대폰 / 이메일 / 상세주소 / 민감정보 등 **불필요한 개인정보는 수집·저장하지 않습니다.** 입력에 포함된 경우 저장 전 마스킹되거나 차단됩니다 (`src/policy/privacyGuard.ts` 의 `sanitizeForStorage` / `sanitizeForAI` / `assertNoForbiddenPersonalData`). 처리 기준은 [`docs/privacy_policy.md`](./docs/privacy_policy.md), 강제 수단은 `npm run check:privacy` / `npm run test:privacy`.
 - **법률 자문 대체 아님** — 본 프로젝트는 **법률 자문을 대체하지 않으며, 보상금·포상금 지급을 보장하지 않습니다.** 공식 기준은 [국가법령정보센터](https://www.law.go.kr) 와 각 신고기관 공식 페이지에서 직접 확인해야 합니다. 내부 운영 기준 상세는 [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md) 참고.
 
 ## Quick Start for Windows PowerShell

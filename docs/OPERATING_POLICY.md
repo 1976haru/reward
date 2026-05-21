@@ -137,6 +137,18 @@
 - Evidence / Report: 90일
 - Feedback / Case: 180일
 
+### 5.5 공개자료 중심 분석 / 개인정보 최소수집 정책 (체크리스트 5)
+
+본 절은 [`privacy_policy.md`](./privacy_policy.md) 의 "개인정보 처리 기준" §A~§J 의 운영 요약이다. 구체 표·금지 필드·마스킹 예시는 해당 문서를 참조한다.
+
+- **공개자료 중심 분석** — 공시·공공데이터·공개 사업 공고·공개 정산자료 만 입력으로 받는다. 비공개 자료/로그인 우회/약관 위반 수집은 [`scope.md`](../scope.md) §3 와 §4 에 의해 금지된다.
+- **저장 금지 정보** — 주민등록번호 / 외국인등록번호 / 여권번호 / 운전면허번호 / 계좌번호 / 카드번호 / 휴대폰번호 / 개인 이메일 / 상세주소 / 생년월일 / 건강정보 / 범죄경력 / 정치적 견해 / 종교 / 노동조합 가입 / 성생활 / 미성년자 개인정보 / 신고자 신원정보의 불필요한 노출 — **시스템에 저장하지 않는다.**
+- **저장 전 마스킹** — 사람이 입력한 메모/노트/Case summary 는 저장 전 `MaskingService` (기존) + `sanitizeForStorage` (신규 `src/policy/privacyGuard.ts`) 둘 다 통과한다.
+- **AI 프롬프트 전 정제** — AI 호출 직전에 `sanitizeForAI` 를 통과시켜 개인정보를 마스킹하고 민감정보 키워드를 `[민감정보 제거]` 로 대체한다. 민감정보 포함 문서는 AI 에 전달하지 않는다.
+- **로그 원문 개인정보 금지** — Trace Log 는 기존 `maskSensitive` + privacyGuard 의 정책 가드를 통해 원문 PII 를 저장하지 않는다 (`TRACE_STORE_FULL_PROMPT=false` 기본).
+- **신고자 정보 분리 저장** — 신고자 신원정보(이름/연락처/소속) 는 증거 패키지(`data/evidence/{caseId}/`) 와 분리 저장한다.
+- **검증 수단** — `npm run check:privacy` (정적 검사: 사용자 노출 텍스트에 원문 RRN/휴대폰/이메일/계좌 패턴 검출), `npm run test:privacy` (마스킹/검출/sanitize 시나리오 28건), `npm run check:policy` (approval-gate + language + privacy 통합 실행).
+
 ---
 
 ## 6. 증거 기반 신고 원칙 (Evidence-Based Reporting)
