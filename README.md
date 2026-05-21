@@ -933,7 +933,7 @@ API:
 - **공개자료만** 분석합니다. 비공개 페이지·로그인 우회·개인정보 수집은 금지됩니다.
 - AI 분석은 참고용이며, **최종 신고 여부는 사람이 판단**합니다.
 - **법률 자문을 대체하지 않습니다.** 공직자 사용자는 직무상 비공개 정보 업로드 금지 등 추가 주의가 필요합니다.
-- 자세한 정책은 [`scope.md`](./scope.md), [`mvp_scope.md`](./mvp_scope.md), [`docs/PRD.md`](./docs/PRD.md), [`docs/OPERATING_POLICY.md`](./docs/OPERATING_POLICY.md), [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md), [`docs/REPORT_LANGUAGE_GUIDE.md`](./docs/REPORT_LANGUAGE_GUIDE.md), [`docs/approval_gate.md`](./docs/approval_gate.md), [`docs/PRE_SUBMISSION_FACT_CHECKLIST.md`](./docs/PRE_SUBMISSION_FACT_CHECKLIST.md), [`docs/privacy_policy.md`](./docs/privacy_policy.md), [`docs/DATA_SOURCE_MAP_GOSIMS.md`](./docs/DATA_SOURCE_MAP_GOSIMS.md), [`docs/DATA_SOURCE_MAP_PUBLIC_API.md`](./docs/DATA_SOURCE_MAP_PUBLIC_API.md), [`docs/agency_research.md`](./docs/agency_research.md)를 참고하세요.
+- 자세한 정책은 [`scope.md`](./scope.md), [`mvp_scope.md`](./mvp_scope.md), [`docs/PRD.md`](./docs/PRD.md), [`docs/OPERATING_POLICY.md`](./docs/OPERATING_POLICY.md), [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md), [`docs/REPORT_LANGUAGE_GUIDE.md`](./docs/REPORT_LANGUAGE_GUIDE.md), [`docs/approval_gate.md`](./docs/approval_gate.md), [`docs/PRE_SUBMISSION_FACT_CHECKLIST.md`](./docs/PRE_SUBMISSION_FACT_CHECKLIST.md), [`docs/privacy_policy.md`](./docs/privacy_policy.md), [`docs/DATA_SOURCE_MAP_GOSIMS.md`](./docs/DATA_SOURCE_MAP_GOSIMS.md), [`docs/DATA_SOURCE_MAP_PUBLIC_API.md`](./docs/DATA_SOURCE_MAP_PUBLIC_API.md), [`docs/LOCAL_GOV_COLLECTION_TARGETS_GYEONGGI.md`](./docs/LOCAL_GOV_COLLECTION_TARGETS_GYEONGGI.md), [`docs/agency_research.md`](./docs/agency_research.md)를 참고하세요.
 
 ## Data Source Maps
 
@@ -941,7 +941,8 @@ API:
 
 - **국고보조금 (e나라도움 / 공개 통계센터):** [`docs/DATA_SOURCE_MAP_GOSIMS.md`](./docs/DATA_SOURCE_MAP_GOSIMS.md) — 보조사업·내역사업·보조사업자·집행/정산 공개 범위 분류, 22개 필드 후보, CSV/엑셀/TXT/API 접근 방법, 비공개·개인정보 제한사항, 수집기 스키마 초안([`src/types/gosimsDataSource.ts`](./src/types/gosimsDataSource.ts)).
 - **공공데이터포털 오픈 API 후보 (보조금·환수·공공재정):** [`docs/DATA_SOURCE_MAP_PUBLIC_API.md`](./docs/DATA_SOURCE_MAP_PUBLIC_API.md) — 국고보조금/지방보조금/집행/정산/환수/감사·점검 관련 오픈 API 후보 7건, 22개 표준 필드, 활용신청·인증키·트래픽 제한 안내, 개인정보 제한사항, 후보 카드 스키마([`src/types/publicApiCandidate.ts`](./src/types/publicApiCandidate.ts)). 모든 후보는 "활용 가능성 검토 대상" — 실제 사용 가능 여부는 수집기 구현 직전에 재확인 필요.
-- 검증: `npm run test:datasource-map` / `npm run test:public-api-candidates` — 필수 섹션·URL·정책 키워드·후보 수(≥5)·스키마 export 정적 검증.
+- **경기도 지자체 공시자료 수집 파일럿 대상:** [`docs/LOCAL_GOV_COLLECTION_TARGETS_GYEONGGI.md`](./docs/LOCAL_GOV_COLLECTION_TARGETS_GYEONGGI.md) — 경기도(광역) + 31개 시군 총 32개 대상, 8개 자료 유형(보조금 공고/선정/정산/검사·점검/감사결과/환수/예산결산/조례), 7개 키워드 그룹, 최근 2~3년 수집 범위, 수집 제외 기준(로그인/비공개/개인정보 포함 자료), 수집 대상 스키마([`src/types/localGovCollectionTarget.ts`](./src/types/localGovCollectionTarget.ts)). 모든 대상은 "수집 대상 선정 / 후보 / 재확인 필요" 상태 — 게시판 URL 은 지자체 홈페이지 개편으로 변경될 수 있어 수집기 구현 직전에 재확인 필요.
+- 검증: `npm run test:datasource-map` / `npm run test:public-api-candidates` / `npm run test:local-gov-targets` — 필수 섹션·URL·정책 키워드·후보 수·스키마 export 정적 검증.
 
 ## Claude Code 작업 방식
 
