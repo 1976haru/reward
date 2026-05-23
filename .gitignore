@@ -29,6 +29,11 @@ data/upload-parser/*
 # 데이터 기준선 산출물 — 커밋하지 않음 (실데이터/fixture 결과 모두)
 data/baseline/*
 !data/baseline/.gitkeep
+# 반복 수급 탐지 룰 산출물 — 커밋하지 않음
+data/risk/repeat/runs/
+data/risk/repeat/tmp/
+data/risk/repeat/*
+!data/risk/repeat/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep

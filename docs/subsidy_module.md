@@ -177,6 +177,17 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - 사업명 정규화(체크리스트 15)·기관명 정규화(체크리스트 13)·주소 정규화(체크리스트 14) 키를 레코드에 포함해 중복 판정과 반복 신청 검토 후보 분석에 활용한다.
 - 중복률·결측률은 데이터 품질 지표이며 부정수급 판단 근거가 아니다. 기준선은 분석 입력이며 신고 근거 확정 자료가 아니다.
 
+## 11-7. 반복 수급 탐지 룰 연계 (체크리스트 17)
+
+기준선 데이터에서 반복 수급 검토 후보를 탐지한다.
+
+- 룰 모듈: [`src/rules/repeatSubsidyRiskRule.ts`](../src/rules/repeatSubsidyRiskRule.ts)
+- 운영 가이드: [`docs/REPEAT_SUBSIDY_RISK_RULE.md`](./REPEAT_SUBSIDY_RISK_RULE.md)
+- 동일 기관명(normalizedRecipientName)·동일 주소(normalizedAddressKey)·유사 사업명(projectNameCompactKey/유사도)·연도·금액 신호를 결합해 점수화한다.
+- **반복 수급 후보 TOP 50**을 산출하며, 각 후보에 riskScore/riskLevel/groupKey/matchedSignals/evidence/reason/reviewRequired를 포함한다.
+- **대표자명·전화번호·상세주소는 단독 기준으로 사용하지 않는다**(보조 신호만, 원문 미사용). groupKey·reason·evidence에 개인정보 원문을 넣지 않는다.
+- 결과는 "반복 수급 후보 / 검토 필요 후보"이며 위법 여부를 단정하지 않는다. 사실관계 점검과 사람 검토로 넘긴다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

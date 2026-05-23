@@ -586,6 +586,26 @@ npm run check:data-baseline                 # 문서/코드 존재 + 정책 정�
 
 > 결과는 `data/baseline/runs/{runId}/`에 `records.jsonl`, `quality-report.json`, `quality-report.md`, `error-log.json`으로 저장됩니다(원본/결과는 git 미커밋). 실제 1,000건 실데이터 기준선은 API 실제 수집(체크리스트 11) 또는 실제 업로드 자료가 준비되면 구축합니다.
 
+## 반복 수급 탐지 룰 (Repeat Subsidy Risk Rule)
+
+기준선 데이터에서 동일/유사 기관명·주소·사업명·연도·금액 신호를 결합해 **"반복 수급 후보 / 검토 필요 후보" TOP 50**을 점수화·산출하는 룰 모듈입니다. 결과는 확정 판단이 아니며, 위법 여부를 단정하지 않습니다. 모든 후보는 사람 검토 대상(`reviewRequired=true`)입니다.
+
+- 룰 모듈: [`src/rules/repeatSubsidyRiskRule.ts`](./src/rules/repeatSubsidyRiskRule.ts)
+- 표준 타입: [`src/types/repeatSubsidyRisk.ts`](./src/types/repeatSubsidyRisk.ts)
+- CLI: [`scripts/run-repeat-risk-rule.ts`](./scripts/run-repeat-risk-rule.ts)
+- 운영 가이드: [`docs/REPEAT_SUBSIDY_RISK_RULE.md`](./docs/REPEAT_SUBSIDY_RISK_RULE.md)
+
+각 후보는 `riskScore`(0~100) / `riskLevel`(high/medium/low/minimal) / `groupKey` / `matchedSignals` / `evidence` / `reason` / `reviewRequired`를 포함합니다. **대표자명·전화번호·상세주소는 단독 기준으로 사용하지 않고**(보조 신호만, 원문 미사용), groupKey·reason·evidence에 개인정보 원문을 넣지 않습니다. 같은 주소 반복은 공유오피스·공공시설일 수 있어 검토 신호로만 봅니다.
+
+```bash
+npm run test:risk-repeat                # fixture 1,000건 TOP 50 산출 + 점수 검증
+npm run risk:repeat -- --fixture 1000   # fixture 기반 검증(실제 탐지 완료 아님)
+npm run risk:repeat -- --input data/baseline/runs/xxx/records.jsonl
+npm run check:risk-repeat               # 문서/코드 존재 + 정책 정적 검사
+```
+
+> fixture 실행은 산출 경로/점수 검증용입니다. 실제 반복 수급 탐지는 실데이터 기준선이 준비된 후 적용합니다.
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:
