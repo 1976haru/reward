@@ -188,6 +188,18 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - **대표자명·전화번호·상세주소는 단독 기준으로 사용하지 않는다**(보조 신호만, 원문 미사용). groupKey·reason·evidence에 개인정보 원문을 넣지 않는다.
 - 결과는 "반복 수급 후보 / 검토 필요 후보"이며 위법 여부를 단정하지 않는다. 사실관계 점검과 사람 검토로 넘긴다.
 
+## 11-8. 동일 주소 다수 단체 탐지 룰 연계 (체크리스트 18)
+
+기준선 데이터에서 동일 주소 다수 단체 후보를 탐지한다.
+
+- 룰 모듈: [`src/rules/addressClusterRiskRule.ts`](../src/rules/addressClusterRiskRule.ts)
+- 운영 가이드: [`docs/ADDRESS_CLUSTER_RISK_RULE.md`](./ADDRESS_CLUSTER_RISK_RULE.md)
+- `normalizedAddressKey` 또는 `addressRegionKey` 기준으로 그룹화한다.
+- 여러 `normalizedRecipientName`이 같은 주소 후보에 존재하면 검토 후보로 산출한다(서로 다른 단체 2개 이상).
+- **공유오피스·복지관·회관·공공시설 가능성**을 `cautionNotes`에 중립적으로 반영한다(점수를 올리지 않고 주의·감점으로 처리).
+- **대표자명·전화번호·상세주소는 단독 기준으로 사용하지 않으며**, addressGroupKey·reason·evidence에 상세주소·개인정보 원문을 넣지 않는다.
+- 결과는 "동일 주소 다수 단체 후보표 / 추가 확인 필요 후보"이며 위법 여부를 단정하지 않는다. 사실관계 점검과 사람 검토로 넘긴다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

@@ -606,6 +606,26 @@ npm run check:risk-repeat               # 문서/코드 존재 + 정책 정적 �
 
 > fixture 실행은 산출 경로/점수 검증용입니다. 실제 반복 수급 탐지는 실데이터 기준선이 준비된 후 적용합니다.
 
+## 동일 주소 다수 단체 탐지 룰 (Address Cluster Risk Rule)
+
+기준선 데이터를 `normalizedAddressKey` 또는 `addressRegionKey`로 그룹화해 **같은 주소 후보에 여러 단체(normalizedRecipientName)가 등장하는 "동일 주소 다수 단체 후보표"**를 점수화·산출하는 룰 모듈입니다. 결과는 확정 판단이 아니며, 위법 여부를 단정하지 않습니다. 모든 후보는 사람 검토 대상(`reviewRequired=true`)입니다.
+
+- 룰 모듈: [`src/rules/addressClusterRiskRule.ts`](./src/rules/addressClusterRiskRule.ts)
+- 표준 타입: [`src/types/addressClusterRisk.ts`](./src/types/addressClusterRisk.ts)
+- CLI: [`scripts/run-address-cluster-risk-rule.ts`](./scripts/run-address-cluster-risk-rule.ts)
+- 운영 가이드: [`docs/ADDRESS_CLUSTER_RISK_RULE.md`](./docs/ADDRESS_CLUSTER_RISK_RULE.md)
+
+각 후보는 `riskScore`(0~100) / `riskLevel`(high/medium/low/minimal) / `addressGroupKey` / `distinctRecipientCount` / `matchedSignals` / `evidence` / `reason` / `cautionNotes` / `reviewRequired`를 포함합니다. **같은 주소에 여러 단체가 있어도 공유오피스·복지관·회관·공공시설일 수 있어** 합리적 사유 가능성을 `cautionNotes`에 중립적으로 반영합니다. **대표자명·전화번호·상세주소는 단독 기준으로 사용하지 않고**, groupKey·reason·evidence에 상세주소·개인정보 원문을 넣지 않습니다.
+
+```bash
+npm run test:risk-address-cluster                # fixture 1,000건 후보표 산출 + 점수 검증
+npm run risk:address-cluster -- --fixture 1000   # fixture 기반 검증(실제 탐지 완료 아님)
+npm run risk:address-cluster -- --input data/baseline/runs/xxx/records.jsonl
+npm run check:risk-address-cluster               # 문서/코드 존재 + 정책 정적 검사
+```
+
+> fixture 실행은 산출 경로/점수 검증용입니다. 실제 탐지는 실데이터 기준선이 준비된 후 적용합니다.
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

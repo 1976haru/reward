@@ -151,6 +151,9 @@ export const FILE_WHITELIST = new Set([
   // 반복 수급 룰 — 마스킹 검증용 합성 PII fixture/테스트
   "tests/fixtures/createRepeatRiskFixtures.ts",
   "tests/repeatSubsidyRiskRule.test.ts",
+  // 동일 주소 다수 단체 룰 — 마스킹 검증용 합성 PII fixture/테스트
+  "tests/fixtures/createAddressClusterRiskFixtures.ts",
+  "tests/addressClusterRiskRule.test.ts",
   // 모듈 분석 프롬프트 / 평가셋 (의도적 픽스처)
   "src/modules/false-ad/analysis_prompt.md",
   "src/modules/false-ad/agency_config.json",

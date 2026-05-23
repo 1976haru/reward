@@ -34,6 +34,11 @@ data/risk/repeat/runs/
 data/risk/repeat/tmp/
 data/risk/repeat/*
 !data/risk/repeat/.gitkeep
+# 동일 주소 다수 단체 탐지 룰 산출물 — 커밋하지 않음
+data/risk/address-cluster/runs/
+data/risk/address-cluster/tmp/
+data/risk/address-cluster/*
+!data/risk/address-cluster/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
