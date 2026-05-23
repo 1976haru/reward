@@ -19,6 +19,7 @@ import { appendFile, readFile, readdir, stat, writeFile } from "node:fs/promises
 import { ensureDir } from "../utils/fs.js";
 import { sanitizeForStorage } from "../policy/privacyGuard.js";
 import { normalizeEntityName } from "../normalizers/entityNameNormalizer.js";
+import { normalizeProjectName } from "../normalizers/projectNameSimilarity.js";
 import {
   StandardSubsidyRecordFromUpload,
   UPLOAD_DOCUMENT_TYPE_KEYWORDS,
@@ -333,6 +334,12 @@ export function convertRowToStandardRecord(
   if (sanitized.recipientName && sanitized.recipientName.trim().length > 0) {
     const norm = normalizeEntityName(sanitized.recipientName);
     if (norm.compactName.length > 0) sanitized.normalizedRecipientName = norm.compactName;
+  }
+
+  // 사업명 유사도 키 (체크리스트 15) — 유사 사업명/반복 신청 검토 후보 비교용. 확정 아님.
+  if (sanitized.projectName && sanitized.projectName.trim().length > 0 && !sanitized.projectName.startsWith("(")) {
+    const pn = normalizeProjectName(sanitized.projectName);
+    if (pn.compactName.length > 0) sanitized.projectNameCompactKey = pn.compactName;
   }
 
   return sanitized;

@@ -551,6 +551,21 @@ npm run test:address-normalizer    # 주소 정규화/매칭 정확도 검증 (�
 npm run check:address-normalizer   # 문서/코드 존재 + 정책 정적 검사
 ```
 
+## 사업명 유사도 계산 (Project Name Similarity)
+
+유사 사업명 반복 신청을 검토하기 위해 사업명 표기 차이(연도/차수/괄호/특수문자/띄어쓰기/대소문자/공모·지원·사업 같은 일반 표현)를 정규화하고 유사도를 계산하는 모듈입니다. **형태소 분석기 없이** 문자열 정규화 + 토큰 Dice + 문자 n-gram + 편집거리로 동작합니다.
+
+- 유사도 모듈: [`src/normalizers/projectNameSimilarity.ts`](./src/normalizers/projectNameSimilarity.ts)
+- 표준 타입: [`src/types/projectNameSimilarity.ts`](./src/types/projectNameSimilarity.ts)
+- 운영 가이드: [`docs/PROJECT_NAME_SIMILARITY_GUIDE.md`](./docs/PROJECT_NAME_SIMILARITY_GUIDE.md)
+
+판정: `strong_similar`(0.90↑) / `similar_candidate`(0.85↑) / `possible_candidate`(0.70↑) / `no_match` / `ambiguous`(일반 토큰만/너무 짧음). **유사도 0.85 이상도 확정이 아니라 "유사 사업명 후보 / 반복 신청 검토 후보"이며**, 사업명 유사도만으로 반복 신청이나 부정수급을 단정하지 않습니다. 모든 후보는 사람 검토 대상(`reviewRequired=true`)입니다.
+
+```bash
+npm run test:project-similarity    # 유사도/후보 목록 정확도 검증 (가짜 사업명)
+npm run check:project-similarity   # 문서/코드 존재 + 정책 정적 검사
+```
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

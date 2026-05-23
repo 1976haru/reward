@@ -67,6 +67,9 @@ export interface StandardSubsidyRecordFromUpload {
   normalizedAddressKey?: string; // 선택 — 시군구+읍면동+도로명/지번+기본번지 (상세주소 제외)
   addressRegionKey?: string; // 선택 — 반복수급 분석용 지역 단위 키 (개인정보 위험 축소)
 
+  /** 사업명 정규화 키 (체크리스트 15 연계). 유사 사업명/반복 신청 검토 후보 비교용. 확정 아님 — 사람 검토 대상. */
+  projectNameCompactKey?: string; // 선택 — projectName 의 compactName(연도/차수 제외)
+
   // --- 금액 (원화 숫자) ---
   subsidyAmount?: number; // 권장
   executionAmount?: number; // 선택

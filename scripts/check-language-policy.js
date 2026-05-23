@@ -148,11 +148,14 @@ export const FILE_WHITELIST = new Set([
   "scripts/check-upload-parser-policy.js",
   "scripts/check-entity-normalizer-policy.js",
   "scripts/check-address-normalizer-policy.js",
+  "scripts/check-project-similarity-policy.js",
   // 정규화 가이드/테스트 — 금지 표현표·단정 표현 검증 입력을 의도적으로 포함
   "docs/ENTITY_NORMALIZATION_GUIDE.md",
   "docs/ADDRESS_NORMALIZATION_GUIDE.md",
+  "docs/PROJECT_NAME_SIMILARITY_GUIDE.md",
   "tests/entityNameNormalizer.test.ts",
   "tests/addressNormalizer.test.ts",
+  "tests/projectNameSimilarity.test.ts",
   // 테스트 (검사 대상 문자열을 입력으로 사용)
   "tests/languagePolicy.test.ts",
   "tests/languagePolicy.test.js",
