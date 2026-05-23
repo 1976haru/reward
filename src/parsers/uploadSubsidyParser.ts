@@ -18,6 +18,7 @@ import zlib from "node:zlib";
 import { appendFile, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { ensureDir } from "../utils/fs.js";
 import { sanitizeForStorage } from "../policy/privacyGuard.js";
+import { normalizeEntityName } from "../normalizers/entityNameNormalizer.js";
 import {
   StandardSubsidyRecordFromUpload,
   UPLOAD_DOCUMENT_TYPE_KEYWORDS,
@@ -326,7 +327,15 @@ export function convertRowToStandardRecord(
   if (warnings.length > 0) record.parseWarnings = warnings;
 
   // 저장 전 마스킹
-  return sanitizeUploadRecord(record);
+  const sanitized = sanitizeUploadRecord(record);
+
+  // 기관명·단체명 정규화 (체크리스트 13) — 동일 기관 "후보" 키. 확정 병합 아님.
+  if (sanitized.recipientName && sanitized.recipientName.trim().length > 0) {
+    const norm = normalizeEntityName(sanitized.recipientName);
+    if (norm.compactName.length > 0) sanitized.normalizedRecipientName = norm.compactName;
+  }
+
+  return sanitized;
 }
 
 // ---------- 10. CSV 파서 ----------

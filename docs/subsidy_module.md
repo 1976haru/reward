@@ -131,6 +131,17 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - 파싱 실패는 숨기지 않고 `error-log.json`에 사유와 함께 남긴다.
 - 변환 결과는 의심 신호 분석의 입력 후보일 뿐이며 **단정 표현을 추가하지 않는다.**
 
+## 11-3. 기관명·단체명 정규화 연계 (체크리스트 13)
+
+업로드 parser, 공공 API 수집기, 나라장터 계약자료 매핑에서 기관명·단체명을 통합할 때 정규화 모듈을 사용한다.
+
+- 정규화 모듈: [`src/normalizers/entityNameNormalizer.ts`](../src/normalizers/entityNameNormalizer.ts)
+- 운영 가이드: [`docs/ENTITY_NORMALIZATION_GUIDE.md`](./ENTITY_NORMALIZATION_GUIDE.md)
+- 주식회사/(주)/㈜/사단법인/재단법인/사회복지법인/협동조합/영농조합법인 등 법인 표기와 띄어쓰기·특수문자·괄호·대소문자 차이를 통합한다.
+- 업로드 parser의 `recipientName`은 `normalizedRecipientName`(compactName)으로 연결되어 동일 기관 후보 키로 쓰인다.
+- **동일 기관 후보는 사람 검토 대상**이며, 자동 확정 병합을 수행하지 않는다(동일 기관을 확정하지 않는다).
+- **대표자명·전화번호·상세주소는 단독 병합 기준으로 사용하지 않는다.** 지역명(시군구)은 보조 신호로만 사용한다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

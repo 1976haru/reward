@@ -56,6 +56,8 @@ export interface StandardSubsidyRecordFromUpload {
   fiscalYear?: number; // 권장
   projectName: string; // 필수
   recipientName?: string; // 권장
+  /** 기관명·단체명 정규화 결과(compactName 기반 동일 기관 후보 키). 확정 병합이 아니다 — 사람 검토 대상. */
+  normalizedRecipientName?: string; // 선택 (체크리스트 13 연계)
   departmentName?: string; // 권장
 
   // --- 금액 (원화 숫자) ---

@@ -521,6 +521,21 @@ npm run check:upload-parser             # 문서/코드 존재 + 정책 정적 �
 npm run parse:uploads -- <파일또는폴더>   # 실제 업로드 파일 변환 (폴더면 csv/xlsx/pdf만)
 ```
 
+## 기관명·단체명 정규화 (Entity Name Normalizer)
+
+주식회사/(주)/㈜/사단법인/재단법인/사회복지법인/협동조합/영농조합법인 등 법인·단체 표기와 띄어쓰기·특수문자·괄호·전각/반각·대소문자 차이를 통합해 **"동일 기관 후보"**를 만드는 정규화·병합 보조 모듈입니다. **동일 기관을 확정하지 않으며**(자동 확정 병합 없음), 모든 병합 후보는 사람 검토 대상(`reviewRequired=true`)입니다. 대표자명·전화번호·상세주소는 단독 병합 기준으로 사용하지 않습니다.
+
+- 정규화 모듈: [`src/normalizers/entityNameNormalizer.ts`](./src/normalizers/entityNameNormalizer.ts)
+- 표준 타입: [`src/types/entityNormalization.ts`](./src/types/entityNormalization.ts)
+- 운영 가이드: [`docs/ENTITY_NORMALIZATION_GUIDE.md`](./docs/ENTITY_NORMALIZATION_GUIDE.md)
+
+판정: `strong_match`(정규화명 완전 일치) / `likely_match` / `possible_match` / `no_match` / `ambiguous`(너무 짧거나 일반명사·지역명만 남음). 업로드 parser 결과의 `recipientName`이 있으면 `normalizedRecipientName`(compactName)이 채워집니다.
+
+```bash
+npm run test:entity-normalizer    # 정규화/병합 후보 정확도 검증 (가짜 기관명)
+npm run check:entity-normalizer   # 문서/코드 존재 + 정책 정적 검사
+```
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:
