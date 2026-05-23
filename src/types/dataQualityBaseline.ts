@@ -59,6 +59,20 @@ export interface BaselineRecord {
   evidenceUrl?: string; // 권장
   privacyDetectedTypes: string[]; // 필수 — 탐지된 개인정보 유형
   qualityWarnings?: string[]; // 선택
+
+  // --- 결과물/정산/첨부 메타 (체크리스트 19 연계, 모두 선택) ---
+  // 공개자료 기준 URL/존재 플래그만 저장한다(개인정보 원문 저장 금지).
+  resultUrl?: string; // 결과물 URL
+  resultReportUrl?: string; // 결과보고서 URL
+  performanceReportUrl?: string; // 성과보고서 URL
+  settlementDocumentUrl?: string; // 정산서/정산결과 자료 URL
+  attachmentUrls?: string[]; // 첨부파일 URL 목록
+  attachmentCount?: number; // 첨부파일 수
+  hasPerformanceReport?: boolean;
+  hasSettlementDocument?: boolean;
+  hasResultReport?: boolean;
+  hasResultUrl?: boolean;
+  hasAttachment?: boolean;
 }
 
 /** 결측률 계산 대상 필드 (Runbook §4 의 '결측률 계산 대상=예'). */

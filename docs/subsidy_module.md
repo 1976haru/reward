@@ -200,6 +200,18 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - **대표자명·전화번호·상세주소는 단독 기준으로 사용하지 않으며**, addressGroupKey·reason·evidence에 상세주소·개인정보 원문을 넣지 않는다.
 - 결과는 "동일 주소 다수 단체 후보표 / 추가 확인 필요 후보"이며 위법 여부를 단정하지 않는다. 사실관계 점검과 사람 검토로 넘긴다.
 
+## 11-9. 결과물 부족·정산 확인 필요 탐지 룰 연계 (체크리스트 19)
+
+기준선 데이터에서 결과물·정산 공개 근거 부족 후보를 탐지한다.
+
+- 룰 모듈: [`src/rules/outputSettlementRiskRule.ts`](../src/rules/outputSettlementRiskRule.ts)
+- 운영 가이드: [`docs/OUTPUT_SETTLEMENT_RISK_RULE.md`](./OUTPUT_SETTLEMENT_RISK_RULE.md)
+- 성과보고서, 정산서, 결과보고서, 결과물 URL, 증빙 URL(evidenceUrl/sourceUrl), 첨부파일 누락 여부를 `missingSignals`로 평가한다.
+- `missingSignals`를 기반으로 `riskScore`를 계산하고 "결과물 누락 후보 / 정산 확인 필요 후보 / 증빙 보완 필요 후보"로 표현한다.
+- **공개자료에 없다고 해서 실제 미제출로 단정하지 않는다**(공개자료 기준 "확인 필요"). 로그인 필요 자료·비공개자료·내부자료는 탐지 근거로 사용하지 않는다.
+- BaselineRecord에 resultUrl/resultReportUrl/performanceReportUrl/settlementDocumentUrl/attachmentUrls 등 선택 필드를 추가했다(향후 collector/parser에서 매핑).
+- 결과는 사실관계 점검과 사람 검토로 넘긴다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

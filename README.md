@@ -626,6 +626,26 @@ npm run check:risk-address-cluster               # 문서/코드 존재 + 정책
 
 > fixture 실행은 산출 경로/점수 검증용입니다. 실제 탐지는 실데이터 기준선이 준비된 후 적용합니다.
 
+## 결과물 부족/정산 확인 필요 탐지 룰 (Output & Settlement Risk Rule)
+
+기준선 데이터에서 **성과보고서·정산서·결과보고서·결과물 URL·증빙 URL·첨부파일** 등 공개 근거가 부족한 레코드를 누락 신호로 점수화해 **"결과물 누락 후보 / 정산 확인 필요 후보 / 증빙 보완 필요 후보" TOP 50**을 산출하는 룰 모듈입니다. **공개자료에 없다는 것은 "확인 필요"일 뿐 실제 미제출 확정이 아니며**, 위법 여부를 단정하지 않습니다. 모든 후보는 사람 검토 대상(`reviewRequired=true`)입니다.
+
+- 룰 모듈: [`src/rules/outputSettlementRiskRule.ts`](./src/rules/outputSettlementRiskRule.ts)
+- 표준 타입: [`src/types/outputSettlementRisk.ts`](./src/types/outputSettlementRisk.ts)
+- CLI: [`scripts/run-output-settlement-risk-rule.ts`](./scripts/run-output-settlement-risk-rule.ts)
+- 운영 가이드: [`docs/OUTPUT_SETTLEMENT_RISK_RULE.md`](./docs/OUTPUT_SETTLEMENT_RISK_RULE.md)
+
+각 후보는 `riskScore`(0~100) / `riskLevel`(high/medium/low/minimal) / `missingSignals` / `evidence` / `reason` / `reviewRequired`를 포함합니다. **로그인 필요 자료·비공개 자료·내부자료는 탐지 근거로 사용하지 않고**, evidence·reason에 개인정보 원문을 넣지 않습니다.
+
+```bash
+npm run test:risk-output-settlement                # fixture 1,000건 후보 산출 + 점수 검증
+npm run risk:output-settlement -- --fixture 1000   # fixture 기반 검증(실제 탐지 완료 아님)
+npm run risk:output-settlement -- --input data/baseline/runs/xxx/records.jsonl
+npm run check:risk-output-settlement               # 문서/코드 존재 + 정책 정적 검사
+```
+
+> fixture 실행은 산출 경로/점수 검증용입니다. 실제 탐지는 실데이터 기준선이 준비된 후 적용합니다.
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

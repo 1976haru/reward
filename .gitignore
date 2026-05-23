@@ -39,6 +39,11 @@ data/risk/address-cluster/runs/
 data/risk/address-cluster/tmp/
 data/risk/address-cluster/*
 !data/risk/address-cluster/.gitkeep
+# 결과물 부족/정산 미흡 탐지 룰 산출물 — 커밋하지 않음
+data/risk/output-settlement/runs/
+data/risk/output-settlement/tmp/
+data/risk/output-settlement/*
+!data/risk/output-settlement/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
