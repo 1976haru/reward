@@ -157,6 +157,9 @@ export const FILE_WHITELIST = new Set([
   // 결과물/정산 룰 — 마스킹 검증용 합성 PII fixture/테스트
   "tests/fixtures/createOutputSettlementRiskFixtures.ts",
   "tests/outputSettlementRiskRule.test.ts",
+  // 예산 집행 이상 패턴 룰 — 마스킹 검증용 합성 PII fixture/테스트
+  "tests/fixtures/createSpendingAnomalyRiskFixtures.ts",
+  "tests/spendingAnomalyRiskRule.test.ts",
   // 모듈 분석 프롬프트 / 평가셋 (의도적 픽스처)
   "src/modules/false-ad/analysis_prompt.md",
   "src/modules/false-ad/agency_config.json",

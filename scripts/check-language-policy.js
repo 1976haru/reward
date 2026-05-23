@@ -153,6 +153,7 @@ export const FILE_WHITELIST = new Set([
   "scripts/check-repeat-risk-policy.js",
   "scripts/check-address-cluster-risk-policy.js",
   "scripts/check-output-settlement-risk-policy.js",
+  "scripts/check-spending-anomaly-risk-policy.js",
   // 정규화/품질/룰 가이드·테스트 — 금지 표현표·단정 표현 검증 입력을 의도적으로 포함
   "docs/ENTITY_NORMALIZATION_GUIDE.md",
   "docs/ADDRESS_NORMALIZATION_GUIDE.md",
@@ -161,6 +162,7 @@ export const FILE_WHITELIST = new Set([
   "docs/REPEAT_SUBSIDY_RISK_RULE.md",
   "docs/ADDRESS_CLUSTER_RISK_RULE.md",
   "docs/OUTPUT_SETTLEMENT_RISK_RULE.md",
+  "docs/SPENDING_ANOMALY_RISK_RULE.md",
   "tests/entityNameNormalizer.test.ts",
   "tests/addressNormalizer.test.ts",
   "tests/projectNameSimilarity.test.ts",
@@ -168,6 +170,7 @@ export const FILE_WHITELIST = new Set([
   "tests/repeatSubsidyRiskRule.test.ts",
   "tests/addressClusterRiskRule.test.ts",
   "tests/outputSettlementRiskRule.test.ts",
+  "tests/spendingAnomalyRiskRule.test.ts",
   // 테스트 (검사 대상 문자열을 입력으로 사용)
   "tests/languagePolicy.test.ts",
   "tests/languagePolicy.test.js",

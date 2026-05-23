@@ -12,6 +12,8 @@
 // 운영 기준: docs/DATA_BASELINE_QUALITY_RUNBOOK.md
 // 본 모듈은 법률 자문을 대체하지 않으며, 기준선은 분석 입력이지 신고 근거 확정 자료가 아니다.
 
+import type { SpendingLineItem } from "./spendingAnomalyRisk.js";
+
 // ---------- enum ----------
 
 export const BASELINE_SOURCE_TYPES = ["api", "upload", "manual", "fixture"] as const;
@@ -73,6 +75,22 @@ export interface BaselineRecord {
   hasResultReport?: boolean;
   hasResultUrl?: boolean;
   hasAttachment?: boolean;
+
+  // --- 예산 집행 항목 메타 (체크리스트 20 연계, 모두 선택) ---
+  // 항목별 집행 금액(원). 개인정보 원문은 저장하지 않으며 지급처는 마스킹 값만 사용한다.
+  laborCostAmount?: number;
+  promotionCostAmount?: number;
+  serviceCostAmount?: number;
+  equipmentCostAmount?: number;
+  materialCostAmount?: number;
+  rentCostAmount?: number;
+  travelCostAmount?: number;
+  otherCostAmount?: number;
+  /** 세부 지출 라인아이템(지급처는 vendorNameMasked 마스킹 값만). */
+  spendingLineItems?: SpendingLineItem[];
+  /** 영수증·증빙 URL 목록. */
+  spendingEvidenceUrls?: string[];
+  hasSpendingBreakdown?: boolean;
 }
 
 /** 결측률 계산 대상 필드 (Runbook §4 의 '결측률 계산 대상=예'). */

@@ -212,6 +212,19 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - BaselineRecord에 resultUrl/resultReportUrl/performanceReportUrl/settlementDocumentUrl/attachmentUrls 등 선택 필드를 추가했다(향후 collector/parser에서 매핑).
 - 결과는 사실관계 점검과 사람 검토로 넘긴다.
 
+## 11-10. 예산 집행 이상 패턴 탐지 룰 연계 (체크리스트 20)
+
+기준선 데이터에서 예산 집행 이상 패턴 후보를 탐지한다.
+
+- 룰 모듈: [`src/rules/spendingAnomalyRiskRule.ts`](../src/rules/spendingAnomalyRiskRule.ts)
+- 운영 가이드: [`docs/SPENDING_ANOMALY_RISK_RULE.md`](./SPENDING_ANOMALY_RISK_RULE.md)
+- 인건비·홍보비·용역비·장비구입비 비중 및 반복 지출(동일 항목/유사 금액/특정 지급처 반복) 후보를 탐지한다.
+- `spendingSignals`를 기반으로 `riskScore`를 계산하고 "예산 집행 이상 패턴 후보 / 정산 확인 필요 후보"로 표현한다.
+- **특정 항목 비중이 높다고 해서 문제로 단정하지 않는다**(인건비 중심 사업·홍보 캠페인·전문 용역·장비 지원 사업은 비중이 높을 수 있음).
+- 지급처명은 마스킹 값(vendorNameMasked)만 사용하고, 로그인 필요/비공개 자료는 탐지 근거로 사용하지 않으며, evidence/reason에 개인정보 원문을 넣지 않는다.
+- BaselineRecord에 laborCostAmount/promotionCostAmount/serviceCostAmount/equipmentCostAmount/spendingLineItems 등 선택 필드를 추가했다(향후 collector/parser에서 매핑).
+- 결과는 사실관계 점검과 사람 검토로 넘긴다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

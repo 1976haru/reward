@@ -646,6 +646,26 @@ npm run check:risk-output-settlement               # 문서/코드 존재 + 정�
 
 > fixture 실행은 산출 경로/점수 검증용입니다. 실제 탐지는 실데이터 기준선이 준비된 후 적용합니다.
 
+## 예산 집행 이상 패턴 탐지 룰 (Spending Anomaly Risk Rule)
+
+기준선 데이터에서 **인건비·홍보비·용역비·장비구입비** 등 특정 집행 항목의 과다 비중, 동일 항목 반복 지출, 유사 금액 반복, 특정 지급처 반복을 점수화해 **"예산 집행 이상 패턴 후보 / 정산 확인 필요 후보" TOP 50**을 산출하는 룰 모듈입니다. **특정 항목 비중이 높거나 반복된다는 사실만으로 문제라고 단정하지 않으며**(사업 유형상 정상일 수 있음), 위법 여부를 단정하지 않습니다. 모든 후보는 사람 검토 대상(`reviewRequired=true`)입니다.
+
+- 룰 모듈: [`src/rules/spendingAnomalyRiskRule.ts`](./src/rules/spendingAnomalyRiskRule.ts)
+- 표준 타입: [`src/types/spendingAnomalyRisk.ts`](./src/types/spendingAnomalyRisk.ts)
+- CLI: [`scripts/run-spending-anomaly-risk-rule.ts`](./scripts/run-spending-anomaly-risk-rule.ts)
+- 운영 가이드(항목별 이상치 기준표 포함): [`docs/SPENDING_ANOMALY_RISK_RULE.md`](./docs/SPENDING_ANOMALY_RISK_RULE.md)
+
+각 후보는 `riskScore`(0~100) / `riskLevel`(high/medium/low/minimal) / `spendingSignals` / `spendingBreakdownSummary` / `evidence` / `reason` / `cautionNotes` / `reviewRequired`를 포함합니다. **지급처명은 마스킹 값(vendorNameMasked)만 사용**하고, 계좌번호·연락처·상세주소 등 개인정보 원문과 로그인 필요/비공개 자료는 탐지 근거·evidence·reason에 넣지 않습니다.
+
+```bash
+npm run test:risk-spending                # fixture 1,000건 후보 산출 + 점수 검증
+npm run risk:spending -- --fixture 1000   # fixture 기반 검증(실제 탐지 완료 아님)
+npm run risk:spending -- --input data/baseline/runs/xxx/records.jsonl
+npm run check:risk-spending               # 문서/코드 존재 + 정책 정적 검사
+```
+
+> fixture 실행은 산출 경로/점수 검증용입니다. 실제 탐지는 실데이터 기준선이 준비된 후 적용합니다.
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

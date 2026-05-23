@@ -44,6 +44,11 @@ data/risk/output-settlement/runs/
 data/risk/output-settlement/tmp/
 data/risk/output-settlement/*
 !data/risk/output-settlement/.gitkeep
+# 예산 집행 이상 패턴 탐지 룰 산출물 — 커밋하지 않음
+data/risk/spending/runs/
+data/risk/spending/tmp/
+data/risk/spending/*
+!data/risk/spending/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
