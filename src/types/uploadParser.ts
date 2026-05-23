@@ -60,6 +60,13 @@ export interface StandardSubsidyRecordFromUpload {
   normalizedRecipientName?: string; // 선택 (체크리스트 13 연계)
   departmentName?: string; // 권장
 
+  /**
+   * 주소 정규화 키 (체크리스트 14 연계). 향후 address/recipientAddress/location 컬럼이 들어오면
+   * normalizeAddress 를 적용해 채운다. 상세주소(동·호수·층)는 포함하지 않으며 동일 주소 후보용이다.
+   */
+  normalizedAddressKey?: string; // 선택 — 시군구+읍면동+도로명/지번+기본번지 (상세주소 제외)
+  addressRegionKey?: string; // 선택 — 반복수급 분석용 지역 단위 키 (개인정보 위험 축소)
+
   // --- 금액 (원화 숫자) ---
   subsidyAmount?: number; // 권장
   executionAmount?: number; // 선택

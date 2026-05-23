@@ -142,6 +142,18 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - **동일 기관 후보는 사람 검토 대상**이며, 자동 확정 병합을 수행하지 않는다(동일 기관을 확정하지 않는다).
 - **대표자명·전화번호·상세주소는 단독 병합 기준으로 사용하지 않는다.** 지역명(시군구)은 보조 신호로만 사용한다.
 
+## 11-4. 주소 정규화 연계 (체크리스트 14)
+
+업로드 parser, 공공 API 수집기, 나라장터 계약자료 매핑에서 주소를 통합하고 같은 주소 반복수급을 검토할 때 주소 정규화 모듈을 사용한다.
+
+- 정규화 모듈: [`src/normalizers/addressNormalizer.ts`](../src/normalizers/addressNormalizer.ts)
+- 운영 가이드: [`docs/ADDRESS_NORMALIZATION_GUIDE.md`](./ADDRESS_NORMALIZATION_GUIDE.md)
+- 도로명/지번/층호수/약칭/괄호/특수문자/전각·반각/공백 차이를 통합한다.
+- 향후 `address`/`recipientAddress`/`location` 컬럼이 업로드 parser 표준 스키마에 들어오면 `normalizeAddress`를 적용해 `StandardSubsidyRecordFromUpload.normalizedAddressKey`·`addressRegionKey`를 채운다(현재는 선택 필드로 준비).
+- **상세주소(동·호수·층) 원문은 저장하지 않으며**, 반복수급 분석 키에 넣지 않는다. 반복 분석은 `addressRegionKey`(지역 단위)를 우선 사용한다.
+- **동일 주소 후보는 사람 검토 대상**이며, 자동 확정 병합을 수행하지 않는다(동일 주소를 확정하지 않는다).
+- 같은 주소 반복은 **검토 필요 신호**일 뿐이며, 주소만으로 부정수급을 단정하지 않는다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

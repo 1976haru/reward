@@ -143,6 +143,8 @@ export const FILE_WHITELIST = new Set([
   // 업로드 파서 — 마스킹 검증용 합성 PII fixture 생성기/테스트
   "tests/fixtures/createUploadParserFixtures.ts",
   "tests/uploadSubsidyParser.test.ts",
+  // 주소 정규화 — 마스킹 검증용 합성 전화번호 포함
+  "tests/addressNormalizer.test.ts",
   // 모듈 분석 프롬프트 / 평가셋 (의도적 픽스처)
   "src/modules/false-ad/analysis_prompt.md",
   "src/modules/false-ad/agency_config.json",

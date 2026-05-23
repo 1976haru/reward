@@ -536,6 +536,21 @@ npm run test:entity-normalizer    # 정규화/병합 후보 정확도 검증 (�
 npm run check:entity-normalizer   # 문서/코드 존재 + 정책 정적 검사
 ```
 
+## 주소 정규화 (Address Normalizer)
+
+도로명/지번/층호수/약칭/괄호/특수문자/전각·반각/공백 차이를 통합해 **"동일 주소 후보"**를 만들고, 같은 주소 반복수급을 검토할 수 있게 하는 정규화·매칭 보조 모듈입니다. **동일 주소를 확정하지 않으며**(자동 확정 병합 없음), 모든 후보는 사람 검토 대상(`reviewRequired=true`)입니다.
+
+- 정규화 모듈: [`src/normalizers/addressNormalizer.ts`](./src/normalizers/addressNormalizer.ts)
+- 표준 타입: [`src/types/addressNormalization.ts`](./src/types/addressNormalization.ts)
+- 운영 가이드: [`docs/ADDRESS_NORMALIZATION_GUIDE.md`](./docs/ADDRESS_NORMALIZATION_GUIDE.md)
+
+**상세주소(동·호수·층) 원문은 저장하지 않습니다.** 상세주소는 `removedDetailTokens`로 분리되어 키에서 제외되고, 반복수급 분석은 시도·시군구·읍면동·도로명/지번 수준의 `addressRegionKey`를 우선 사용합니다. 같은 주소 반복은 부정수급으로 단정하지 않으며 **검토 필요 신호**로만 봅니다. 판정: `strong_match`(normalizedAddressKey 일치) / `likely_match` / `possible_match` / `no_match` / `ambiguous`(시군구만/너무 짧음).
+
+```bash
+npm run test:address-normalizer    # 주소 정규화/매칭 정확도 검증 (가짜 주소)
+npm run check:address-normalizer   # 문서/코드 존재 + 정책 정적 검사
+```
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:
