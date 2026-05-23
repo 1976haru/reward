@@ -566,6 +566,26 @@ npm run test:project-similarity    # 유사도/후보 목록 정확도 검증 (�
 npm run check:project-similarity   # 문서/코드 존재 + 정책 정적 검사
 ```
 
+## 실데이터 1차 기준선 / 데이터 품질검증 (Data Baseline Quality)
+
+최근 2~3년 보조사업 데이터를 표준 저장소(경량 JSONL)에 적재하고 수집건수·중복률·결측률·출처별/연도별 커버리지 등 품질 리포트를 생성하는 파이프라인입니다. 저장 전 개인정보를 마스킹하며, **fixture 1,000건은 적재 경로/품질 리포트 검증용일 뿐 실데이터 기준선 완료가 아닙니다.**
+
+- 품질검증 모듈: [`src/quality/dataBaselineQuality.ts`](./src/quality/dataBaselineQuality.ts)
+- 표준 타입: [`src/types/dataQualityBaseline.ts`](./src/types/dataQualityBaseline.ts)
+- CLI: [`scripts/build-data-baseline.ts`](./scripts/build-data-baseline.ts)
+- 운영 Runbook: [`docs/DATA_BASELINE_QUALITY_RUNBOOK.md`](./docs/DATA_BASELINE_QUALITY_RUNBOOK.md)
+
+상태 구분: `real_baseline_ok`(api/upload/manual 1,000건 이상) / `fixture_pending`(fixture 1,000건 — 실데이터 기준선 보류) / `incomplete`(1,000건 미만). 중복률·결측률은 데이터 품질 지표이며 부정수급 판단 근거가 아닙니다.
+
+```bash
+npm run test:data-baseline                  # fixture 1,000건 적재 경로 + 품질 리포트 검증
+npm run build:baseline -- --fixture 1000    # fixture 1,000건 적재 (실데이터 아님)
+npm run build:baseline -- --input <records.jsonl> --sourceType upload --sourceName local-upload
+npm run check:data-baseline                 # 문서/코드 존재 + 정책 정적 검사
+```
+
+> 결과는 `data/baseline/runs/{runId}/`에 `records.jsonl`, `quality-report.json`, `quality-report.md`, `error-log.json`으로 저장됩니다(원본/결과는 git 미커밋). 실제 1,000건 실데이터 기준선은 API 실제 수집(체크리스트 11) 또는 실제 업로드 자료가 준비되면 구축합니다.
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

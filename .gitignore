@@ -26,6 +26,9 @@ data/collector/errors/*
 # 업로드 파서 산출물 — 커밋하지 않음
 data/upload-parser/*
 !data/upload-parser/.gitkeep
+# 데이터 기준선 산출물 — 커밋하지 않음 (실데이터/fixture 결과 모두)
+data/baseline/*
+!data/baseline/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep

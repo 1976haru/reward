@@ -165,6 +165,18 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - **유사도 0.85 이상은 "반복 신청 검토 후보"**이며, 사업명 유사도만으로 반복 신청 또는 부정수급을 단정하지 않는다.
 - 기관명 정규화(체크리스트 13), 주소 정규화(체크리스트 14)와 결합하면 반복 신청 리스크 신호로 활용할 수 있다(같은 기관 후보 + 유사 사업명 후보 + 같은/인접 연도 등). 모든 결과는 사람 검토 대상이다.
 
+## 11-6. 실데이터 1차 기준선 / 데이터 품질검증 연계 (체크리스트 16)
+
+수집기(API)·업로드 parser 결과를 표준 기준선 저장소로 적재하고 품질을 검증한다.
+
+- 품질검증 모듈: [`src/quality/dataBaselineQuality.ts`](../src/quality/dataBaselineQuality.ts)
+- 운영 Runbook: [`docs/DATA_BASELINE_QUALITY_RUNBOOK.md`](./DATA_BASELINE_QUALITY_RUNBOOK.md)
+- 수집기/API/parser 결과(records.jsonl)를 표준 `BaselineRecord`로 적재하며, 저장 전 `sanitizeForStorage`로 개인정보를 마스킹한다.
+- 수집건수, 중복률, 결측률, 출처별(sourceCoverage)/연도별(yearCoverage) 커버리지를 계산해 `quality-report.json`/`quality-report.md`를 생성한다.
+- **fixture와 실데이터 기준선을 구분**한다: `fixture`는 적재 경로 검증용이며, 실제 기준선은 sourceType이 api/upload/manual이고 1,000건 이상일 때만 인정한다(그 전엔 "기준선 구축 보류").
+- 사업명 정규화(체크리스트 15)·기관명 정규화(체크리스트 13)·주소 정규화(체크리스트 14) 키를 레코드에 포함해 중복 판정과 반복 신청 검토 후보 분석에 활용한다.
+- 중복률·결측률은 데이터 품질 지표이며 부정수급 판단 근거가 아니다. 기준선은 분석 입력이며 신고 근거 확정 자료가 아니다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)
