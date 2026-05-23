@@ -23,6 +23,9 @@ data/collector/runs/*
 data/collector/raw/*
 data/collector/tmp/*
 data/collector/errors/*
+# 업로드 파서 산출물 — 커밋하지 않음
+data/upload-parser/*
+!data/upload-parser/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep

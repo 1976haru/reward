@@ -140,6 +140,9 @@ export const FILE_WHITELIST = new Set([
   "tests/approvalGate.test.ts",
   // 수집기 마스킹 검증 테스트 — 의도적으로 샘플 PII 픽스처 포함
   "tests/publicDataApiCollector.test.ts",
+  // 업로드 파서 — 마스킹 검증용 합성 PII fixture 생성기/테스트
+  "tests/fixtures/createUploadParserFixtures.ts",
+  "tests/uploadSubsidyParser.test.ts",
   // 모듈 분석 프롬프트 / 평가셋 (의도적 픽스처)
   "src/modules/false-ad/analysis_prompt.md",
   "src/modules/false-ad/agency_config.json",

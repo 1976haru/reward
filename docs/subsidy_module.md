@@ -118,6 +118,19 @@
 - 수집 응답은 **저장 전 개인정보를 마스킹**한다(`sanitizeRecordForStorage` → `sanitizeForStorage`).
 - 수집 결과(`records.jsonl`)는 보조금 의심 후보의 **사실관계 점검 원문 근거**로 연결될 수 있다. 단, **API 응답만으로 부정수급을 단정하지 않는다.**
 
+## 11-2. CSV/PDF/엑셀 수동 업로드 변환기 연계 (체크리스트 12)
+
+API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조금 자료는 수동 업로드 변환기로 표준화한다.
+
+- 수동 업로드 파일 변환기: [`src/parsers/uploadSubsidyParser.ts`](../src/parsers/uploadSubsidyParser.ts)
+- 운영 기준: [`docs/UPLOAD_PARSER_RUNBOOK.md`](./UPLOAD_PARSER_RUNBOOK.md)
+- CSV/XLSX/PDF 공개자료를 표준 보조금 레코드(`StandardSubsidyRecordFromUpload`)로 변환한다. **원본 업로드 파일과 변환 결과 원본은 git에 커밋하지 않는다.**
+- 테스트 fixture는 **가짜(합성) 데이터만** 사용한다.
+- **PDF OCR은 구현하지 않는다** (텍스트 기반 PDF 기본 처리, 스캔 이미지 제외).
+- 개인정보는 저장 전 `sanitizeForStorage`로 마스킹하며, `sourceText`는 반드시 마스킹 후 저장한다.
+- 파싱 실패는 숨기지 않고 `error-log.json`에 사유와 함께 남긴다.
+- 변환 결과는 의심 신호 분석의 입력 후보일 뿐이며 **단정 표현을 추가하지 않는다.**
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

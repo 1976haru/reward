@@ -502,6 +502,25 @@ npm run collect:public-api  # 실제 수집 — 인증키 + COLLECTOR_API_BASE_U
 
 > **실제 1,000건 수집은 공공데이터포털 인증키와 실제 호출 가능한 endpoint가 필요합니다.** 실제 수집 결과(`records.jsonl`) 원본은 git에 커밋하지 않습니다.
 
+## CSV/PDF/엑셀 업로드 수집기 (Upload Parser)
+
+지자체가 PDF·엑셀·CSV로 공개한 보조금 자료를 **사람이 수동 업로드**한 뒤 표준 보조금 레코드로 변환하는 변환기입니다. 웹 크롤러가 아니며, 저장 전 개인정보를 마스킹하고 변환/오류 로그를 남깁니다. 스캔 이미지 PDF의 OCR은 범위에서 제외합니다(텍스트 기반 PDF 기본 처리).
+
+- 파서 모듈: [`src/parsers/uploadSubsidyParser.ts`](./src/parsers/uploadSubsidyParser.ts)
+- 표준 타입: [`src/types/uploadParser.ts`](./src/types/uploadParser.ts)
+- CLI: [`scripts/parse-uploaded-subsidy-files.ts`](./scripts/parse-uploaded-subsidy-files.ts)
+- 운영 Runbook: [`docs/UPLOAD_PARSER_RUNBOOK.md`](./docs/UPLOAD_PARSER_RUNBOOK.md)
+
+지원 형식: `.csv` / `.xlsx` / `.pdf`. 결과는 `data/upload-parser/runs/{runId}/`에 `records.jsonl`, `parse-log.json`, `error-log.json`으로 저장됩니다(원본/결과는 git 미커밋).
+
+### 실행
+
+```bash
+npm run test:upload-parser              # 가짜 fixture 10개 생성 → 변환/마스킹/오류 로그 검증
+npm run check:upload-parser             # 문서/코드 존재 + 정책 정적 검사
+npm run parse:uploads -- <파일또는폴더>   # 실제 업로드 파일 변환 (폴더면 csv/xlsx/pdf만)
+```
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

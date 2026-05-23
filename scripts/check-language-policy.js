@@ -142,9 +142,10 @@ export const FILE_WHITELIST = new Set([
   "docs/rule_agent.md",
   "docs/subsidy_module.md",
   "docs/agency_config_schema.md",
-  // 검사기 자체 / 다른 정책 검사기
+  // 검사기 자체 / 다른 정책 검사기 (금지 표현 목록을 의도적으로 나열)
   "scripts/check-language-policy.js",
   "scripts/check-approval-gate.js",
+  "scripts/check-upload-parser-policy.js",
   // 테스트 (검사 대상 문자열을 입력으로 사용)
   "tests/languagePolicy.test.ts",
   "tests/languagePolicy.test.js",
