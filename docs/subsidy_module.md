@@ -107,7 +107,18 @@
 - 사람 검토 필수
 - `safetyNotice` 가 응답·UI 양쪽에 항상 표시
 
-## 11. Future Work
+## 11. 공공데이터 API 수집기 연계 (체크리스트 11)
+
+본 모듈의 실데이터 확장은 공공데이터 API 수집기를 통해 이루어진다.
+
+- 수집기 모듈: [`src/collectors/publicDataApiCollector.ts`](../src/collectors/publicDataApiCollector.ts)
+- 운영 기준: [`docs/API_COLLECTOR_RUNBOOK.md`](./API_COLLECTOR_RUNBOOK.md)
+- 실제 수집 전 **API 명세 / 활용신청 / 인증키 / 트래픽 제한 / 이용약관**을 확인한다.
+- 인증키는 환경변수(`DATA_GO_KR_SERVICE_KEY` / `PUBLIC_DATA_SERVICE_KEY`)로만 관리하고 절대 커밋하지 않으며, 로그에 원문을 남기지 않는다.
+- 수집 응답은 **저장 전 개인정보를 마스킹**한다(`sanitizeRecordForStorage` → `sanitizeForStorage`).
+- 수집 결과(`records.jsonl`)는 보조금 의심 후보의 **사실관계 점검 원문 근거**로 연결될 수 있다. 단, **API 응답만으로 부정수급을 단정하지 않는다.**
+
+## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)
 - 보조사업자 정보공시 자동 수집 (공식 안내 준수)

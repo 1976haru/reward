@@ -18,6 +18,11 @@ data/feedback/*
 data/eval/runs/*
 data/traces/*
 data/outcomes/*
+# 수집기 실제 산출물 — 커밋하지 않음 (.gitkeep / sample 만 추적)
+data/collector/runs/*
+data/collector/raw/*
+data/collector/tmp/*
+data/collector/errors/*
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
@@ -29,3 +34,5 @@ data/outcomes/*
 !data/eval/runs/.gitkeep
 !data/traces/.gitkeep
 !data/outcomes/.gitkeep
+!data/collector/.gitkeep
+!data/collector/sample/**

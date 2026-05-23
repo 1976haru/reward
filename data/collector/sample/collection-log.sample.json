@@ -1,0 +1,25 @@
+{
+  "runId": "재정경제부_국고보조금-집행_20260523T091500_a1b2c3",
+  "apiName": "재정경제부_국고보조금 집행 및 보조사업 현황",
+  "endpointMasked": "https://api.example.go.kr/openapi/service?serviceKey=ABCD...WXYZ&type=json",
+  "startedAt": "2026-05-23T09:15:00.000Z",
+  "finishedAt": "2026-05-23T09:15:18.000Z",
+  "status": "ok",
+  "totalRecords": 1000,
+  "requestCount": 10,
+  "successCount": 10,
+  "failureCount": 0,
+  "pageSize": 100,
+  "maxRecords": 1000,
+  "rateLimitMs": 1000,
+  "timeoutMs": 15000,
+  "maxRetries": 3,
+  "sanitizedRecordCount": 0,
+  "recordsFile": "data/collector/runs/{runId}/records.jsonl",
+  "collectionLogFile": "data/collector/runs/{runId}/collection-log.json",
+  "errorLogFile": "data/collector/runs/{runId}/error-log.json",
+  "notes": [
+    "실제 데이터는 git에 커밋하지 않음 — 본 파일은 로그 형태 예시이며 합성 값입니다.",
+    "endpoint 의 serviceKey 는 마스킹된 형태(ABCD...WXYZ)로만 표시합니다."
+  ]
+}

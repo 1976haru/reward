@@ -466,6 +466,42 @@ API:
 
 See [`docs/search_collector.md`](./docs/search_collector.md).
 
+## 공공데이터 API 수집기 (Public Data API Collector)
+
+공공데이터포털(data.go.kr) 류 오픈 API에서 공개자료를 안전하게 수집하는 수집기입니다. 인증키 환경변수 관리, 요청 제한, 재시도, 타임아웃, 오류 로그, 저장 전 개인정보 마스킹을 포함합니다. 자동 신고/로그인 우회/인증 우회/무제한 호출/약관 위반 수집은 수행하지 않습니다.
+
+- 수집기 모듈: [`src/collectors/publicDataApiCollector.ts`](./src/collectors/publicDataApiCollector.ts)
+- 실행 스크립트: [`scripts/collect-public-data-api.ts`](./scripts/collect-public-data-api.ts)
+- 운영 Runbook: [`docs/API_COLLECTOR_RUNBOOK.md`](./docs/API_COLLECTOR_RUNBOOK.md)
+- 로그 샘플 정책: [`docs/COLLECTOR_SAMPLE_LOG.md`](./docs/COLLECTOR_SAMPLE_LOG.md)
+
+### 환경변수 설정
+
+`.env.example`의 수집기 항목을 `.env`로 복사해 채웁니다. **인증키는 코드에 하드코딩하지 않고 `.env`로만 관리하며, `.env`는 커밋하지 않습니다.**
+
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| `DATA_GO_KR_SERVICE_KEY` / `PUBLIC_DATA_SERVICE_KEY` | (없음) | 공공데이터포털 인증키 (둘 중 하나) |
+| `COLLECTOR_API_BASE_URL` | (없음) | **실제 호출 가능한** API endpoint (상세 페이지 URL 아님) |
+| `COLLECTOR_OUTPUT_DIR` | `data/collector` | 수집 결과 저장 폴더 |
+| `COLLECTOR_PAGE_SIZE` | `100` | 페이지당 요청 건수 |
+| `COLLECTOR_MAX_RECORDS` | `1000` | 최대 수집 건수 |
+| `COLLECTOR_RATE_LIMIT_MS` | `1000` | 요청 간격(ms) |
+| `COLLECTOR_TIMEOUT_MS` | `15000` | 요청 타임아웃(ms) |
+| `COLLECTOR_MAX_RETRIES` | `3` | 최대 재시도 횟수 |
+
+### 실행
+
+```bash
+npm run test:collector      # mock fetch 로 수집기 핵심 기능 검증 (API 키 불필요)
+npm run check:collector     # 키 하드코딩/로그 마스킹 정적 검사
+npm run collect:public-api  # 실제 수집 — 인증키 + COLLECTOR_API_BASE_URL 필요
+```
+
+`collect:public-api`는 인증키가 없으면 `COLLECTOR_API_KEY_REQUIRED`, 실제 endpoint가 없으면 `COLLECTOR_ENDPOINT_REQUIRED`를 출력하고 종료합니다(exit 2). 1,000건 이상 수집 성공 시 `COLLECTOR_REAL_RUN_OK`, 미달 시 `COLLECTOR_REAL_RUN_INCOMPLETE`를 출력합니다.
+
+> **실제 1,000건 수집은 공공데이터포털 인증키와 실제 호출 가능한 endpoint가 필요합니다.** 실제 수집 결과(`records.jsonl`) 원본은 git에 커밋하지 않습니다.
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:
