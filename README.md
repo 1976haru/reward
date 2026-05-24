@@ -702,6 +702,24 @@ npm run risk:score -- --input data/risk/repeat/runs/xxx/repeat-risk-report.json 
 npm run check:risk-score
 ```
 
+## 보상가능성 점수 모델 (Reward Possibility Score Model)
+
+위험점수와 별도로 환수 가능성, 공공기관 손실방지 가능성, 증거 명확성을 분리 계산해 **보상/포상 가능성 검토 우선순위 High/Medium/Low**를 산출합니다. 결과는 보상/포상 가능성 검토 후보와 추가 확인 필요 후보를 정렬하기 위한 참고 점수이며, 지급 여부 판단이나 기관 심사 결과를 대체하지 않습니다.
+
+- 스코어링 모듈: [`src/scoring/rewardPossibilityScore.ts`](./src/scoring/rewardPossibilityScore.ts)
+- 표준 타입: [`src/types/rewardPossibilityScore.ts`](./src/types/rewardPossibilityScore.ts)
+- 운영 가이드: [`docs/REWARD_POSSIBILITY_SCORE_MODEL.md`](./docs/REWARD_POSSIBILITY_SCORE_MODEL.md)
+- CLI: [`scripts/run-reward-possibility-score.ts`](./scripts/run-reward-possibility-score.ts)
+
+각 결과는 `rewardPossibilityScore`, `rewardPossibilityLevel`, `scoreBreakdown`, `contributingSignals`, `evidenceSummary`, `reason`, `disclaimers`, `reviewRequired`를 포함합니다. `scoreBreakdown`은 환수 가능성, 공공기관 손실방지 가능성, 증거 명확성, 공식 기준 확인 신호를 분리해 보여줍니다. 개인정보 원문, 계좌번호, 주민번호, 전화번호, 상세주소, 대표자명은 evidence/reason/report에 넣지 않습니다.
+
+```bash
+npm run test:reward-score
+npm run reward:score -- --fixture 1000
+npm run reward:score -- --input data/risk/score/runs/xxx/risk-score-report.json
+npm run check:reward-score
+```
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

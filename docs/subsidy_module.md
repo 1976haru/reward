@@ -250,6 +250,19 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - 개인정보 원문, 계좌번호, 주민번호, 전화번호, 상세주소, 대표자명은 evidenceSummary/reason/report에 넣지 않는다.
 - 결과는 사실관계 점검과 승인 게이트로 넘긴다.
 
+## 11-13. 보상가능성 점수 모델 연계 (체크리스트 23)
+
+위험점수와 별도로 보상가능성 점수를 산출한다. 환수 가능성, 공공기관 손실방지 가능성, 증거 명확성을 분리 계산하고 공식 기준 확인 신호를 legalFitScore로 보조 반영한다.
+
+- 스코어링 모듈: [`src/scoring/rewardPossibilityScore.ts`](../src/scoring/rewardPossibilityScore.ts)
+- 운영 가이드: [`docs/REWARD_POSSIBILITY_SCORE_MODEL.md`](./REWARD_POSSIBILITY_SCORE_MODEL.md)
+- High/Medium/Low는 보상/포상 가능성 검토 우선순위이며 지급 여부 판단이 아니다.
+- 보상금포상금 수령을 보장하지 않으며 clean.go.kr 등 공식 기준과 기관 심사 절차 확인이 필요하다.
+- 기존 100점 위험점수 또는 반복 수급, 동일 주소, 결과물 부족, 예산 집행 이상, 계약업체 연관성 룰 후보를 참고 신호로 사용할 수 있다.
+- 점수 산출 근거와 `scoreBreakdown`, `evidenceSummary`, `reason`, `reviewRequired`를 함께 표시한다.
+- 개인정보 원문, 계좌번호, 주민번호, 전화번호, 상세주소, 대표자명은 evidenceSummary/reason/report에 넣지 않는다.
+- 결과는 사실관계 점검과 승인 게이트로 넘긴다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

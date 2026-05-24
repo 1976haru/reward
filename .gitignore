@@ -59,6 +59,11 @@ data/risk/score/runs/
 data/risk/score/tmp/
 data/risk/score/*
 !data/risk/score/.gitkeep
+# 보상가능성 점수 모델 산출물은 커밋하지 않음
+data/reward/score/runs/
+data/reward/score/tmp/
+data/reward/score/*
+!data/reward/score/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
