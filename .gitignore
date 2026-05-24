@@ -54,6 +54,11 @@ data/risk/contractor-network/runs/
 data/risk/contractor-network/tmp/
 data/risk/contractor-network/*
 !data/risk/contractor-network/.gitkeep
+# 100점 위험점수 모델 산출물 — 커밋하지 않음
+data/risk/score/runs/
+data/risk/score/tmp/
+data/risk/score/*
+!data/risk/score/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep

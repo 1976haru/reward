@@ -684,6 +684,24 @@ npm run risk:contractor-network -- --input data/g2b-linkage/runs/xxx/edges.jsonl
 npm run check:risk-contractor-network
 ```
 
+## 100점 위험점수 모델 (Risk Score Model)
+
+반복 수급, 동일 주소 다수 단체, 결과물 부족/정산 미흡, 예산 집행 이상, 계약업체 연관성 룰 결과를 통합해 **0~100 `riskScore`와 A/B/C 검토 등급**을 산출합니다. 결과는 **위험 후보 / 우선 검토 후보 / 추가 확인 필요 후보**를 정렬하기 위한 보조 점수이며 확정 판단이 아닙니다. A등급도 사람의 사실관계 확인이 필요한 우선 검토 후보입니다.
+
+- 스코어링 모듈: [`src/scoring/riskScoreModel.ts`](./src/scoring/riskScoreModel.ts)
+- 표준 타입: [`src/types/riskScoreModel.ts`](./src/types/riskScoreModel.ts)
+- 운영 가이드: [`docs/RISK_SCORE_MODEL.md`](./docs/RISK_SCORE_MODEL.md)
+- CLI: [`scripts/run-risk-score-model.ts`](./scripts/run-risk-score-model.ts)
+
+각 결과는 `finalRiskScore`, `riskGrade`, `scoreBreakdown`, `contributingSignals`, `evidenceSummary`, `reason`, `reviewRequired`를 포함합니다. scoreBreakdown은 반복성, 금액, 증가감, 결과물 부족, 주소 유사성, 정산 이상, 계약업체 연관성, evidence 보정 항목을 분리해 보여줍니다. 개인정보 원문, 계좌번호, 주민번호, 전화번호, 상세주소, 대표자명은 evidence/reason/report에 넣지 않습니다.
+
+```bash
+npm run test:risk-score
+npm run risk:score -- --fixture 1000
+npm run risk:score -- --input data/risk/repeat/runs/xxx/repeat-risk-report.json --input data/risk/address-cluster/runs/xxx/address-cluster-risk-report.json
+npm run check:risk-score
+```
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

@@ -238,6 +238,18 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - 로그인 필요 자료, 비공개자료, 내부자료는 탐지 근거로 사용하지 않는다.
 - 결과는 확정 판단이 아니라 사실관계 점검과 사람 검토로 넘긴다.
 
+## 11-12. 100점 위험점수 모델 연계 (체크리스트 22)
+
+반복 수급, 동일 주소, 결과물 부족, 예산 집행 이상, 계약업체 연관성 룰 결과를 통합해 0~100 riskScore와 A/B/C 등급을 산출한다.
+
+- 스코어링 모듈: [`src/scoring/riskScoreModel.ts`](../src/scoring/riskScoreModel.ts)
+- 운영 가이드: [`docs/RISK_SCORE_MODEL.md`](./RISK_SCORE_MODEL.md)
+- A등급도 우선 검토 후보이며 사람 검토가 필수다.
+- 점수 산출 근거와 `scoreBreakdown`을 표시해 반복성, 금액, 증가감, 결과물 부족, 주소 유사성, 정산 이상, 계약업체 연관성 contribution을 확인할 수 있게 한다.
+- 개별 룰의 riskScore를 단순 합산하지 않고 점수 항목별 capped sum으로 통합해 중복 과대평가를 줄인다.
+- 개인정보 원문, 계좌번호, 주민번호, 전화번호, 상세주소, 대표자명은 evidenceSummary/reason/report에 넣지 않는다.
+- 결과는 사실관계 점검과 승인 게이트로 넘긴다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)
