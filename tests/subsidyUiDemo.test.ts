@@ -1,5 +1,14 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildSubsidyEngineDemo, getSubsidyEngineStatus } from "../src/services/subsidyEngineDemo.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT = path.resolve(__dirname, "..");
+const indexHtml = readFileSync(path.join(ROOT, "public/index.html"), "utf8");
+const appJs = readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 
 type TestFn = () => void | Promise<void>;
 const tests: Array<{ name: string; fn: TestFn }> = [];
@@ -81,6 +90,52 @@ test("6. 실제 LLM/외부 API 미호출 안내(엔진 현황)가 포함된다",
   const status = getSubsidyEngineStatus();
   const aiBlob = JSON.stringify(status.aiAnalysis);
   assert.ok(aiBlob.includes("실제 LLM API 미호출"));
+});
+
+// ----- 화면(첫 화면 고정 패널) 가시성 검증 -----
+
+test("7. index.html에 subsidyEngineDemoPanel이 존재한다 (첫 화면 분야 뷰)", () => {
+  assert.ok(indexHtml.includes('id="subsidyEngineDemoPanel"'));
+  // 기본 활성 뷰(field) 안에 위치하는지 확인 (ops 뷰가 아니라 첫 화면)
+  const fieldIdx = indexHtml.indexOf('data-view="field"');
+  const panelIdx = indexHtml.indexOf('id="subsidyEngineDemoPanel"');
+  const homeIdx = indexHtml.indexOf('data-view="home"');
+  assert.ok(fieldIdx !== -1 && panelIdx > fieldIdx && panelIdx < homeIdx, "panel must be inside the default-active field view");
+});
+
+test("8. index.html에 runSubsidyEngineDemoButton이 존재한다", () => {
+  assert.ok(indexHtml.includes('id="runSubsidyEngineDemoButton"'));
+});
+
+test("9. index.html에 loadSubsidyEngineStatusButton이 존재한다", () => {
+  assert.ok(indexHtml.includes('id="loadSubsidyEngineStatusButton"'));
+});
+
+test("10. app.js에 /api/subsidy/demo-status 호출이 존재한다", () => {
+  assert.ok(appJs.includes("/api/subsidy/demo-status"));
+});
+
+test("11. app.js에 /api/subsidy/run-demo 호출이 존재한다", () => {
+  assert.ok(appJs.includes("/api/subsidy/run-demo"));
+});
+
+test("12. app.js에 [subsidy-ui-demo] mounted 로그 문자열이 존재한다", () => {
+  assert.ok(appJs.includes("[subsidy-ui-demo] mounted"));
+});
+
+test("13. app.js가 mountSubsidyEngineDemo를 init에서 호출한다", () => {
+  assert.ok(appJs.includes("function mountSubsidyEngineDemo"));
+  assert.ok(appJs.includes("mountSubsidyEngineDemo();"));
+});
+
+test("14. 화면 표시 문구(index.html 패널)에 단정 표현이 없다", () => {
+  const start = indexHtml.indexOf('id="subsidyEngineDemoPanel"');
+  const section = indexHtml.slice(start, start + 1200);
+  for (const phrase of FORBIDDEN) assert.ok(!section.includes(phrase), `forbidden: ${phrase}`);
+});
+
+test("15. index.html 패널에 fixture 기반 안내가 있다", () => {
+  assert.ok(indexHtml.includes("fixture 기반 검증"));
 });
 
 async function main(): Promise<void> {

@@ -851,6 +851,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 가이드도 fetch 실패 대비해 boot 시 fallback 카드를 먼저 그려둔다.
   renderGuideQa(null);
   bindSubsidy();
+  mountSubsidyEngineDemo();
   bindBids();
   bindTrace();
   bindPrivacy();
@@ -3222,6 +3223,52 @@ function renderSubsidyEngineDemo(root, d) {
     ${citationHtml}
     ${hintsHtml}
     <p class="muted ops-safety" style="margin-top:10px;border-top:1px solid var(--border,#ccc);padding-top:8px;">${escapeHtml(d.safetyNotice || "")}</p>`;
+}
+
+// ---------- 첫 화면 고정 보조금 엔진 데모 패널 (subsidyEngineDemoPanel) ----------
+async function loadSubsidyEngineStatusInto(root) {
+  if (!root) return;
+  root.innerHTML = '<p class="muted">엔진 현황 불러오는 중...</p>';
+  try {
+    const res = await fetch("/api/subsidy/demo-status");
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    root.innerHTML = `
+      <p class="muted ops-safety">⚠ ${escapeHtml((data.engineStatus && data.engineStatus.fixtureNotice) || "")}</p>
+      ${renderEngineStatusPanel(data.engineStatus)}
+      <p class="muted" style="font-size:11.5px;margin-top:8px;">${escapeHtml(data.safetyNotice || "")}</p>`;
+  } catch (err) {
+    root.innerHTML = `<div class="code">엔진 현황 로드 실패: ${escapeHtml(err.message)} — 잠시 후 다시 시도하거나 Ctrl+F5로 새로고침하세요.</div>`;
+  }
+}
+
+async function runSubsidyEngineDemoInto(root) {
+  if (!root) return;
+  root.innerHTML = '<p class="muted">fixture 기반 엔진 통합 실행 중... (룰 탐지 · 위험점수 · 보상가능성 · LLM 설명형 분석 · 근거 검증)</p>';
+  try {
+    const res = await fetch("/api/subsidy/run-demo");
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    renderSubsidyEngineDemo(root, data);
+  } catch (err) {
+    root.innerHTML = `<div class="code">엔진 데모 실패: ${escapeHtml(err.message)} — 잠시 후 다시 시도하거나 Ctrl+F5로 새로고침하세요.</div>`;
+  }
+}
+
+function mountSubsidyEngineDemo() {
+  const panel = document.getElementById("subsidyEngineDemoPanel");
+  if (!panel) {
+    console.warn("[subsidy-ui-demo] subsidyEngineDemoPanel 요소를 찾지 못했습니다.");
+    return;
+  }
+  const result = document.getElementById("subsidyEngineDemoResult");
+  const runBtn = document.getElementById("runSubsidyEngineDemoButton");
+  const statusBtn = document.getElementById("loadSubsidyEngineStatusButton");
+  if (runBtn) runBtn.addEventListener("click", () => runSubsidyEngineDemoInto(result));
+  if (statusBtn) statusBtn.addEventListener("click", () => loadSubsidyEngineStatusInto(result));
+  // 페이지 로드 시 엔진 현황을 자동으로 표시한다 (사용자가 숨은 조건을 몰라도 보이게).
+  loadSubsidyEngineStatusInto(result);
+  console.log("[subsidy-ui-demo] mounted");
 }
 
 // ---------- Home / Notice (체크리스트 01) ----------

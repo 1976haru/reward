@@ -33,8 +33,20 @@ const REQUIRED_TOKENS = {
     "llmExplanation",
     "fixture 기반 검증"
   ],
-  "public/index.html": ["subsidyEngineDemoBtn", "보조금 엔진 샘플 실행", "fixture 기반 검증 결과"],
-  "public/app.js": ["runSubsidyEngineDemo", "renderSubsidyEngineDemo", "/api/subsidy/run-demo"]
+  "public/index.html": [
+    "subsidyEngineDemoPanel",
+    "runSubsidyEngineDemoButton",
+    "loadSubsidyEngineStatusButton",
+    "보조금 엔진 샘플 실행",
+    "fixture 기반 검증"
+  ],
+  "public/app.js": [
+    "mountSubsidyEngineDemo",
+    "renderSubsidyEngineDemo",
+    "/api/subsidy/demo-status",
+    "/api/subsidy/run-demo",
+    "[subsidy-ui-demo] mounted"
+  ]
 };
 
 // 단정 표현 — 근거가 있어도 화면에 쓰지 않는다.

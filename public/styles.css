@@ -1940,3 +1940,18 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
   .field-card-label { font-size: 13px; }
   .compact-kpi-grid { grid-template-columns: 1fr; }
 }
+
+/* 보조금 탐지 엔진 데모 패널 (체크리스트 11~25 UI 연결) — 첫 화면 항상 노출 */
+#subsidyEngineDemoPanel {
+  display: block;
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.04);
+}
+#subsidyEngineDemoResult {
+  display: block;
+  margin-top: 16px;
+  white-space: normal;
+}
