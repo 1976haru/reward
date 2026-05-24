@@ -263,6 +263,18 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - 개인정보 원문, 계좌번호, 주민번호, 전화번호, 상세주소, 대표자명은 evidenceSummary/reason/report에 넣지 않는다.
 - 결과는 사실관계 점검과 승인 게이트로 넘긴다.
 
+## 11-14. LLM 설명형 분석 연계 (체크리스트 24)
+
+위험점수, 보상가능성 점수, 룰 기반 탐지 결과를 설명형 분석으로 요약한다. 왜 검토 후보인지, 어떤 공개자료 근거가 있는지, 추가 확인사항이 무엇인지 정리한다.
+
+- 분석 모듈: [`src/analysis/llmExplanationAnalysis.ts`](../src/analysis/llmExplanationAnalysis.ts)
+- 운영 가이드: [`docs/LLM_EXPLANATION_ANALYSIS_GUIDE.md`](./LLM_EXPLANATION_ANALYSIS_GUIDE.md)
+- 설명은 의심 신호, 검토 후보, 추가 확인 필요, 공개자료 기준, 사람 검토 필요 같은 중립 표현만 사용한다.
+- 개인정보민감정보비공개자료는 prompt, explanation, report에 포함하지 않는다.
+- 실제 LLM API 연동은 후속 단계이며 이번 단계에서는 deterministic fallback 분석기로 검증한다.
+- LLM 분석 요약 리포트는 `summary`, `whyFlagged`, `keyEvidence`, `additionalChecks`, `limitations`, `safetyDisclaimers`, `reviewRequired`를 포함한다.
+- 결과는 사실관계 점검과 승인 게이트로 넘긴다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

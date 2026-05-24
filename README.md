@@ -720,6 +720,24 @@ npm run reward:score -- --input data/risk/score/runs/xxx/risk-score-report.json
 npm run check:reward-score
 ```
 
+## LLM 설명형 분석 모듈 (Deterministic Fallback)
+
+위험점수, 보상가능성 점수, 룰 기반 탐지 결과를 입력으로 받아 **왜 검토 후보인지, 어떤 공개자료 근거가 있는지, 추가 확인사항이 무엇인지**를 사람이 읽기 쉬운 설명으로 정리합니다. 이번 단계에서는 실제 LLM API를 호출하지 않고 deterministic fallback 분석기로 검증하며, API 키를 코드에 추가하지 않습니다.
+
+- 분석 모듈: [`src/analysis/llmExplanationAnalysis.ts`](./src/analysis/llmExplanationAnalysis.ts)
+- 표준 타입: [`src/types/llmExplanationAnalysis.ts`](./src/types/llmExplanationAnalysis.ts)
+- 운영 가이드: [`docs/LLM_EXPLANATION_ANALYSIS_GUIDE.md`](./docs/LLM_EXPLANATION_ANALYSIS_GUIDE.md)
+- CLI: [`scripts/run-llm-explanation-analysis.ts`](./scripts/run-llm-explanation-analysis.ts)
+
+결과는 `summary`, `whyFlagged`, `keyEvidence`, `riskSignals`, `rewardPossibilityNote`, `additionalChecks`, `limitations`, `safetyDisclaimers`, `reviewRequired`를 포함합니다. 설명은 공개자료 기준의 검토 보조이며 확정 판단이 아닙니다. 개인정보 원문, 계좌번호, 주민번호, 전화번호, 상세주소, 대표자명은 prompt/explanation/report에 넣지 않습니다.
+
+```bash
+npm run test:llm-explanation
+npm run analysis:llm-explain -- --fixture 100
+npm run analysis:llm-explain -- --input data/risk/score/runs/xxx/risk-score-report.json
+npm run check:llm-explanation
+```
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

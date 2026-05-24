@@ -64,6 +64,11 @@ data/reward/score/runs/
 data/reward/score/tmp/
 data/reward/score/*
 !data/reward/score/.gitkeep
+# LLM 설명형 분석 산출물은 커밋하지 않음
+data/analysis/llm-explanation/runs/
+data/analysis/llm-explanation/tmp/
+data/analysis/llm-explanation/*
+!data/analysis/llm-explanation/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
