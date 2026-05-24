@@ -275,6 +275,19 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - LLM 분석 요약 리포트는 `summary`, `whyFlagged`, `keyEvidence`, `additionalChecks`, `limitations`, `safetyDisclaimers`, `reviewRequired`를 포함한다.
 - 결과는 사실관계 점검과 승인 게이트로 넘긴다.
 
+## 11-15. 근거 검증 / citation validation 연계 (체크리스트 25)
+
+AI 리포트의 모든 핵심 주장에 공개자료 근거를 연결해 환각을 방지하고 근거 추적성을 강화한다.
+
+- 분석 모듈: [`src/analysis/citationValidator.ts`](../src/analysis/citationValidator.ts)
+- 운영 가이드: [`docs/CITATION_VALIDATION_GUIDE.md`](./CITATION_VALIDATION_GUIDE.md)
+- LLM 설명형 분석, 위험점수, 보상가능성 점수, 룰 리포트에 citation validation을 연결한다.
+- sourceUrl / evidenceUrl / sourceFileName+sourceRowNumber / recordId / evidenceId 기반으로 근거를 추적한다.
+- 개인정보·비공개·로그인 필요 자료는 근거로 사용하지 않는다. 개인정보가 포함된 citation은 차단한다.
+- 점수 계산 결과와 내부 판단은 모델 계산 결과(검토 신호, computed_model)로 표시하고 외부 사실처럼 쓰지 않는다.
+- 리포트 생성 전 근거 검증을 통과해야 하며, 근거 없는 핵심 주장은 warning/fail로 처리하고 "근거 보강 필요"로 표시한다.
+- 결과는 사실관계 점검과 사람 검토 대상이며 확정 판단이나 자동 신고가 아니다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

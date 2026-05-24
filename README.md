@@ -738,6 +738,28 @@ npm run analysis:llm-explain -- --input data/risk/score/runs/xxx/risk-score-repo
 npm run check:llm-explanation
 ```
 
+## Citation Validation / 근거 검증 모듈 (Hallucination Guard)
+
+AI 리포트의 모든 핵심 주장에 **원문 URL / 파일명+행번호 / recordId / evidenceId** 같은 공개자료 근거를 연결해 AI 환각을 줄이고 사람이 원문을 따라 사실관계를 확인할 수 있게 합니다. 위험점수, 보상가능성 점수, LLM 설명형 분석 결과에 citation/evidence 검증을 연결하며, 리포트 생성 전 근거 검증을 통과해야 합니다.
+
+- 검증 모듈: [`src/analysis/citationValidator.ts`](./src/analysis/citationValidator.ts)
+- 표준 타입: [`src/types/citationValidation.ts`](./src/types/citationValidation.ts)
+- 운영 가이드: [`docs/CITATION_VALIDATION_GUIDE.md`](./docs/CITATION_VALIDATION_GUIDE.md)
+- CLI: [`scripts/validate-report-citations.ts`](./scripts/validate-report-citations.ts)
+
+- 핵심 주장(core claim)에는 sourceUrl / evidenceUrl / sourceFileName+sourceRowNumber / attachmentUrl / evidenceId 같은 공개자료 근거가 필요합니다. recordId와 computed_model은 보조 근거입니다.
+- 근거 없는 핵심 주장은 warning 모드에서 warning, strict 모드에서 fail로 처리되며 "근거 보강 필요"로 표시됩니다.
+- 로그인 필요·비공개·내부자료 URL은 근거로 인정하지 않으며, 개인정보 원문이 포함된 citation은 차단(fail)됩니다.
+- 점수 계산 결과와 내부 판단은 모델 계산 결과(검토 신호, computed_model)로 표시하고 외부 사실처럼 쓰지 않습니다.
+
+```bash
+npm run test:citations
+npm run validate:citations -- --fixture
+npm run validate:citations -- --fixture --strict
+npm run validate:citations -- --input data/analysis/llm-explanation/runs/xxx/llm-explanation-report.json
+npm run check:citations
+```
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

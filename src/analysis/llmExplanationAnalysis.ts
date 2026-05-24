@@ -3,6 +3,18 @@ import { writeFile } from "node:fs/promises";
 import { ensureDir } from "../utils/fs.js";
 import { sanitizeForAI, sanitizeForStorage } from "../policy/privacyGuard.js";
 import {
+  computedModelCitation,
+  extractCitationsFromText,
+  extractClaimsFromLlmExplanationResult,
+  recordIdCitation,
+  validateReportCitations
+} from "./citationValidator.js";
+import {
+  CitationReference,
+  CitationValidationMode,
+  CitationValidationReport
+} from "../types/citationValidation.js";
+import {
   LLM_EXPLANATION_FORBIDDEN_PHRASES,
   LLM_EXPLANATION_NOTICE,
   LLM_EXPLANATION_RECOMMENDED_PHRASES,
@@ -274,6 +286,26 @@ function assertSafeResult(result: LlmExplanationResult): void {
   }
 }
 
+// 체크리스트 25: 섹션별 근거(citation)를 deterministic하게 연결한다.
+// keyEvidence는 공개자료 근거(recordId/원문 URL), 점수·신호는 computed_model로 표시한다.
+export function buildLlmExplanationClaimCitations(
+  candidate: LlmExplanationCandidateInput
+): Record<string, CitationReference[]> {
+  const fixture = Boolean(candidate.isFixtureBased);
+  const recordCites = (candidate.sourceCandidateIds ?? [])
+    .filter(Boolean)
+    .slice(0, 12)
+    .map((id) => recordIdCitation(sanitizeText(id), fixture));
+  const urlCites = (candidate.evidenceSummary ?? []).flatMap((item) => extractCitationsFromText(item, fixture));
+  return {
+    summary: [computedModelCitation(), ...recordCites],
+    whyFlagged: [computedModelCitation(), ...recordCites],
+    keyEvidence: [...recordCites, ...urlCites],
+    riskSignals: [computedModelCitation()],
+    rewardPossibilityNote: [computedModelCitation()]
+  };
+}
+
 export function createFallbackLlmExplanation(
   input: LlmExplanationCandidateInput,
   options: LlmExplanationOptions = {}
@@ -293,10 +325,25 @@ export function createFallbackLlmExplanation(
     safetyDisclaimers: [...LLM_EXPLANATION_SAFETY_DISCLAIMERS].map(sanitizeExplanationOutputText),
     reviewRequired: true,
     createdAt: candidate.createdAt ?? new Date(0).toISOString(),
-    isFixtureBased: Boolean(options.isFixtureBased || candidate.isFixtureBased)
+    isFixtureBased: Boolean(options.isFixtureBased || candidate.isFixtureBased),
+    sourceCandidateIds: candidate.sourceCandidateIds,
+    claimCitations: buildLlmExplanationClaimCitations(candidate)
   };
   assertSafeResult(result);
   return result;
+}
+
+// 체크리스트 25: LLM 설명형 리포트의 핵심 주장에 근거가 연결됐는지 검증한다.
+export function validateLlmExplanationReportCitations(
+  report: LlmExplanationReport,
+  mode: CitationValidationMode = "warning"
+): CitationValidationReport {
+  const claims = report.explanations.flatMap((explanation) => extractClaimsFromLlmExplanationResult(explanation));
+  return validateReportCitations(claims, {
+    mode,
+    isFixtureBased: report.isFixtureBased,
+    reportId: `${report.runId}_citation`
+  });
 }
 
 export function generateLlmExplanationReport(
@@ -360,8 +407,19 @@ export function renderLlmExplanationReportMarkdown(report: LlmExplanationReport)
 
 export async function writeLlmExplanationReport(
   outputDir: string,
-  report: LlmExplanationReport
-): Promise<{ reportJsonFile: string; reportMdFile: string }> {
+  report: LlmExplanationReport,
+  options: { strictCitationValidation?: boolean } = {}
+): Promise<{ reportJsonFile: string; reportMdFile: string; citationValidation: CitationValidationReport }> {
+  // 체크리스트 25: 리포트 생성 전 근거 검증 게이트.
+  // 기본은 non-strict(warning)로 시작하되, strict일 때 핵심 주장 근거가 없으면 생성을 중단한다.
+  const mode: CitationValidationMode = options.strictCitationValidation ? "strict" : "warning";
+  const citationValidation = validateLlmExplanationReportCitations(report, mode);
+  if (options.strictCitationValidation && citationValidation.status === "fail") {
+    throw new Error(
+      `LLM explanation citation validation failed: ${citationValidation.missingClaims} core claim(s) missing public citation (근거 보강 필요)`
+    );
+  }
+
   const runDir = path.join(outputDir, "runs", report.runId);
   await ensureDir(runDir);
   const reportJsonFile = path.join(runDir, "llm-explanation-report.json");
@@ -370,7 +428,7 @@ export async function writeLlmExplanationReport(
   report.reportMdFile = reportMdFile;
   await writeFile(reportJsonFile, JSON.stringify(report, null, 2), "utf8");
   await writeFile(reportMdFile, renderLlmExplanationReportMarkdown(report), "utf8");
-  return { reportJsonFile, reportMdFile };
+  return { reportJsonFile, reportMdFile, citationValidation };
 }
 
 export { LLM_EXPLANATION_NOTICE, LLM_EXPLANATION_RECOMMENDED_PHRASES };

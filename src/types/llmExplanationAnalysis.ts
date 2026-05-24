@@ -1,3 +1,5 @@
+import { CitationReference } from "./citationValidation.js";
+
 export interface LlmExplanationCandidateInput {
   candidateId: string;
   subjectKey?: string;
@@ -35,6 +37,10 @@ export interface LlmExplanationResult {
   reviewRequired: boolean;
   createdAt: string;
   isFixtureBased?: boolean;
+  // 체크리스트 25: 근거 검증용 citation. 섹션별(claimCitations) 또는 공통(citations)으로 연결한다.
+  sourceCandidateIds?: string[];
+  citations?: CitationReference[];
+  claimCitations?: Record<string, CitationReference[]>;
 }
 
 export interface LlmExplanationReport {
@@ -56,6 +62,8 @@ export interface LlmExplanationOptions {
   isFixtureBased?: boolean;
   sourceNote?: string;
   promptVersion?: string;
+  // 체크리스트 25: 리포트 저장 전 근거 검증 게이트. 기본은 비강제(non-strict)로 시작한다.
+  strictCitationValidation?: boolean;
 }
 
 export interface SafeLlmPromptPayload {

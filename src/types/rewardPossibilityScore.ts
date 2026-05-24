@@ -1,3 +1,5 @@
+import { CitationReference } from "./citationValidation.js";
+
 export const REWARD_POSSIBILITY_LEVELS = ["High", "Medium", "Low"] as const;
 export type RewardPossibilityLevel = (typeof REWARD_POSSIBILITY_LEVELS)[number];
 
@@ -100,6 +102,8 @@ export interface RewardPossibilityScoreResult {
   reviewRequired: boolean;
   createdAt: string;
   isFixtureBased?: boolean;
+  // 체크리스트 25: 근거 검증용 citation (computed_model + record_id/evidence_id 등).
+  citations?: CitationReference[];
 }
 
 export interface RewardPossibilityScoreReport {

@@ -1,3 +1,5 @@
+import { CitationReference } from "./citationValidation.js";
+
 export const RISK_GRADES = ["A", "B", "C"] as const;
 export type RiskGrade = (typeof RISK_GRADES)[number];
 
@@ -85,6 +87,8 @@ export interface RiskScoreResult {
   reviewRequired: boolean;
   createdAt: string;
   isFixtureBased?: boolean;
+  // 체크리스트 25: 근거 검증용 citation (computed_model + record_id/evidence_id 등).
+  citations?: CitationReference[];
 }
 
 export interface RiskScoreReport {

@@ -69,6 +69,11 @@ data/analysis/llm-explanation/runs/
 data/analysis/llm-explanation/tmp/
 data/analysis/llm-explanation/*
 !data/analysis/llm-explanation/.gitkeep
+# 근거 검증(citation validation) 산출물은 커밋하지 않음
+data/analysis/citation-validation/runs/
+data/analysis/citation-validation/tmp/
+data/analysis/citation-validation/*
+!data/analysis/citation-validation/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep
