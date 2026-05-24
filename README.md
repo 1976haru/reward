@@ -760,6 +760,29 @@ npm run validate:citations -- --input data/analysis/llm-explanation/runs/xxx/llm
 npm run check:citations
 ```
 
+## 브라우저에서 보조금 엔진 결과 확인 (UI 연결)
+
+체크리스트 11~25에서 구현한 보조금 탐지 엔진(수집기·파서·정규화·품질검증·룰 탐지·위험점수·보상가능성 점수·LLM 설명형 분석·근거 검증)을 브라우저 화면에서 직접 확인할 수 있습니다.
+
+1. `npm run dev` 실행 후 브라우저에서 **http://localhost:3001** 접속
+2. **보조금 부정수급** 모듈/카드로 이동
+3. "보조금 의심 후보 (프로토타입)" 카드 하단의 **"보조금 엔진 샘플 실행"** 버튼 클릭 (현황만 보려면 "엔진 현황만 보기")
+4. 화면에 표시되는 내용:
+   - 보조금 탐지 엔진 현황(수집/룰/스코어링/AI 분석)
+   - 데이터 기준선(fixture 1,000건, 중복률/결측률)
+   - 룰 탐지 결과 5종(반복 수급·동일 주소·결과물/정산·예산 집행 이상·계약업체 연관성) 후보 수와 예시 카드
+   - 100점 위험점수(A/B/C)와 scoreBreakdown
+   - 보상가능성 점수(High/Medium/Low)
+   - LLM 설명형 분석(왜 검토 후보인지/어떤 근거/추가 확인사항)
+   - 근거 검증(citation validation) 상태와 차단 건수
+   - 각 엔진의 JSON/Markdown 리포트 생성 CLI 경로
+
+> **현재 화면은 fixture 기반 검증 결과를 보여줍니다.** 실제 신고 또는 보상금 수령을 보장하지 않습니다. 실제 LLM API·외부 API는 호출하지 않으며, 자동 신고 기능은 제공하지 않습니다. 실제 공공데이터 API/실데이터 연결과 실제 LLM 연동은 후속 작업입니다.
+
+- 서버 API: `GET /api/subsidy/demo-status` (엔진 현황), `GET /api/subsidy/run-demo` (fixture 통합 결과)
+- 데모 집계 모듈: [`src/services/subsidyEngineDemo.ts`](./src/services/subsidyEngineDemo.ts)
+- 검증: `npm run test:subsidy-ui-demo`, `npm run check:subsidy-ui-demo`
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:

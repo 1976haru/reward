@@ -288,6 +288,32 @@ AI 리포트의 모든 핵심 주장에 공개자료 근거를 연결해 환각�
 - 리포트 생성 전 근거 검증을 통과해야 하며, 근거 없는 핵심 주장은 warning/fail로 처리하고 "근거 보강 필요"로 표시한다.
 - 결과는 사실관계 점검과 사람 검토 대상이며 확정 판단이나 자동 신고가 아니다.
 
+## 11-16. 브라우저 UI 연결 상태 (체크리스트 11~25 결과 화면 확인)
+
+체크리스트 11~25의 결과를 브라우저 화면에서 확인할 수 있도록 연결했다.
+
+- 데모 집계 모듈: [`src/services/subsidyEngineDemo.ts`](../src/services/subsidyEngineDemo.ts)
+- 서버 API: `GET /api/subsidy/demo-status`, `GET /api/subsidy/run-demo`
+- 화면 진입: `npm run dev` → http://localhost:3001 → 보조금 부정수급 카드 → "보조금 엔진 샘플 실행" 버튼.
+
+화면에서 확인 가능한 항목:
+- 보조금 탐지 엔진 현황(수집기/파서/정규화/품질검증/룰 5종/위험점수/보상가능성/LLM 설명형 분석/근거 검증)
+- 데이터 기준선(fixture 1,000건, 중복률/결측률)
+- 룰 탐지 결과 5종(후보 수, riskScore/riskLevel/reason/reviewRequired 예시 카드)
+- 100점 위험점수(A/B/C, scoreBreakdown), 보상가능성 점수(High/Medium/Low)
+- LLM 설명형 분석(summary/whyFlagged/keyEvidence/additionalChecks)
+- 근거 검증(citation validation) 상태, 근거 보유/누락, 개인정보·비공개 URL 차단 건수
+- 각 엔진 JSON/Markdown 리포트 생성 CLI 경로
+
+아직 fixture 기반인 항목:
+- 위 모든 화면 결과는 fixture 기반 검증이며 실데이터 탐지 완료가 아니다.
+- 실제 LLM API·외부 API는 호출하지 않는다(deterministic fallback).
+
+실제 데이터 연결 후 바뀔 항목(후속 작업):
+- 공공데이터포털 API 실수집·업로드 실데이터 기준선으로 baseline/룰/점수 결과 교체
+- 실제 LLM 연동 시 설명형 분석 결과를 실모델 응답 + 문장별 citation으로 교체
+- 화면에서 실데이터/실행 runId별 리포트 경로 직접 노출
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

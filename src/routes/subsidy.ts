@@ -10,8 +10,45 @@ import {
   SUBSIDY_FRAUD_SAFETY_NOTICE
 } from "../modules/subsidy-fraud/index.js";
 import { withAgentTrace } from "../services/trace/TraceContext.js";
+import {
+  buildSubsidyEngineDemo,
+  getSubsidyEngineStatus,
+  SUBSIDY_DEMO_SAFETY_NOTICE
+} from "../services/subsidyEngineDemo.js";
 
 export const subsidyRouter = Router();
+
+// GET /api/subsidy/demo-status — 보조금 탐지 엔진 현황 패널 (계산 없이 현황만)
+subsidyRouter.get("/demo-status", (_req, res) => {
+  try {
+    res.json({
+      ok: true,
+      engineStatus: getSubsidyEngineStatus(),
+      isFixtureBased: true,
+      autoReport: false,
+      humanReviewRequired: true,
+      safetyNotice: SUBSIDY_DEMO_SAFETY_NOTICE
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: "INTERNAL_ERROR", message: (error as Error).message });
+  }
+});
+
+// GET /api/subsidy/run-demo — fixture 기반으로 룰/점수/AI분석/근거검증 결과를 묶어 반환
+// 실제 외부 API / 실제 LLM API 미호출. 자동 신고 없음.
+subsidyRouter.get("/run-demo", (_req, res) => {
+  try {
+    const result = buildSubsidyEngineDemo();
+    res.json({
+      ok: true,
+      ...result,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: "INTERNAL_ERROR", message: (error as Error).message });
+  }
+});
 
 function zodErrorMessage(err: ZodError): string {
   const issues = (err as unknown as { issues?: Array<{ path: (string | number)[]; message: string }> }).issues

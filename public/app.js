@@ -2942,6 +2942,10 @@ function bindSubsidy() {
   if (aBtn) aBtn.addEventListener("click", runSubsidyAnalyze);
   const rBtn = document.getElementById("subsidyRefreshBtn");
   if (rBtn) rBtn.addEventListener("click", runSubsidyAnalyze);
+  const demoBtn = document.getElementById("subsidyEngineDemoBtn");
+  if (demoBtn) demoBtn.addEventListener("click", runSubsidyEngineDemo);
+  const statusBtn = document.getElementById("subsidyEngineStatusBtn");
+  if (statusBtn) statusBtn.addEventListener("click", runSubsidyEngineStatus);
   document.addEventListener("click", (e) => {
     const t = e.target;
     if (!(t instanceof Element)) return;
@@ -3057,6 +3061,167 @@ async function loadSubsidyReport(recordId) {
   } catch (err) {
     alert("리포트 초안 로드 실패: " + err.message);
   }
+}
+
+// ---------- 보조금 탐지 엔진 fixture 데모 (체크리스트 11~25 UI 연결) ----------
+function renderEngineStatusPanel(s) {
+  if (!s) return "";
+  const group = (title, items) => `
+    <div class="evi-item" style="padding:8px 10px;">
+      <div class="label" style="font-size:12px;font-weight:600;margin-bottom:4px;">${escapeHtml(title)}</div>
+      ${items.map((it) => `<div class="muted" style="font-size:11.5px;">• ${escapeHtml(it.name)} — ${escapeHtml(it.status)}</div>`).join("")}
+    </div>`;
+  return `
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      ${group("수집/전처리", s.collectors)}
+      ${group("룰 탐지", s.rules)}
+      ${group("스코어링", s.scoring)}
+      ${group("AI 분석", s.aiAnalysis)}
+    </div>`;
+}
+
+async function runSubsidyEngineStatus() {
+  const root = document.getElementById("subsidyEngineDemo");
+  if (!root) return;
+  root.innerHTML = '<p class="muted">엔진 현황 불러오는 중...</p>';
+  try {
+    const res = await fetch("/api/subsidy/demo-status");
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    root.innerHTML = `
+      <p class="muted ops-safety">⚠ ${escapeHtml(data.engineStatus.fixtureNotice || "")}</p>
+      ${renderEngineStatusPanel(data.engineStatus)}
+      <p class="muted" style="font-size:11.5px;margin-top:8px;">${escapeHtml(data.safetyNotice || "")}</p>`;
+  } catch (err) {
+    root.innerHTML = `<div class="code">엔진 현황 로드 실패: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function runSubsidyEngineDemo() {
+  const root = document.getElementById("subsidyEngineDemo");
+  if (!root) return;
+  root.innerHTML = '<p class="muted">fixture 기반 엔진 통합 실행 중... (룰 탐지 · 위험점수 · 보상가능성 · LLM 설명형 분석 · 근거 검증)</p>';
+  try {
+    const res = await fetch("/api/subsidy/run-demo");
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.message || `HTTP ${res.status}`);
+    renderSubsidyEngineDemo(root, data);
+  } catch (err) {
+    root.innerHTML = `<div class="code">엔진 데모 실패: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderSubsidyEngineDemo(root, d) {
+  if (!root || !d) return;
+  const pct = (v) => `${Math.round((Number(v) || 0) * 1000) / 10}%`;
+
+  // 섹션 1: 데이터 기준선
+  const b = d.baseline || {};
+  const baselineHtml = `
+    <h4 class="ops-section-title">1. 데이터 기준선</h4>
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));">
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">기준선 종류</div><div class="value" style="font-size:15px;">${escapeHtml(b.kind || "fixture")}</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">총 레코드</div><div class="value" style="font-size:15px;">${escapeHtml(String(b.totalRecords ?? 0))}건</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">중복률</div><div class="value" style="font-size:15px;">${pct(b.duplicateRate)}</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">결측률</div><div class="value" style="font-size:15px;">${pct(b.missingRate)}</div></div>
+    </div>
+    <p class="muted" style="font-size:11.5px;">상태: ${escapeHtml(b.status || "")}</p>`;
+
+  // 섹션 2: 룰 탐지 결과
+  const ruleCards = (d.rules || []).map((r) => {
+    const ex = (r.examples || []).map((e) => `
+      <div class="ops-top-row" style="align-items:flex-start;">
+        <div class="ops-top-rank">${escapeHtml(String(e.riskScore))}</div>
+        <div class="ops-top-main">
+          <div class="ops-top-title" style="font-size:12.5px;">${escapeHtml(e.title)}</div>
+          <div class="muted ops-top-meta" style="font-size:11px;">
+            <span class="badge ${e.riskLevel === "high" ? "danger" : e.riskLevel === "medium" ? "warn" : "muted"}">${escapeHtml(e.riskLevel || "-")}</span>
+            · reviewRequired=${e.reviewRequired ? "true" : "false"} · ${e.isFixtureBased ? "fixture 기반" : "실데이터"}
+          </div>
+          <div class="muted" style="font-size:11px;margin-top:3px;">${escapeHtml(e.reason || "")}</div>
+        </div>
+      </div>`).join("");
+    return `
+      <div class="evi-item" style="padding:10px;">
+        <div class="label" style="font-size:12.5px;font-weight:600;">${escapeHtml(r.label)}</div>
+        <div class="muted" style="font-size:11.5px;margin-bottom:4px;">후보 수: <strong>${escapeHtml(String(r.totalCandidates ?? 0))}</strong> · TOP ${escapeHtml(String(r.topCount ?? 0))}</div>
+        ${ex || '<div class="muted" style="font-size:11px;">예시 후보 없음</div>'}
+      </div>`;
+  }).join("");
+  const rulesHtml = `
+    <h4 class="ops-section-title">2. 룰 탐지 결과 (fixture)</h4>
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));">${ruleCards}</div>`;
+
+  // 섹션 3: 100점 위험점수
+  const rs = d.riskScore;
+  const riskHtml = rs ? `
+    <h4 class="ops-section-title">3. 100점 위험점수</h4>
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));">
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">finalRiskScore</div><div class="value" style="font-size:20px;">${escapeHtml(String(rs.finalRiskScore))}</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">riskGrade</div><div class="value" style="font-size:20px;">${escapeHtml(rs.riskGrade)}</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">등급 분포 A/B/C</div><div class="value" style="font-size:15px;">${escapeHtml([rs.gradeSummary?.A ?? 0, rs.gradeSummary?.B ?? 0, rs.gradeSummary?.C ?? 0].join(" / "))}</div></div>
+    </div>
+    <p class="muted" style="font-size:11.5px;">${escapeHtml(rs.reason || "")}</p>
+    <pre class="code" style="font-size:11px;max-height:130px;overflow:auto;white-space:pre-wrap;">${escapeHtml(JSON.stringify(rs.scoreBreakdown, null, 2))}</pre>` : "";
+
+  // 섹션 4: 보상가능성 점수
+  const rw = d.rewardScore;
+  const rewardHtml = rw ? `
+    <h4 class="ops-section-title">4. 보상가능성 점수 (보상/포상 가능성 검토 우선순위)</h4>
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));">
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">rewardPossibilityScore</div><div class="value" style="font-size:20px;">${escapeHtml(String(rw.rewardPossibilityScore))}</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">우선순위</div><div class="value" style="font-size:20px;">${escapeHtml(rw.rewardPossibilityLevel)}</div></div>
+    </div>
+    <p class="muted" style="font-size:11.5px;">${escapeHtml(rw.reason || "")}</p>
+    <p class="muted" style="font-size:11px;">${escapeHtml((rw.disclaimers || []).join(" / "))}</p>` : "";
+
+  // 섹션 5: LLM 설명형 분석
+  const llm = d.llmExplanation;
+  const llmHtml = llm ? `
+    <h4 class="ops-section-title">5. LLM 설명형 분석 (deterministic fallback · 실제 LLM API 미호출)</h4>
+    <div class="evi-item" style="padding:10px;">
+      <div class="muted" style="font-size:12px;"><strong>summary:</strong> ${escapeHtml(llm.summary || "")}</div>
+      <div class="muted" style="font-size:11.5px;margin-top:5px;"><strong>왜 검토 후보인지:</strong><ul style="margin:3px 0 0;padding-left:16px;">${(llm.whyFlagged || []).map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>
+      <div class="muted" style="font-size:11.5px;margin-top:5px;"><strong>어떤 근거:</strong><ul style="margin:3px 0 0;padding-left:16px;">${(llm.keyEvidence || []).map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>
+      <div class="muted" style="font-size:11.5px;margin-top:5px;"><strong>추가 확인사항:</strong><ul style="margin:3px 0 0;padding-left:16px;">${(llm.additionalChecks || []).map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>
+      ${llm.rewardPossibilityNote ? `<div class="muted" style="font-size:11.5px;margin-top:5px;"><strong>보상/포상 가능성 검토:</strong> ${escapeHtml(llm.rewardPossibilityNote)}</div>` : ""}
+      <div class="muted" style="font-size:11px;margin-top:5px;">reviewRequired=${llm.reviewRequired ? "true" : "false"}</div>
+    </div>` : "";
+
+  // 섹션 6: 근거 검증 (citation validation)
+  const cv = d.citationValidation;
+  const cvStatusCls = cv ? (cv.status === "pass" ? "muted" : cv.status === "warning" ? "warn" : "danger") : "muted";
+  const citationHtml = cv ? `
+    <h4 class="ops-section-title">6. 근거 검증 (citation validation)</h4>
+    <p class="muted" style="font-size:12px;">상태: <span class="badge ${cvStatusCls}">${escapeHtml(cv.status)}</span> (mode=${escapeHtml(cv.mode)})</p>
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));">
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">전체 주장</div><div class="value" style="font-size:16px;">${escapeHtml(String(cv.totalClaims))}</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">핵심 주장</div><div class="value" style="font-size:16px;">${escapeHtml(String(cv.coreClaims))}</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">근거 보유</div><div class="value" style="font-size:16px;">${escapeHtml(String(cv.citedClaims))}</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">근거 누락</div><div class="value" style="font-size:16px;">${escapeHtml(String(cv.missingClaims))}</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">개인정보 차단</div><div class="value" style="font-size:16px;">${escapeHtml(String(cv.blockedPersonalInfoCount))}</div></div>
+      <div class="evi-item" style="text-align:center;"><div class="label" style="font-size:11px;">비공개URL 차단</div><div class="value" style="font-size:16px;">${escapeHtml(String(cv.blockedPrivateUrlCount))}</div></div>
+    </div>
+    <p class="muted" style="font-size:11.5px;">인정된 근거 유형(sourceUrl/evidenceUrl/recordId/evidenceId/computed_model 등): ${escapeHtml((cv.acceptedCitationTypes || []).join(", ") || "없음")}</p>
+    <p class="muted" style="font-size:11px;">로그인 필요·비공개·내부자료 URL과 개인정보 원문이 포함된 근거는 차단됩니다.</p>` : "";
+
+  // 리포트 경로 힌트
+  const hints = (d.reportHints || []).map((h) => `<li><code>${escapeHtml(h.command)}</code> → <span class="muted">${escapeHtml(h.outputDir)}</span></li>`).join("");
+  const hintsHtml = `
+    <h4 class="ops-section-title">7. JSON/Markdown 리포트 생성 경로 (CLI)</h4>
+    <ul style="font-size:11px;margin:4px 0;padding-left:16px;">${hints}</ul>`;
+
+  root.innerHTML = `
+    <p class="muted ops-safety">⚠ ${escapeHtml(d.fixtureNotice || "")}</p>
+    ${renderEngineStatusPanel(d.engineStatus)}
+    ${baselineHtml}
+    ${rulesHtml}
+    ${riskHtml}
+    ${rewardHtml}
+    ${llmHtml}
+    ${citationHtml}
+    ${hintsHtml}
+    <p class="muted ops-safety" style="margin-top:10px;border-top:1px solid var(--border,#ccc);padding-top:8px;">${escapeHtml(d.safetyNotice || "")}</p>`;
 }
 
 // ---------- Home / Notice (체크리스트 01) ----------

@@ -500,6 +500,21 @@
             <a class="ghost" id="subsidySourcesLink" href="#" data-subsidy-show="sources">공식 소스 보기</a>
           </div>
           <div id="subsidyDashboard" class="muted">아직 분석을 실행하지 않았습니다. 위에서 "시범 지자체 분석 실행"을 눌러 sample 분석을 시작하세요.</div>
+
+          <!-- 보조금 탐지 엔진 현황 + fixture 기반 통합 데모 (체크리스트 11~25 UI 연결) -->
+          <div class="subsidy-engine-demo" style="margin-top:18px;border-top:1px dashed var(--border,#ccc);padding-top:14px;">
+            <h3 style="margin:0 0 4px;">보조금 탐지 엔진 현황 (체크리스트 11~25)</h3>
+            <p class="section-hint">
+              수집기·파서·정규화·품질검증·룰 탐지·위험점수·보상가능성 점수·LLM 설명형 분석·근거 검증(citation validation)을
+              한 화면에서 확인합니다. <strong>현재 화면은 fixture 기반 검증 결과를 보여줍니다. 실제 신고 또는 보상금 수령을 보장하지 않습니다.</strong>
+              실제 LLM API·외부 API는 호출하지 않습니다.
+            </p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+              <button class="primary" type="button" id="subsidyEngineDemoBtn">보조금 엔진 샘플 실행</button>
+              <button class="ghost" type="button" id="subsidyEngineStatusBtn">엔진 현황만 보기</button>
+            </div>
+            <div id="subsidyEngineDemo" class="muted">아직 실행하지 않았습니다. "보조금 엔진 샘플 실행"을 눌러 fixture 기반 탐지/점수/AI분석/근거검증 결과를 확인하세요.</div>
+          </div>
         </section>
 
         <!-- 입찰담합 의심 패턴 (프로토타입) -->
