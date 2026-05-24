@@ -225,6 +225,19 @@ API로 제공되지 않고 지자체가 PDF·엑셀·CSV로만 공개한 보조�
 - BaselineRecord에 laborCostAmount/promotionCostAmount/serviceCostAmount/equipmentCostAmount/spendingLineItems 등 선택 필드를 추가했다(향후 collector/parser에서 매핑).
 - 결과는 사실관계 점검과 사람 검토로 넘긴다.
 
+## 11-11. 계약업체 연관성 탐지 룰 연계 (체크리스트 21)
+
+기준선 데이터와 나라장터/G2B 계약연계 데이터에서 수급단체-계약업체 반복 연결 후보를 탐지한다.
+
+- 룰 모듈: [`src/rules/contractorNetworkRiskRule.ts`](../src/rules/contractorNetworkRiskRule.ts)
+- 운영 가이드: [`docs/CONTRACTOR_NETWORK_RISK_RULE.md`](./CONTRACTOR_NETWORK_RISK_RULE.md)
+- 보조사업자명, 계약상대자명, 용역업체명, 계약명, 사업명, 계약금액, 계약일자, 기관명, 주소 키를 사용해 계약업체 연관성 후보와 반복 연결 검토 후보를 만든다.
+- `networkSignals`를 기반으로 `riskScore`를 계산하고 업체-사업 반복 네트워크 후보를 생성한다.
+- 사업자등록번호와 법인등록번호는 원문 저장 금지이며 해시만 사용할 수 있다.
+- 대표자명, 전화번호, 상세주소는 단독 기준으로 사용하지 않으며 evidence/reason/report에 개인정보 원문을 넣지 않는다.
+- 로그인 필요 자료, 비공개자료, 내부자료는 탐지 근거로 사용하지 않는다.
+- 결과는 확정 판단이 아니라 사실관계 점검과 사람 검토로 넘긴다.
+
 ## 12. Future Work
 
 - 실제 공공데이터포털 API 연동 (인증키는 env로 분리, 절대 커밋 금지)

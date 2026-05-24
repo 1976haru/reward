@@ -49,6 +49,11 @@ data/risk/spending/runs/
 data/risk/spending/tmp/
 data/risk/spending/*
 !data/risk/spending/.gitkeep
+# 계약업체 연관성 탐지 룰 산출물 — 커밋하지 않음
+data/risk/contractor-network/runs/
+data/risk/contractor-network/tmp/
+data/risk/contractor-network/*
+!data/risk/contractor-network/.gitkeep
 !data/cases/.gitkeep
 !data/evidence/.gitkeep
 !data/reports/.gitkeep

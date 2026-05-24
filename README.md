@@ -666,6 +666,24 @@ npm run check:risk-spending               # 문서/코드 존재 + 정책 정적
 
 > fixture 실행은 산출 경로/점수 검증용입니다. 실제 탐지는 실데이터 기준선이 준비된 후 적용합니다.
 
+## 계약업체 연관성 탐지 룰 (Contractor Network Risk Rule)
+
+기준선 데이터와 나라장터/G2B 계약연계 데이터에서 수급단체와 계약업체/용역업체의 반복 연결 후보를 점수화해 **"계약업체 연관성 후보 / 반복 연결 검토 후보" TOP 50**을 산출하는 룰 모듈입니다. 반복 연결만으로 문제라고 단정하지 않으며, 장기계약·전문용역·유지보수·지역 공급망 등 합리적 사유 가능성을 함께 검토합니다. 모든 후보는 사람 검토 대상(`reviewRequired=true`)입니다.
+
+- 룰 모듈: [`src/rules/contractorNetworkRiskRule.ts`](./src/rules/contractorNetworkRiskRule.ts)
+- 표준 타입: [`src/types/contractorNetworkRisk.ts`](./src/types/contractorNetworkRisk.ts)
+- 운영 가이드: [`docs/CONTRACTOR_NETWORK_RISK_RULE.md`](./docs/CONTRACTOR_NETWORK_RISK_RULE.md)
+- CLI: [`scripts/run-contractor-network-risk-rule.ts`](./scripts/run-contractor-network-risk-rule.ts)
+
+각 후보는 `riskScore` / `riskLevel` / `networkSignals` / `evidence` / `reason` / `reviewRequired`를 포함합니다. 보조사업자명, 계약상대자명, 용역업체명, 계약명, 사업명, 계약금액, 계약일자, 기관명, 주소 키를 기준으로 연관성 후보를 만들되, 사업자등록번호·법인등록번호 원문은 저장하지 않고 해시만 사용할 수 있습니다. 대표자명·전화번호·상세주소는 단독 기준으로 사용하지 않으며, 개인정보 원문·비공개자료·로그인 필요 자료는 탐지 근거에 넣지 않습니다.
+
+```bash
+npm run test:risk-contractor-network
+npm run risk:contractor-network -- --fixture 1000
+npm run risk:contractor-network -- --input data/g2b-linkage/runs/xxx/edges.jsonl
+npm run check:risk-contractor-network
+```
+
 ## Approval Gate
 
 This project does **not** submit reports automatically. The system's allowed actions are strictly limited to:
