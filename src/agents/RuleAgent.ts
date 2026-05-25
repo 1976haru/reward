@@ -30,6 +30,19 @@ export interface HighlightedSegment {
   sourceSection: SectionName;
 }
 
+export interface RepeatedPhrase {
+  keyword: string;
+  ruleId: string;
+  count: number;
+}
+
+export interface CooccurrenceFlags {
+  // 상품(군) 표현과 질병명이 함께 등장 (mvp_scope: +15)
+  productAndDisease: boolean;
+  // 치료/완치/예방 표현과 질병명이 함께 등장 (mvp_scope: +25, combo 룰로 가산)
+  treatmentAndDisease: boolean;
+}
+
 export interface RuleDetectionResult {
   schemaVersion: string;
   moduleId: string;
@@ -38,6 +51,8 @@ export interface RuleDetectionResult {
   riskScore: number;                 // 0~100 (RuleAgent가 직접 산출)
   riskLevel: "낮음" | "검토 필요" | "높음" | "매우 높음";
   counts: { HIGH: number; MEDIUM: number; LOW: number; combo: number; total: number };
+  repeatedPhrases: RepeatedPhrase[]; // 동일 문구(룰) 2회 이상 반복
+  cooccurrence: CooccurrenceFlags;   // 상품명/질병명·치료표현/질병명 동시 등장 여부
   highlightedSegments: HighlightedSegment[];
   safetyNotice: string;
 }
@@ -214,18 +229,43 @@ export class RuleAgent {
     const weights = this.config.riskWeights;
     let raw = 0;
     const counts = { HIGH: 0, MEDIUM: 0, LOW: 0, combo: 0, total: matches.length };
-    const phraseFreq = new Map<string, number>();
+    const phraseFreq = new Map<string, { keyword: string; ruleId: string; count: number }>();
     for (const m of matches) {
       raw += m.weight;
       if (m.matchType === "keyword") counts[m.riskLevel]++;
       else counts.combo++;
       const k = `${m.ruleId}|${m.keyword}`;
-      phraseFreq.set(k, (phraseFreq.get(k) ?? 0) + 1);
+      const cur = phraseFreq.get(k);
+      if (cur) cur.count++;
+      else phraseFreq.set(k, { keyword: m.keyword, ruleId: m.ruleId, count: 1 });
     }
     // 반복 가산: 같은 룰/키워드가 2회 이상 매치되면 +10
-    for (const [, freq] of phraseFreq) {
-      if (freq >= 2) raw += weights.repeatedPhrase;
+    const repeatedPhrases: RepeatedPhrase[] = [];
+    for (const v of phraseFreq.values()) {
+      if (v.count >= 2) {
+        raw += weights.repeatedPhrase;
+        repeatedPhrases.push({ keyword: v.keyword, ruleId: v.ruleId, count: v.count });
+      }
     }
+
+    // 동시 등장(co-occurrence) 판정 — mvp_scope 위험도 정책 정렬용.
+    //  - 상품(군) 표현 + 질병명 함께 등장 → +productAndDiseaseCombo(기본 15)
+    //  - 치료/완치/예방 등 표현 + 질병명 함께 등장 → combo 룰(C001/C002, +25)이 이미 가산
+    const cfg = this.config as unknown as Record<string, unknown>;
+    const diseaseTerms = Array.isArray(cfg.diseaseTerms) ? (cfg.diseaseTerms as string[]) : [];
+    const productTerms = Array.isArray(cfg.productTerms) ? (cfg.productTerms as string[]) : [];
+    const actionTerms = Array.isArray(cfg.actionTerms) ? (cfg.actionTerms as string[]) : [];
+    const allText = sectionInputs.flatMap((s) => s.sentences).join(" ");
+    const hasDisease = diseaseTerms.some((t) => allText.includes(t));
+    const productAndDisease = hasDisease && productTerms.some((t) => allText.includes(t));
+    const treatmentAndDisease =
+      matches.some((m) => m.category === "disease_action_combo") ||
+      (hasDisease && actionTerms.some((t) => allText.includes(t)));
+    if (productAndDisease) {
+      raw += Number(weights.productAndDiseaseCombo ?? 0);
+    }
+    const cooccurrence: CooccurrenceFlags = { productAndDisease, treatmentAndDisease };
+
     const riskScore = Math.max(0, Math.min(weights.maxScore, raw));
 
     // 하이라이트 — 문장 단위로 묶기 (가장 높은 riskLevel 채택)
@@ -266,6 +306,8 @@ export class RuleAgent {
       riskScore,
       riskLevel: riskLevelFromScore(riskScore),
       counts,
+      repeatedPhrases,
+      cooccurrence,
       highlightedSegments,
       safetyNotice: SAFETY_NOTICE
     };

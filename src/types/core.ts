@@ -130,6 +130,8 @@ export interface CaseRuleDetection {
   riskScore: number;
   riskLevel: "낮음" | "검토 필요" | "높음" | "매우 높음";
   counts: { HIGH: number; MEDIUM: number; LOW: number; combo: number; total: number };
+  repeatedPhrases?: { keyword: string; ruleId: string; count: number }[];
+  cooccurrence?: { productAndDisease: boolean; treatmentAndDisease: boolean };
   highlightedSegments: { sentence: string; riskLevel: "HIGH" | "MEDIUM" | "LOW"; keywords: string[]; sourceSection: string }[];
   safetyNotice: string;
 }

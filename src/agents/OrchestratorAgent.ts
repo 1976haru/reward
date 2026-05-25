@@ -174,6 +174,8 @@ export class OrchestratorAgent {
       riskScore: detection.riskScore,
       riskLevel: detection.riskLevel,
       counts: detection.counts,
+      repeatedPhrases: detection.repeatedPhrases,
+      cooccurrence: detection.cooccurrence,
       highlightedSegments: detection.highlightedSegments.slice(0, 30),
       safetyNotice: detection.safetyNotice
     };

@@ -29,6 +29,7 @@ import { CandidateRepository } from "../repositories/CandidateRepository.js";
 import { CandidateDiscoveryService, InvalidTopicError } from "../services/CandidateDiscoveryService.js";
 import { TextExtractor, maskPII, splitSentences, dedupe } from "../services/TextExtractor.js";
 import { RuleAgent } from "../agents/RuleAgent.js";
+import { buildScoreExplanation } from "../agents/scoreExplanation.js";
 import { AnalyzerAgent, validateAnalysisResult, loadAnalysisSchemaString } from "../agents/AnalyzerAgent.js";
 import { stat as fsStat } from "node:fs/promises";
 import { ScoringAgent as ScoringAgentNew } from "../agents/ScoringAgent.js";
@@ -561,6 +562,46 @@ check("claimCandidates 우선 분석", dSection.matches.some((m) => m.sourceSect
 
 check("matches array exposed", Array.isArray(big.matches));
 check("highlightedSegments exposed", Array.isArray(big.highlightedSegments) && big.highlightedSegments.length > 0);
+
+// 12b) 동시 등장(co-occurrence) + 반복 문구 (체크리스트 14~15)
+const coocDetection = ra.detectDetailed({
+  text: "이 건강기능식품 영양제는 당뇨 완치와 혈압약 대체에 도움이 된다고 광고합니다. 당뇨 완치 후기도 있습니다."
+});
+check("cooccurrence 노출", coocDetection.cooccurrence != null);
+check("상품+질병 동시 등장 감지", coocDetection.cooccurrence.productAndDisease === true, `pd=${coocDetection.cooccurrence.productAndDisease}`);
+check("치료표현+질병 동시 등장 감지", coocDetection.cooccurrence.treatmentAndDisease === true, `td=${coocDetection.cooccurrence.treatmentAndDisease}`);
+check("repeatedPhrases 배열 노출", Array.isArray(coocDetection.repeatedPhrases));
+check("동일 문구 반복 감지(당뇨 완치 ×2)", coocDetection.repeatedPhrases.some((r) => r.keyword === "당뇨 완치" && r.count >= 2), `rp=${JSON.stringify(coocDetection.repeatedPhrases)}`);
+
+// 12c) buildScoreExplanation (체크리스트 15) — 점수 설명 구조
+const explScoring = new ScoringAgent().computePriority({
+  moduleId: "false_ad",
+  ruleDetectionResult: {
+    riskScore: coocDetection.riskScore,
+    riskLevel: coocDetection.riskLevel,
+    counts: coocDetection.counts,
+    matches: coocDetection.matches.map((m) => ({ ruleId: m.ruleId, keyword: m.keyword, riskLevel: m.riskLevel, matchType: m.matchType, category: m.category }))
+  }
+});
+const expl = buildScoreExplanation(coocDetection, explScoring);
+check("explanation total 0~100", expl.total >= 0 && expl.total <= 100, `total=${expl.total}`);
+check("explanation grade 존재", typeof expl.grade === "string" && expl.grade.length > 0);
+check("explanation keywordCounts 노출", expl.keywordCounts && typeof expl.keywordCounts.HIGH === "number");
+check("explanation factors 비어있지 않음", Array.isArray(expl.factors) && expl.factors.length > 0);
+check("explanation productAndDisease 반영", expl.productAndDisease === true);
+check("explanation notes 안전문구 포함", expl.notes.some((n) => n.includes("위법 확정은 아니며") || n.includes("참고 점수")));
+
+// 12d) extractor 카테고리 분리 (체크리스트 13)
+const extrHtml = "<html><head><title>테스트 건강기능식품</title></head><body><h1>테스트 제품</h1>" +
+  "<p>광고문구: 당뇨 완치에 도움을 준다는 표현</p><p>후기: 혈압약 대체처럼 느껴졌다는 후기</p>" +
+  "<p>성분: 홍삼추출물, 비타민</p><p>섭취방법: 하루 1회 섭취</p><p>주의사항: 임산부는 전문가와 상담</p><p>판매자: 테스트몰 고객센터</p></body></html>";
+const extr = new TextExtractor().extract(extrHtml, { url: "https://example.com" });
+check("extract claimCandidates 존재", extr.claimCandidates.length > 0);
+check("extract reviewCandidates 존재", extr.reviewCandidates.length > 0, `r=${extr.reviewCandidates.length}`);
+check("extract ingredientCandidates 존재", extr.ingredientCandidates.length > 0, `i=${extr.ingredientCandidates.length}`);
+check("extract warningCandidates 존재", extr.warningCandidates.length > 0, `w=${extr.warningCandidates.length}`);
+check("extract textLength > 0", extr.textLength > 0);
+check("extract PII 마스킹 동작", maskPII("연락처 010-1234-5678").includes("[phone-masked]"));
 
 // 13) Analyzer Agent — 11 tests
 const promptPath = path.join(process.cwd(), "src/modules/false-ad/analysis_prompt.md");

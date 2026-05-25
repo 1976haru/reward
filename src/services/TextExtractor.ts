@@ -169,9 +169,20 @@ export class TextExtractor {
       h1 || productClassText || ogTitle?.trim() || htmlTitle || "";
     const productName = cleanProductName(productNameRaw);
 
-    // 4) 본문 텍스트 — body가 있으면 body, 없으면 root
+    // 4) 본문 텍스트 — body가 있으면 body, 없으면 root.
+    //    블록 요소(p, div, li, h1~h6, br, td 등) 경계를 줄바꿈으로 보존해야
+    //    광고문구/후기/성분/섭취방법/주의사항/판매자 정보가 한 덩어리로 합쳐지지 않는다.
+    $("br").replaceWith("\n");
+    $("p,div,li,h1,h2,h3,h4,h5,h6,td,tr,section,article,figcaption,dd,dt,blockquote").each((_, el) => {
+      $(el).append("\n");
+    });
     const rootText = $("body").length > 0 ? $("body").text() : $.root().text();
-    const mainTextRaw = normalizeText(rootText);
+    // 블록 경계(\n)는 유지하고, 각 줄 내부의 공백만 정리한다.
+    const mainTextRaw = rootText
+      .split(/\n+/)
+      .map((line) => normalizeText(line))
+      .filter((line) => line.length > 0)
+      .join("\n");
 
     // 5) 가격 후보 — 마스킹 전에 추출 (전화번호와 혼동될 수 있어 가격 패턴이 우선)
     const priceCandidates = dedupe(

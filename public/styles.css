@@ -515,6 +515,24 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
 .result-section { margin-top: 14px; }
 .result-section h4 { margin: 0 0 6px; font-size: 14px; color: #374151; }
 .result-section ul { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.6; }
+
+/* ---------- 탐지 결과 카드 / 위험점수 설명 (체크리스트 14~15) ---------- */
+.detect-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.detect-table th, .detect-table td {
+  border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
+}
+.detect-table th { background: #f8fafc; color: #334155; font-size: 12px; white-space: nowrap; }
+.detect-table td:nth-child(4) { color: #475569; }
+.detect-empty {
+  background: #f0fdf4; border: 1px solid #bbf7d0; color: #065f46;
+  border-radius: 8px; padding: 10px 12px; font-size: 13px;
+}
+.score-notes {
+  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+  padding: 8px 12px; margin: 8px 0;
+}
+.score-notes p { margin: 2px 0; font-size: 12.5px; color: #1e40af; }
+.score-factor-list { margin: 4px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.7; color: #334155; }
 .muted { color: var(--muted); font-size: 13px; line-height: 1.55; }
 .code {
   white-space: pre-wrap; word-break: break-word;

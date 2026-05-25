@@ -38,12 +38,27 @@
 ## 4. Scoring Policy
 
 ```
-raw = Σ(matched rule weight)
-   + 10 × (반복 매칭된 룰 수)
+raw = Σ(matched rule weight)              # High +25 / Medium +12 / Low +5
+   + 10 × (반복 매칭된 룰 수)              # 동일 문구(룰) 2회 이상 → +10
+   + 15 × (상품(군) 표현 + 질병명 동시 등장)  # productAndDiseaseCombo (체크리스트 15)
+   # 치료/완치/예방 표현 + 질병명 동시 등장(+25)은 combo 룰 C001/C002 가중치로 이미 가산
 riskScore = clamp(raw, 0, 100)
 ```
 
-등급 변환:
+이 정책은 [`mvp_scope.md` §8 Risk Scoring Policy](../mvp_scope.md)와 일치한다.
+(High +25 / Medium +12 / Low +5 / 반복 +10 / 상품명+질병명 +15 / 치료표현+질병명 +25 / 상한 100)
+
+`detectDetailed()` 결과에 다음을 함께 노출한다(체크리스트 14~15):
+- `repeatedPhrases`: 2회 이상 반복된 (keyword, ruleId, count)
+- `cooccurrence`: `{ productAndDisease, treatmentAndDisease }` 동시 등장 여부
+
+> 참고 — 두 가지 점수의 구분
+> - **RuleAgent `riskScore`(위험도)**: 위 mvp_scope 위험도 정책. 등급 낮음/검토 필요/높음/매우 높음.
+> - **ScoringAgent `priorityScore`(우선순위, `POST /api/score`)**: rule/llm/evidence/commercial/repetition/extraction 6개 구성요소 합(0~100)으로
+>   "사람이 먼저 검토할 후보"를 정렬하는 별도 점수. 등급 낮음/검토 필요/우선 검토/최우선 검토.
+>   `POST /api/score` 는 `text` 만 받으면 RuleAgent 탐지를 먼저 실행하고 `explanation`(위험도 요소 설명)을 함께 반환한다.
+
+등급 변환 (RuleAgent riskScore):
 
 | score | 등급 |
 |---|---|

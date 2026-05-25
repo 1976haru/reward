@@ -1268,7 +1268,7 @@ function renderResult(c) {
       <ul>${reasonsHtml}</ul>
     </div>
 
-    ${renderScoringPanel(c.scoringResult)}
+    ${renderScoringPanel(c.scoringResult, c.ruleDetection)}
 
     ${renderLlmAnalysisPanel(c.llmAnalysis)}
 
@@ -1393,7 +1393,27 @@ document.addEventListener("click", (e) => {
   if (t.id === "copyReportTextBtn") { e.preventDefault(); copyReportText(); }
 });
 
-function renderScoringPanel(s) {
+function renderScoreExplanationBlock(rd) {
+  if (!rd) return "";
+  const counts = rd.counts || { HIGH: 0, MEDIUM: 0, LOW: 0, combo: 0, total: 0 };
+  const repeated = Array.isArray(rd.repeatedPhrases) ? rd.repeatedPhrases : [];
+  const cooc = rd.cooccurrence || {};
+  const factors = [];
+  if (counts.HIGH > 0) factors.push(`High 키워드 ${counts.HIGH}개 (개당 +25점)`);
+  if (counts.MEDIUM > 0) factors.push(`Medium 키워드 ${counts.MEDIUM}개 (개당 +12점)`);
+  if (counts.LOW > 0) factors.push(`Low 키워드 ${counts.LOW}개 (개당 +5점)`);
+  if (repeated.length > 0) factors.push(`동일 문구 반복 (+10점): ${repeated.map((r) => `${r.keyword}×${r.count}`).join(", ")}`);
+  if (cooc.productAndDisease) factors.push("상품(군) 표현과 질병명 동시 등장 (+15점)");
+  if (cooc.treatmentAndDisease) factors.push("치료/완치/예방 표현과 질병명 동시 등장 (+25점)");
+  if (factors.length === 0) factors.push("점수에 크게 영향을 준 의심 신호가 없습니다. 그래도 최종 판단은 사람이 합니다.");
+  return `
+    <h4 style="margin:10px 0 6px;">점수에 영향을 준 요소 (위험도 기준)</h4>
+    <p class="muted" style="font-size:12.5px;margin:0 0 6px;">RuleAgent 위험도 ${rd.riskScore || 0}/100 · 등급 ${escapeHtml(rd.riskLevel || "")} · 키워드 HIGH ${counts.HIGH} / MEDIUM ${counts.MEDIUM} / LOW ${counts.LOW} / 조합 ${counts.combo}</p>
+    <ul class="score-factor-list">${factors.map((f) => `<li>${escapeHtml(f)}</li>`).join("")}</ul>
+  `;
+}
+
+function renderScoringPanel(s, rd) {
   if (!s) return "";
   const levelBadge =
     s.priorityLevel === "VERY_HIGH_PRIORITY" ? "danger" :
@@ -1423,6 +1443,13 @@ function renderScoringPanel(s) {
         <span class="badge ${levelBadge}">${escapeHtml(s.priorityLabel || "")}</span>
       </div>
       <p class="muted" style="margin:6px 0;">${escapeHtml(s.disclaimer || "")}</p>
+
+      <div class="score-notes">
+        <p>이 점수는 사람이 먼저 검토할 후보를 정렬하기 위한 참고 점수입니다.</p>
+        <p>점수가 높아도 위법 확정은 아니며, 신고 전 원문과 증거를 반드시 확인해야 합니다.</p>
+      </div>
+
+      ${renderScoreExplanationBlock(rd)}
 
       <h4 style="margin:10px 0 6px;">구성요소</h4>
       <div class="evidence-grid">${compsHtml}</div>
@@ -1502,40 +1529,52 @@ function renderRuleDetectionPanel(rd) {
   const counts = rd.counts || { HIGH: 0, MEDIUM: 0, LOW: 0, combo: 0, total: 0 };
   const matches = Array.isArray(rd.matches) ? rd.matches : [];
   const segments = Array.isArray(rd.highlightedSegments) ? rd.highlightedSegments : [];
-  const top = matches.slice(0, 15);
-  const matchCards = top.length
-    ? top.map((m) => `
-      <div class="evi-item" style="border-left:4px solid ${m.riskLevel === "HIGH" ? "#b91c1c" : m.riskLevel === "MEDIUM" ? "#b45309" : "#6b7280"};">
-        <div class="label">
-          <span class="badge ${riskBadgeClass(m.riskLevel)}">${escapeHtml(m.riskLevel)}</span>
-          <span style="margin-left:6px;">${escapeHtml(m.keyword)}</span>
-          <span class="muted" style="margin-left:6px;">(${escapeHtml(m.category)} · ${escapeHtml(m.sourceSection || "main")})</span>
-        </div>
-        <div class="value" style="font-weight:500;">${escapeHtml(m.sentence)}</div>
-        <div class="muted" style="margin-top:4px;font-size:12px;">${escapeHtml(m.reason)}</div>
-      </div>
-    `).join("")
-    : '<p class="muted">매치된 룰이 없습니다.</p>';
+  const repeated = Array.isArray(rd.repeatedPhrases) ? rd.repeatedPhrases : [];
+  const cooc = rd.cooccurrence || {};
 
-  const highlightChips = segments.slice(0, 10).map((s) => `
-    <div class="evi-item" style="background:#fff7ed;border-color:#fed7aa;">
-      <div class="label"><span class="badge ${riskBadgeClass(s.riskLevel)}">${escapeHtml(s.riskLevel)}</span> <span class="muted">${escapeHtml(s.sourceSection || "main")}</span></div>
-      <div class="value">${escapeHtml(s.sentence)}</div>
-      <div class="muted" style="margin-top:4px;font-size:12px;">키워드: ${(s.keywords || []).map(escapeHtml).join(" · ")}</div>
-    </div>
+  // 탐지 결과가 없을 때 — 명시적 안내
+  if (matches.length === 0) {
+    return `
+      <div class="result-section">
+        <h4>위반 의심 문구 탐지 (Rule Agent)</h4>
+        <div class="detect-empty">탐지된 의심 문구 없음. 다만 최종 판단은 사람이 해야 합니다.</div>
+        <p class="muted" style="margin-top:8px;">${escapeHtml(rd.safetyNotice || "이 결과는 법 위반 확정이 아니라 신고 후보 검토용입니다.")}</p>
+      </div>
+    `;
+  }
+
+  const top = matches.slice(0, 15);
+  const matchRows = top.map((m) => `
+    <tr>
+      <td><span class="badge ${riskBadgeClass(m.riskLevel)}">${escapeHtml(m.riskLevel)}</span></td>
+      <td><strong>${escapeHtml(m.keyword)}</strong><div class="muted" style="font-size:11.5px;">${escapeHtml(m.category)} · ${escapeHtml(m.sourceSection || "main")}</div></td>
+      <td class="muted" style="font-size:12.5px;">${escapeHtml(m.reason)}</td>
+      <td style="font-size:12.5px;">${escapeHtml(m.excerpt || m.sentence || "")}</td>
+    </tr>
   `).join("");
+
+  const repeatHtml = repeated.length
+    ? `<span class="badge warn">동일 문구 반복 있음</span> <span class="muted" style="font-size:12px;">${repeated.map((r) => `${escapeHtml(r.keyword)}×${r.count}`).join(" · ")}</span>`
+    : `<span class="badge muted">동일 문구 반복 없음</span>`;
+  const coocHtml = `
+    ${cooc.productAndDisease ? '<span class="badge danger">상품(군)+질병명 동시 등장</span>' : '<span class="badge muted">상품+질병 동시 등장 없음</span>'}
+    ${cooc.treatmentAndDisease ? '<span class="badge danger">치료/예방 표현+질병명 동시 등장</span>' : '<span class="badge muted">치료표현+질병 동시 등장 없음</span>'}
+  `;
 
   return `
     <div class="result-section">
       <h4>위반 의심 문구 탐지 (Rule Agent)</h4>
       <p class="muted">위험도 점수 ${rd.riskScore || 0}/100 · 등급 ${escapeHtml(rd.riskLevel || "")} · HIGH ${counts.HIGH} / MEDIUM ${counts.MEDIUM} / LOW ${counts.LOW} / 조합 ${counts.combo} (총 ${counts.total}건)</p>
-      <p class="muted" style="margin:4px 0 8px;">${escapeHtml(rd.safetyNotice || "이 결과는 법 위반 확정이 아니라 신고 후보 검토용입니다.")}</p>
-      <h4 style="margin:10px 0 6px;">매치된 룰</h4>
-      <div class="evidence-grid">${matchCards}</div>
-      ${segments.length ? `
-        <h4 style="margin:14px 0 6px;">하이라이트 문장</h4>
-        <div class="evidence-grid">${highlightChips}</div>
-      ` : ""}
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;">${repeatHtml} ${coocHtml}</div>
+      <div class="safety-banner" style="margin:6px 0;">법 위반 확정 아님 · 신고 전 사람 검토 필요</div>
+      <h4 style="margin:10px 0 6px;">탐지된 의심 문구</h4>
+      <div style="overflow-x:auto;">
+        <table class="detect-table">
+          <thead><tr><th>위험등급</th><th>의심 문구</th><th>탐지 이유</th><th>원문 문맥</th></tr></thead>
+          <tbody>${matchRows}</tbody>
+        </table>
+      </div>
+      ${matches.length > top.length ? `<p class="muted" style="font-size:12px;">상위 ${top.length}건 표시 (총 ${matches.length}건)</p>` : ""}
     </div>
   `;
 }
