@@ -85,6 +85,33 @@ REJECTED    REJECTED       REJECTED      REVIEW   (잘못 기록한 경우 되�
 ## 6. Examples (PowerShell)
 
 ```powershell
+# 6.0 수동 URL 분석 (체크리스트 12) — 공개 URL 1개 → 분석 Case 1개 자동 생성
+#  - 1차 실전 MVP 모듈: false_ad (건강기능식품 온라인 허위·과대광고)
+#  - 공개 URL만 대상. 로그인/비공개/대량 크롤링/CAPTCHA 우회는 수행하지 않는다.
+#  - 수집 실패 시에도 안전한 fallback 문서로 Case 생성 흐름이 끊기지 않는다(collection.status="fallback").
+$analyze = @{ url = "https://example.com"; moduleId = "false_ad" } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:3001/api/cases/analyze" -Method Post -ContentType "application/json" -Body $analyze
+# (bash/curl)
+#   curl -X POST http://localhost:3001/api/cases/analyze \
+#     -H "content-type: application/json" \
+#     -d '{"url":"https://example.com","moduleId":"false_ad"}'
+#
+# 응답 주요 필드:
+#   caseId / id            — 생성된 Case ID
+#   moduleId               — "false_ad"
+#   originalUrl / url      — 입력한 공개 URL
+#   createdAt              — 생성 시각 (collection.fetchedAt = 수집 시각)
+#   pageTitle / title      — 페이지 제목
+#   collection             — { status: "fetched"|"fallback", note? }
+#   extraction             — 추출 본문 요약(textLength/claimCandidates/...)
+#   ruleDetection.matches  — 의심 문구(keyword/riskLevel/reason) + counts(HIGH/MEDIUM/LOW/combo)
+#   ruleDetection.riskScore / score / riskScore — 위험·우선순위 점수(0~100)
+#   evidence               — 증거 패키지 요약(htmlPath/textPath/capturedAt 등)
+#   notLegalConclusion: true, autoReport: false, humanReviewRequired: true
+#   safetyNotice           — "법 위반 확정이 아니며 사람 검토 필요" 안내
+#
+# ⚠ 키워드 매칭/점수는 검토가 필요한 의심 후보를 의미하며 법 위반 확정이 아니다. 자동 신고는 없다.
+
 # 6.1 수동 Case 생성
 $body = @{
   moduleId = "false_ad"

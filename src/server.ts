@@ -157,7 +157,18 @@ app.post("/api/cases/analyze", async (req, res) => {
       moduleId: "false_ad",
       memo: payload.memo
     });
-    res.json(result);
+    // 기존 case 객체 필드는 그대로 유지하고(UI 호환), 초보자/검증용 별칭 필드와 안전 안내를 추가한다.
+    res.json({
+      ...result,
+      caseId: result.id,
+      originalUrl: result.url,
+      pageTitle: result.title,
+      notLegalConclusion: true,
+      autoReport: false,
+      humanReviewRequired: true,
+      safetyNotice:
+        "이 결과는 검토가 필요한 의심 후보이며 법 위반 확정이 아닙니다. 자동 신고는 없으며, 사람이 직접 검토한 뒤 공식 창구에 제출해야 합니다."
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";
     res.status(400).json({ ok: false, error: "ANALYZE_FAILED", message });

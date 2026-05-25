@@ -31,6 +31,10 @@ export interface CollectedDocument {
   text: string;
   fetchedAt: string;
   sourceType: "user_url" | "search_result" | "seed_source";
+  // 수집 성공 여부. "fallback"은 실제 페이지 수집에 실패해 안전한 대체 문서로 분석을 이어갔음을 의미한다.
+  collectionStatus?: "fetched" | "fallback";
+  // fallback 사유(네트워크 실패/HTTP 오류 등). 사용자에게 "수집 실패 → 검토 필요" 안내용.
+  collectionNote?: string;
 }
 
 export interface RuleHit {
@@ -169,4 +173,6 @@ export interface RewardCase {
   ruleDetection?: CaseRuleDetection;
   llmAnalysis?: CaseLlmAnalysis;
   scoringResult?: import("./scoring.js").ScoringResult;
+  // 본문 수집 결과. "fallback"이면 실제 페이지 수집 실패 → 사람이 직접 확인 필요.
+  collection?: { status: "fetched" | "fallback"; note?: string; fetchedAt: string };
 }

@@ -1242,7 +1242,14 @@ function renderResult(c) {
 
   const reportUrl = c.reportPath ? `/api/cases/${encodeURIComponent(c.id)}/report/report.md` : "#";
 
+  const col = c.collection || {};
+  const collectionNoticeHtml = col.status === "fallback"
+    ? `<div class="input-notice" style="border-color:#fde68a;background:#fffbeb;margin-bottom:10px;">⚠ 이 공개 URL의 본문을 자동으로 가져오지 못했습니다(${escapeHtml(col.note || "수집 실패")}). 빈 본문 기준으로 분석되었으므로 점수·문구는 참고용입니다. 사람이 페이지를 직접 열어 확인하세요.</div>`
+    : "";
+
   result.innerHTML = `
+    ${collectionNoticeHtml}
+    <div class="safety-banner" style="margin-bottom:10px;">법 위반 확정이 아닙니다 · 검토가 필요한 의심 후보입니다 · 자동신고 없음 · 사람 검토 필수</div>
     <div class="score-row">
       <span class="score-pill ${grade.cls}"><span class="num">${score}</span>/100</span>
       <span class="badge ${grade.cls.replace("grade-", "")}">${escapeHtml(grade.label)}</span>

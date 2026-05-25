@@ -124,7 +124,7 @@ function check(name: string, cond: boolean, detail?: string) {
 }
 
 // 1) 규칙 탐지 — 의심 표현이 들어간 문장에서 최소 2건 이상 탐지
-const sample = "이 제품은 당뇨 완치에 도움을 주고 지방 분해 효과가 100% 있습니다.";
+const sample = "이 제품은 당뇨 완치에 도움을 주고 지방 완전 분해 효과가 100% 있습니다.";
 const hits = detectFalseAdRules(sample);
 check("rule detection >= 2 hits", hits.length >= 2, `hits=${hits.length}`);
 
@@ -534,17 +534,17 @@ check("당뇨 완치 → HIGH 매치", dDiabetes.matches.some((m) => m.keyword =
 const dSubst = ra.detectDetailed({ text: "혈압약 대체 효과를 기대할 수 있습니다." });
 check("혈압약 대체 → HIGH 또는 MEDIUM", dSubst.matches.some((m) => m.keyword === "혈압약 대체"));
 
-const dMiracle = ra.detectDetailed({ text: "기적의 효과를 약속드립니다." });
-check("기적의 효과 → MEDIUM 매치", dMiracle.matches.some((m) => m.keyword === "기적의 효과" && m.riskLevel === "MEDIUM"));
+const dMiracle = ra.detectDetailed({ text: "기적의 효능을 약속드립니다." });
+check("기적의 효능 → MEDIUM 매치", dMiracle.matches.some((m) => m.keyword === "기적의 효능" && m.riskLevel === "MEDIUM"));
 
-const dVitality = ra.detectDetailed({ text: "활력 개선을 도와드립니다." });
-check("활력 개선 → LOW 매치", dVitality.matches.some((m) => m.keyword === "활력 개선" && m.riskLevel === "LOW"));
+const dVitality = ra.detectDetailed({ text: "활력 회복을 도와드립니다." });
+check("활력 회복 → LOW 매치", dVitality.matches.some((m) => m.keyword === "활력 회복" && m.riskLevel === "LOW"));
 
 const dCombo = ra.detectDetailed({ text: "암을 예방하는 효과가 있다고 광고됩니다." });
 check("disease+action combo regex 동작", dCombo.matches.some((m) => m.matchType === "regex"));
 
 const big = ra.detectDetailed({
-  text: "당뇨 완치에 도움. 혈압약 대체 가능. 기적의 효과. 약 대신 먹는 영양제. 부작용 없는 치료."
+  text: "당뇨 완치에 도움. 혈압약 대체 가능. 기적의 효능. 약 없이 회복하는 영양제. 부작용 전혀 없는 치료."
 });
 check("score <= 100 (cap)", big.riskScore <= 100, `score=${big.riskScore}`);
 check("riskLevel computed", ["낮음", "검토 필요", "높음", "매우 높음"].includes(big.riskLevel));

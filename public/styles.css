@@ -1118,6 +1118,14 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
 
 /* ---------- 초보자 온보딩 카드 (체크리스트 9) ---------- */
 .onboarding-card { background: #f8fafc; border-color: #cbd5e1; }
+.onboarding-mvp-banner {
+  display: flex; flex-direction: column; gap: 2px;
+  background: #ecfdf5; border: 1px solid #a7f3d0;
+  border-left: 4px solid #10b981; border-radius: 8px;
+  padding: 10px 12px; margin: 4px 0 12px;
+}
+.onboarding-mvp-banner strong { color: #065f46; font-size: 14px; }
+.onboarding-mvp-banner span { color: #047857; font-size: 12.5px; }
 .onboarding-setup-summary {
   background: white; border: 1px solid var(--border);
   border-radius: 10px; padding: 10px 12px; margin: 10px 0 14px;

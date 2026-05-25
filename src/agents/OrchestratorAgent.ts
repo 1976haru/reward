@@ -204,7 +204,12 @@ export class OrchestratorAgent {
       extraction: extraction ? summarizeExtractionForCase(extraction) : undefined,
       ruleDetection: ruleDetectionForCase,
       llmAnalysis,
-      scoringResult
+      scoringResult,
+      collection: {
+        status: doc.collectionStatus ?? "fetched",
+        note: doc.collectionNote,
+        fetchedAt: doc.fetchedAt
+      }
     };
 
     const reportPath = await this.reports.createReport(draft);
