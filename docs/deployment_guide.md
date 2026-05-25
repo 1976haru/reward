@@ -12,7 +12,7 @@
 
 | 항목 | 권장 버전 |
 |------|-----------|
-| Node.js | 22.x (LTS) |
+| Node.js | 18 이상 (22.x LTS 권장) |
 | npm | 10.x 이상 |
 | Git | 최신 |
 | Docker (선택) | 24.x 이상 + Docker Compose v2 |
@@ -36,9 +36,14 @@ git clone https://github.com/1976haru/reward.git
 cd reward
 npm install
 cp .env.example .env   # Windows PowerShell: Copy-Item .env.example .env
+# .env에서 PORT=3001, MOCK_AI=true 확인
+npm run build
+npm run test
+npm run dev
+# 브라우저: http://localhost:3001
 ```
 
-### 2.2 개발 모드 (자동 재시작)
+### 2.2 개발 모드 (재실행 시)
 
 ```bash
 npm run dev
@@ -118,8 +123,8 @@ docker inspect --format='{{json .State.Health}}' reward-agent-mvp
 | `MOCK_AI` | `true` | AI 호출 없이 mock 분석 (OPENAI_API_KEY 없어도 시연 가능) |
 | `OPENAI_API_KEY` | — | `MOCK_AI=false` 일 때만 필요 |
 | `DATA_DIR` | `./data` | 산출물 저장 루트 |
-| `EVIDENCE_ENABLE_SCREENSHOT` | `true` (로컬) / `false` (Docker) | Playwright 캡처 |
-| `EVIDENCE_ENABLE_PDF` | `true` / `false` | PDF 저장 |
+| `EVIDENCE_ENABLE_SCREENSHOT` | `false` | 기본 실행은 캡처 비활성. Playwright 확인 뒤 필요 시 `true` |
+| `EVIDENCE_ENABLE_PDF` | `false` | 기본 실행은 PDF 캡처 비활성. Playwright 확인 뒤 필요 시 `true` |
 | `TRACE_ENABLED` | `true` | 감사 로그 |
 | `PRIVACY_MASKING_ENABLED` | `true` | 메모/리포트 저장 전 마스킹 |
 | `PRIVACY_DRY_RUN` | `true` | 삭제 API 기본 dry-run |
@@ -156,8 +161,9 @@ docker inspect --format='{{json .State.Health}}' reward-agent-mvp
 | 증상 | 원인 / 해결 |
 |------|-------------|
 | `Error: listen EADDRINUSE: address already in use :::3001` | 포트 3001 사용 중. `PORT=3002 npm run dev` 로 변경하거나 기존 프로세스 종료 |
-| `npm install` 실패 | Node 22 LTS 권장. `npm cache clean --force` 후 재시도 |
-| `playwright install` 미수행 | 스크린샷/PDF 캡처 사용 시 `npm run playwright:install` 1회 실행 |
+| Node.js 버전 문제 | Node.js 18 이상 필요. `node -v` 확인 후 필요하면 LTS 설치 |
+| `npm install` 실패 | Node.js 18 이상 여부와 네트워크/프록시 차단을 먼저 확인 |
+| `playwright install` 미수행 | 최소 실행은 캡처 옵션을 `false`로 유지. 캡처 확인 단계에서 `npm run playwright:install` 실행 |
 | Docker 빌드 실패 | Docker Desktop 실행 확인. WSL2 / virtualization 활성화 |
 | `.env not found` | `.env.example` 복사 (`cp .env.example .env` 또는 `Copy-Item .env.example .env`) |
 | `EACCES /app/data` (Docker) | `./data` 호스트 디렉터리 권한 확인 (`chmod -R 755 data`) |
@@ -176,7 +182,8 @@ docker inspect --format='{{json .State.Health}}' reward-agent-mvp
 
 ## 9. Playwright / Docker Policy
 
-- **로컬 (없거나 활성)**: `EVIDENCE_ENABLE_SCREENSHOT=true` / `EVIDENCE_ENABLE_PDF=true` — `npm run playwright:install` 1회 실행 후 사용 가능.
+- **로컬 최소 실행 기본값**: `EVIDENCE_ENABLE_SCREENSHOT=false` / `EVIDENCE_ENABLE_PDF=false` — Playwright 없이 서버·빌드·기본 테스트 확인.
+- **캡처 확인 단계**: `npm run playwright:install` 실행 후 필요할 때만 두 옵션을 `true`로 바꾸어 확인한다. 이번 체크리스트 범위에는 포함하지 않는다.
 - **Docker 기본**: 두 옵션 모두 `false` 로 강제 (Dockerfile + docker-compose 환경변수). HTML / TEXT / Report 중심 동작.
 - **Docker 에서 캡처가 필요하면**: Playwright 공식 이미지(`mcr.microsoft.com/playwright`) 베이스의 별도 Dockerfile 작성 — 본 MVP 범위 밖. 추후 체크리스트로 분리.
 

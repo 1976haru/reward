@@ -40,7 +40,7 @@
 
 ## Quick Start for Windows PowerShell
 
-처음 클론한 사람을 위한 최소 실행 절차입니다. (Node.js 18 이상, PowerShell 기준)
+처음 클론한 사람을 위한 최소 실행 절차입니다. **Node.js 18 이상**이 필요하며, 처음 실행은 `MOCK_AI=true` 기본값으로 실제 API 키 없이 진행합니다.
 
 ```powershell
 # 1) 저장소 클론
@@ -57,24 +57,26 @@ Copy-Item .env.example .env
 
 # 5) .env 파일을 열어 PORT=3001 인지 확인 (기본값)
 notepad .env
+# PORT=3001, MOCK_AI=true 확인
 
-# 6) Playwright 브라우저 설치 (스크린샷/PDF 생성용)
-npm run playwright:install
-
-# 7) 타입 체크 및 빌드
+# 6) 타입 체크 및 빌드
 npm run build
 
-# 8) 스모크 테스트 실행
+# 7) 스모크 테스트 실행
 npm run test
 
-# 9) 개발 서버 실행 (포트 3001)
+# 8) 개발 서버 실행 (포트 3001)
 npm run dev
 
-# 10) 브라우저로 접속
+# 9) 브라우저로 접속
 #     http://localhost:3001
 ```
 
-macOS/Linux 사용자는 5번을 `cp .env.example .env`, 6번 이하 동일하게 진행하세요.
+macOS/Linux 사용자는 4번을 `cp .env.example .env`로 실행하고 나머지는 동일하게 진행하세요.
+
+기본 `.env.example`은 `EVIDENCE_ENABLE_SCREENSHOT=false`, `EVIDENCE_ENABLE_PDF=false`로 제공됩니다. 따라서 Playwright 설치 전에도 최소 실행 절차를 확인할 수 있습니다. 스크린샷/PDF 캡처 확인은 다음 체크리스트에서 `npm run playwright:install` 후 별도로 진행합니다.
+
+상세한 처음 실행 안내와 오류 해결은 [`docs/local_setup.md`](./docs/local_setup.md)를 참고하세요.
 
 ## Quick Start (Local — 한 줄 요약)
 
@@ -124,6 +126,13 @@ npm run health                 # PORT env 자동 인식, 종료 코드 0/1
 ## Deployment Guide
 
 상세 가이드: [`docs/deployment_guide.md`](./docs/deployment_guide.md) — Local / Docker / Health / Data / Troubleshooting / Server Notes / Safety.
+
+## GitHub 저장소 기준
+
+- 현재 기준 원격 저장소: `https://github.com/1976haru/reward`
+- 현재 기준 브랜치: `master`
+- `1976haru/public`은 GitHub 저장소 정보상 빈 저장소로 보이지만, 이번 단계에서는 원격 변경이나 이전 push를 수행하지 않습니다.
+- 안전한 확인·동기화·향후 public 배포 검토 절차: [`docs/github_sync_plan.md`](./docs/github_sync_plan.md)
 
 ### Verification
 
@@ -1017,6 +1026,8 @@ dist/              tsc 빌드 산출물 (gitignored)
 | `DATA_DIR` | `./data` | 데이터 루트 |
 | `EVIDENCE_DIR` | `${DATA_DIR}/evidence` | 증거 패키지 저장 경로 |
 | `REPORTS_DIR` | `${DATA_DIR}/reports` | 신고서 초안 저장 경로 |
+| `EVIDENCE_ENABLE_SCREENSHOT` | `false` | Playwright 확인 전 최소 실행에서는 캡처 비활성 |
+| `EVIDENCE_ENABLE_PDF` | `false` | Playwright 확인 전 최소 실행에서는 PDF 캡처 비활성 |
 
 ## Troubleshooting
 
@@ -1024,9 +1035,11 @@ dist/              tsc 빌드 산출물 (gitignored)
 
 | 증상 | 확인할 것 |
 |---|---|
+| Node.js 버전 오류 | `node -v`가 `v18` 이상인지 확인하고, 낮으면 Node.js LTS 설치 후 터미널을 다시 엽니다. |
 | `npm install` 실패 | Node.js 18 이상인지 (`node -v`), 회사·학교 네트워크 프록시 차단 여부 |
+| `.env` 파일이 없음 | `Copy-Item .env.example .env`(Windows) 또는 `cp .env.example .env`(macOS/Linux)를 실행합니다. |
 | `npm run dev` 시 포트 사용 중 | `.env`의 `PORT` 변경 또는 `Get-NetTCPConnection -LocalPort 3001`로 점유 프로세스 확인 |
-| Playwright 캡처 실패 | `npm run playwright:install` 재실행, Windows Defender·사내 백신이 chromium 실행 차단 여부 |
+| Playwright가 설치되지 않음 | 최소 실행은 캡처 옵션을 `false`로 유지합니다. 다음 체크리스트에서 `npm run playwright:install`과 캡처 활성화를 확인합니다. |
 | `/api/health`가 안 뜸 | 서버 콘솔의 에러, 다른 프로세스가 3001 점유 여부 |
 | 분석 결과 AI 요약이 비어 있음 | `MOCK_AI=true` 상태로 동작 중인지 (.env 확인). 실제 모델 호출은 `MOCK_AI=false` + 유효한 `OPENAI_API_KEY` 필요 |
 | `data/`에 파일이 안 생김 | 폴더 권한, 디스크 여유 공간 |

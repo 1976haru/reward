@@ -22,12 +22,15 @@
 - [ ] `Copy-Item .env.example .env`
 - [ ] `.env` 파일을 열어 `PORT=3001` 확인
 - [ ] `MOCK_AI=true` 유지 (OpenAI 키 없이도 시연 가능)
+- [ ] `EVIDENCE_ENABLE_SCREENSHOT=false`, `EVIDENCE_ENABLE_PDF=false` 유지 (최소 실행 기본값)
 - [ ] 실제 모델을 쓸 때만 `MOCK_AI=false` + `OPENAI_API_KEY` 입력
 - [ ] `.env`가 `.gitignore`에 포함되어 있는지 확인 (`git check-ignore .env`)
 
-## 5. Playwright
+## 5. Playwright (후속 체크리스트)
 
-- [ ] `npm run playwright:install` 성공 (스크린샷·PDF 캡처용 chromium 다운로드)
+- [ ] 최소 실행 확인이 끝난 뒤 별도 단계에서 `npm run playwright:install` 실행
+- [ ] 캡처 확인 시에만 `.env`의 `EVIDENCE_ENABLE_SCREENSHOT=true`, `EVIDENCE_ENABLE_PDF=true` 설정
+- [ ] 이번 로컬 실행 환경 고정 단계에서는 캡처 기능 검증을 요구하지 않음
 
 ## 6. 빌드 및 테스트
 
