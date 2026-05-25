@@ -18,45 +18,35 @@ data/feedback/*
 data/eval/runs/*
 data/traces/*
 data/outcomes/*
-# 수집기 실제 산출물 — 커밋하지 않음 (.gitkeep / sample 만 추적)
-data/collector/runs/*
-data/collector/raw/*
-data/collector/tmp/*
-data/collector/errors/*
+# 수집기 실제 산출물 — 새 산출물도 기본 차단 (.gitkeep / sample 만 추적)
+data/collector/*
+!data/collector/.gitkeep
+!data/collector/sample/
+!data/collector/sample/**
 # 업로드 파서 산출물 — 커밋하지 않음
 data/upload-parser/*
 !data/upload-parser/.gitkeep
 # 데이터 기준선 산출물 — 커밋하지 않음 (실데이터/fixture 결과 모두)
 data/baseline/*
 !data/baseline/.gitkeep
-# 반복 수급 탐지 룰 산출물 — 커밋하지 않음
-data/risk/repeat/runs/
-data/risk/repeat/tmp/
+# 위험도 분석 산출물 — 새 종류도 기본 차단하고 현재 폴더의 .gitkeep만 유지
+data/risk/*
+!data/risk/repeat/
 data/risk/repeat/*
 !data/risk/repeat/.gitkeep
-# 동일 주소 다수 단체 탐지 룰 산출물 — 커밋하지 않음
-data/risk/address-cluster/runs/
-data/risk/address-cluster/tmp/
+!data/risk/address-cluster/
 data/risk/address-cluster/*
 !data/risk/address-cluster/.gitkeep
-# 결과물 부족/정산 미흡 탐지 룰 산출물 — 커밋하지 않음
-data/risk/output-settlement/runs/
-data/risk/output-settlement/tmp/
+!data/risk/output-settlement/
 data/risk/output-settlement/*
 !data/risk/output-settlement/.gitkeep
-# 예산 집행 이상 패턴 탐지 룰 산출물 — 커밋하지 않음
-data/risk/spending/runs/
-data/risk/spending/tmp/
+!data/risk/spending/
 data/risk/spending/*
 !data/risk/spending/.gitkeep
-# 계약업체 연관성 탐지 룰 산출물 — 커밋하지 않음
-data/risk/contractor-network/runs/
-data/risk/contractor-network/tmp/
+!data/risk/contractor-network/
 data/risk/contractor-network/*
 !data/risk/contractor-network/.gitkeep
-# 100점 위험점수 모델 산출물 — 커밋하지 않음
-data/risk/score/runs/
-data/risk/score/tmp/
+!data/risk/score/
 data/risk/score/*
 !data/risk/score/.gitkeep
 # 보상가능성 점수 모델 산출물은 커밋하지 않음
@@ -85,5 +75,3 @@ data/analysis/citation-validation/*
 !data/eval/runs/.gitkeep
 !data/traces/.gitkeep
 !data/outcomes/.gitkeep
-!data/collector/.gitkeep
-!data/collector/sample/**

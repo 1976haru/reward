@@ -183,7 +183,8 @@ docker inspect --format='{{json .State.Health}}' reward-agent-mvp
 ## 9. Playwright / Docker Policy
 
 - **로컬 최소 실행 기본값**: `EVIDENCE_ENABLE_SCREENSHOT=false` / `EVIDENCE_ENABLE_PDF=false` — Playwright 없이 서버·빌드·기본 테스트 확인.
-- **캡처 확인 단계**: `npm run playwright:install` 실행 후 필요할 때만 두 옵션을 `true`로 바꾸어 확인한다. 이번 체크리스트 범위에는 포함하지 않는다.
+- **캡처 준비 확인**: 캡처를 사용할 PC에서 처음 한 번 `npm run playwright:install`을 실행한다. 실제 캡처 확인 시에만 두 옵션을 `true`로 바꾸고, 로그인 없는 공개 URL 1개를 수동으로 확인한다.
+- **캡처 산출물**: 스크린샷/PDF는 `data/evidence/{caseId}/`에 저장되며 GitHub에 올리지 않는다. 제외 규칙과 확인 명령은 [`data_policy.md`](./data_policy.md)를 따른다.
 - **Docker 기본**: 두 옵션 모두 `false` 로 강제 (Dockerfile + docker-compose 환경변수). HTML / TEXT / Report 중심 동작.
 - **Docker 에서 캡처가 필요하면**: Playwright 공식 이미지(`mcr.microsoft.com/playwright`) 베이스의 별도 Dockerfile 작성 — 본 MVP 범위 밖. 추후 체크리스트로 분리.
 

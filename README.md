@@ -74,7 +74,7 @@ npm run dev
 
 macOS/Linux 사용자는 4번을 `cp .env.example .env`로 실행하고 나머지는 동일하게 진행하세요.
 
-기본 `.env.example`은 `EVIDENCE_ENABLE_SCREENSHOT=false`, `EVIDENCE_ENABLE_PDF=false`로 제공됩니다. 따라서 Playwright 설치 전에도 최소 실행 절차를 확인할 수 있습니다. 스크린샷/PDF 캡처 확인은 다음 체크리스트에서 `npm run playwright:install` 후 별도로 진행합니다.
+기본 `.env.example`은 `EVIDENCE_ENABLE_SCREENSHOT=false`, `EVIDENCE_ENABLE_PDF=false`로 제공됩니다. 따라서 Playwright 설치 전에도 최소 실행 절차를 확인할 수 있습니다. 스크린샷/PDF 증거 저장을 사용할 PC에서는 처음 한 번 `npm run playwright:install`을 실행하고, 실제 수동 캡처 테스트 중에만 두 값을 `true`로 변경합니다.
 
 상세한 처음 실행 안내와 오류 해결은 [`docs/local_setup.md`](./docs/local_setup.md)를 참고하세요.
 
@@ -122,6 +122,19 @@ npm run health                 # PORT env 자동 인식, 종료 코드 0/1
 ## Data Directory
 
 `./data/` 하위 모든 산출물(cases / evidence / reports / raw / candidates / scheduler / dedupe / feedback / eval/runs / traces)은 **GitHub 에 올라가지 않습니다.** `.gitkeep` 만 추적됩니다. Docker compose 는 `./data` 를 컨테이너 `/app/data` 에 바인드 마운트합니다.
+
+분석 결과, 증거 파일, 신고서 초안, 접수번호·처리결과 기록은 민감한 내용을 포함할 수 있는 로컬 산출물입니다. `.env`에는 API 키가 들어갈 수 있으므로 절대 커밋하지 않습니다. 실행 후 `git status --ignored`로 제외 상태를 확인하고, staged 목록에 산출물이 보이면 커밋 전에 반드시 제거합니다. 자세한 확인 명령은 [`docs/data_policy.md`](./docs/data_policy.md)를 참고하세요.
+
+## Playwright 증거 캡처 준비
+
+- Playwright는 스크린샷과 PDF 증거를 `data/evidence/{caseId}/`에 저장하기 위해 필요합니다.
+- 캡처를 사용할 PC에서는 처음 한 번 `npm run playwright:install`을 실행해 Chromium을 설치합니다.
+- 안전한 기본값은 `EVIDENCE_ENABLE_SCREENSHOT=false`, `EVIDENCE_ENABLE_PDF=false`입니다.
+- 실제 캡처 확인 시에만 `.env`에서 두 값을 `true`로 변경합니다.
+- 로그인 없는 공개 테스트 URL 1개로만 수동 확인하며, 대량 캡처나 자동 수집은 하지 않습니다.
+- 생성된 `data/evidence/{caseId}/` 산출물은 로컬 확인용이며 GitHub에 올리지 않습니다.
+
+수동 캡처 확인 순서는 [`docs/local_setup.md`](./docs/local_setup.md#playwright-캡처-준비-확인)를 참고하세요.
 
 ## Deployment Guide
 
@@ -1039,7 +1052,7 @@ dist/              tsc 빌드 산출물 (gitignored)
 | `npm install` 실패 | Node.js 18 이상인지 (`node -v`), 회사·학교 네트워크 프록시 차단 여부 |
 | `.env` 파일이 없음 | `Copy-Item .env.example .env`(Windows) 또는 `cp .env.example .env`(macOS/Linux)를 실행합니다. |
 | `npm run dev` 시 포트 사용 중 | `.env`의 `PORT` 변경 또는 `Get-NetTCPConnection -LocalPort 3001`로 점유 프로세스 확인 |
-| Playwright가 설치되지 않음 | 최소 실행은 캡처 옵션을 `false`로 유지합니다. 다음 체크리스트에서 `npm run playwright:install`과 캡처 활성화를 확인합니다. |
+| Playwright가 설치되지 않음 | 최소 실행은 캡처 옵션을 `false`로 유지합니다. 캡처가 필요하면 `npm run playwright:install` 후 공개 URL 1개로 수동 확인합니다. |
 | `/api/health`가 안 뜸 | 서버 콘솔의 에러, 다른 프로세스가 3001 점유 여부 |
 | 분석 결과 AI 요약이 비어 있음 | `MOCK_AI=true` 상태로 동작 중인지 (.env 확인). 실제 모델 호출은 `MOCK_AI=false` + 유효한 `OPENAI_API_KEY` 필요 |
 | `data/`에 파일이 안 생김 | 폴더 권한, 디스크 여유 공간 |

@@ -66,7 +66,7 @@ macOS/Linux에서는 4단계만 `cp .env.example .env`로 바꾸면 된다.
 | `npm run test` | 기본 스모크 테스트 실행 |
 | `npm run dev` | 로컬 개발 서버 시작 |
 | `npm run check:policy` | 자동신고 금지 등 정책 정적 검사 |
-| `npm run playwright:install` | 추후 스크린샷/PDF 캡처 확인 단계에서만 사용 |
+| `npm run playwright:install` | 스크린샷/PDF 증거 저장을 사용할 PC에서 최초 1회 Chromium 설치 |
 
 ## 자주 생기는 오류
 
@@ -79,11 +79,21 @@ macOS/Linux에서는 4단계만 `cp .env.example .env`로 바꾸면 된다.
 | `.env` 누락 | `Copy-Item .env.example .env` 또는 `cp .env.example .env`를 다시 실행한다. |
 | Playwright 미설치 | 기본 실행은 캡처를 `false`로 두고 진행한다. 캡처 확인 단계에서 `npm run playwright:install` 후 두 캡처 옵션을 `true`로 변경한다. |
 
-## Playwright 후속 확인
+## Playwright 캡처 준비 확인
 
-이번 단계에서는 캡처 기능을 실제 검증하지 않는다. 다음 체크리스트에서 아래 순서로 별도 확인한다.
+Playwright는 증거 패키지에 스크린샷과 PDF를 저장할 때 필요하다. 이 PC에서는 `npm run playwright:install`이 정상 종료되면 Chromium 설치 준비가 된 것이다. 기본 실행값은 계속 `false`로 두며, 실제 캡처를 사람이 확인하는 동안에만 `true`로 바꾼다.
 
-1. `npm run playwright:install` 실행
-2. `.env`의 `EVIDENCE_ENABLE_SCREENSHOT=true`, `EVIDENCE_ENABLE_PDF=true` 설정
-3. 공개 테스트 URL로 캡처가 생성되는지 확인
-4. 생성된 `data/evidence/*`가 Git에 포함되지 않는지 확인
+```powershell
+npm run playwright:install
+```
+
+공개 테스트 URL 1개를 이용한 수동 확인 절차:
+
+1. 로그인 없이 열리는 공개 테스트 URL 1개만 준비한다. 예: `https://example.com/`
+2. `.env`의 `EVIDENCE_ENABLE_SCREENSHOT=true`, `EVIDENCE_ENABLE_PDF=true`를 확인 시간 동안만 설정한다.
+3. 로컬 UI에서 공개 URL을 한 번 입력하여 증거 생성을 수행한다. 대량 URL 입력이나 자동 수집은 하지 않는다.
+4. `data/evidence/{caseId}/`에 스크린샷/PDF가 생성되는지 확인한다.
+5. 확인 후 `git status --ignored`로 산출물이 ignored 상태인지 확인한다.
+6. 평소 최소 실행으로 돌아갈 때는 두 캡처 옵션을 다시 `false`로 둔다.
+
+증거 캡처 산출물은 GitHub에 올리지 않는다. 자세한 제외 규칙은 [`data_policy.md`](./data_policy.md)를 참고한다.

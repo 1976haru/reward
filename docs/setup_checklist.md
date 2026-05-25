@@ -26,11 +26,12 @@
 - [ ] 실제 모델을 쓸 때만 `MOCK_AI=false` + `OPENAI_API_KEY` 입력
 - [ ] `.env`가 `.gitignore`에 포함되어 있는지 확인 (`git check-ignore .env`)
 
-## 5. Playwright (후속 체크리스트)
+## 5. Playwright 캡처 준비
 
-- [ ] 최소 실행 확인이 끝난 뒤 별도 단계에서 `npm run playwright:install` 실행
-- [ ] 캡처 확인 시에만 `.env`의 `EVIDENCE_ENABLE_SCREENSHOT=true`, `EVIDENCE_ENABLE_PDF=true` 설정
-- [ ] 이번 로컬 실행 환경 고정 단계에서는 캡처 기능 검증을 요구하지 않음
+- [ ] 캡처를 사용할 PC에서 최초 1회 `npm run playwright:install` 실행
+- [ ] 기본 실행에서는 `.env`의 `EVIDENCE_ENABLE_SCREENSHOT=false`, `EVIDENCE_ENABLE_PDF=false` 유지
+- [ ] 캡처 확인 시에만 두 값을 `true`로 설정하고 로그인 없는 공개 테스트 URL 1개를 수동 확인
+- [ ] `data/evidence/{caseId}/` 산출물이 `git status --ignored`에서 ignored 상태인지 확인
 
 ## 6. 빌드 및 테스트
 
