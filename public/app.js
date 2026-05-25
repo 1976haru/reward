@@ -85,6 +85,20 @@ const MODULES = [
   }
 ];
 
+const MODULE_DISPLAY_ORDER = [
+  "false_ad",
+  "general_food_ad",
+  "cosmetic_ad",
+  "medical_device_ad",
+  "counterfeit_goods",
+  "fake_goods",
+  "origin_labeling",
+  "origin_label",
+  "subsidy_fraud",
+  "bid_collusion",
+  "bid_rigging"
+];
+
 const PROCESS_STEPS = [
   { key: "collect", label: "자료수집" },
   { key: "rule", label: "규칙탐지" },
@@ -402,10 +416,58 @@ const FIELD_DEFINITIONS = [
     workflowNote: "건강기능식품 광고에서 질병 치료·완치·예방 표현을 검토 후보로 탐지합니다. 법 위반 확정이 아니며, 신고 전 사람이 공식 기준을 확인해야 합니다."
   },
   {
+    id: "general_food_ad",
+    label: "일반식품 허위·과대광고",
+    short: "건강기능식품 다음 쉬운 모듈",
+    statusLabel: "후속 준비 중",
+    statusKind: "upcoming",
+    agency: "식품의약품안전처",
+    description: "일반식품 온라인 광고 탐지 모듈은 건강기능식품 MVP 안정화 후 진행합니다.",
+    reward: "공식 기준 확인 필요 · 포상금 수령 보장 없음",
+    enabledStepsCount: 1,
+    evidence: ["공개 URL", "광고 문구 원문", "수집일시"],
+    reportingChannels: ["식품의약품안전처"],
+    cautions: ["현재 준비 중입니다.", "실제 신고는 사용자가 공식 창구에서 직접 진행합니다."],
+    officialUrl: "",
+    workflowNote: "일반식품 모듈은 건강기능식품 MVP 다음 순서로 준비합니다."
+  },
+  {
+    id: "cosmetic_ad",
+    label: "화장품 허위·과대광고",
+    short: "쉬운 확장 모듈 준비 중",
+    statusLabel: "후속 준비 중",
+    statusKind: "upcoming",
+    agency: "식품의약품안전처",
+    description: "화장품 온라인 광고 탐지 모듈은 일반식품 다음 순서로 진행합니다.",
+    reward: "공식 기준 확인 필요 · 포상금 수령 보장 없음",
+    enabledStepsCount: 1,
+    evidence: ["공개 URL", "광고 문구 원문", "수집일시"],
+    reportingChannels: ["식품의약품안전처"],
+    cautions: ["현재 준비 중입니다.", "실제 신고는 사용자가 공식 창구에서 직접 진행합니다."],
+    officialUrl: "",
+    workflowNote: "화장품 모듈은 일반식품 다음 순서로 준비합니다."
+  },
+  {
+    id: "medical_device_ad",
+    label: "의료기기 허위·과대광고",
+    short: "후속 모듈 준비 중",
+    statusLabel: "후속 준비 중",
+    statusKind: "upcoming",
+    agency: "식품의약품안전처",
+    description: "의료기기 온라인 광고 탐지 모듈은 화장품 다음 순서로 진행합니다.",
+    reward: "공식 기준 확인 필요 · 포상금 수령 보장 없음",
+    enabledStepsCount: 1,
+    evidence: ["공개 URL", "광고 문구 원문", "수집일시"],
+    reportingChannels: ["식품의약품안전처"],
+    cautions: ["현재 준비 중입니다.", "실제 신고는 사용자가 공식 창구에서 직접 진행합니다."],
+    officialUrl: "",
+    workflowNote: "의료기기 모듈은 화장품 다음 순서로 준비합니다."
+  },
+  {
     id: "counterfeit_goods",
     label: "위조상품 온라인 판매",
     short: "위조상품 의심 판매글 검토",
-    statusLabel: "룰 기반 · 사용 가능",
+    statusLabel: "확장 모듈 · 구현 보존",
     statusKind: "available",
     agency: "특허청 / 지식재산침해 원스톱 신고상담센터",
     description: "위조상품 의심 판매글을 검토 후보로 정리합니다. 위조 여부는 확정하지 않습니다.",
@@ -427,10 +489,10 @@ const FIELD_DEFINITIONS = [
     id: "subsidy_fraud",
     label: "보조금 부정수급",
     short: "공개 보조금 자료 검토 후보",
-    statusLabel: "프로토타입",
+    statusLabel: "후순위 고급 모듈 · 프로토타입",
     statusKind: "prototype",
     agency: "국민권익위원회 / 청렴포털 · 보조금 관리기관 · 관할 지자체",
-    description: "공개 보조금 자료에서 반복 수급, 동일 주소, 결과물 부족 등 검토 신호를 찾습니다. 부정수급 확정이 아닙니다.",
+    description: "실데이터 준비 후 진행할 후순위 프로토타입입니다. 공개 보조금 자료에서 반복 수급, 동일 주소, 결과물 부족 등 검토 신호를 찾으며, 부정수급 확정이 아닙니다.",
     reward: "공식 기준 확인 필요 · 보상금/포상금 수령 보장 없음",
     guideViewTarget: "guide",
     guideApi: "/api/modules/subsidy-fraud/guide",
@@ -449,10 +511,10 @@ const FIELD_DEFINITIONS = [
     id: "bid_collusion",
     label: "입찰담합",
     short: "정형 입찰 데이터 검토 패턴",
-    statusLabel: "프로토타입",
+    statusLabel: "후순위 고급 모듈 · 프로토타입",
     statusKind: "prototype",
     agency: "공정거래위원회 / 국민신문고",
-    description: "정형 입찰 데이터에서 반복 업체군, 순환 낙찰, 좁은 투찰 간격 등 검토 패턴을 분석합니다. 담합 확정이 아닙니다.",
+    description: "실데이터 준비 후 진행할 후순위 프로토타입입니다. 정형 입찰 데이터에서 반복 업체군, 순환 낙찰, 좁은 투찰 간격 등 검토 패턴을 분석하며, 담합 확정이 아닙니다.",
     reward: "공식 기준 확인 필요 · 포상금 수령 보장 없음",
     guideViewTarget: "guide",
     guideApi: "/api/modules/bid-collusion/guide",
@@ -618,7 +680,11 @@ function fieldStatusBadgeHtml(def) {
 function renderFieldSidebar() {
   const root = document.getElementById("fieldSidebar");
   if (!root) return;
-  const cards = FIELD_DEFINITIONS.map((def) => {
+  const orderIndex = (id) => {
+    const index = MODULE_DISPLAY_ORDER.indexOf(id);
+    return index === -1 ? MODULE_DISPLAY_ORDER.length : index;
+  };
+  const cards = [...FIELD_DEFINITIONS].sort((a, b) => orderIndex(a.id) - orderIndex(b.id)).map((def) => {
     const isActive = def.id === fieldState.selectedFieldId;
     return `
       <button type="button" class="field-card ${isActive ? "is-active" : ""} field-card-${escapeAttr(def.statusKind || "upcoming")}" data-field-id="${escapeAttr(def.id)}">
@@ -690,7 +756,7 @@ function renderStepPanelHtml(def, currentStep) {
         ${canBack ? `<button type="button" class="ghost" data-field-back>이전 단계</button>` : ""}
         ${canAdvance ? `<button type="button" class="ghost" data-field-advance>다음 단계로 이동</button>` : ""}
       </div>
-      <p class="step-panel-safety muted">⚠ 공익레이더는 자동 신고를 수행하지 않으며, 포상금 수령을 보장하지 않습니다. 모든 제출은 사람이 공식 창구에서 직접 진행합니다.</p>
+      <p class="step-panel-safety muted">자동신고 없음 · 사람 검토 필수 · 수동 제출 기록만 가능. 모든 제출은 사람이 공식 창구에서 직접 진행합니다.</p>
     </article>
   `;
 }
@@ -992,7 +1058,16 @@ async function loadModuleRegistry() {
     const data = await res.json();
     if (!data || !data.ok || !Array.isArray(data.modules) || data.modules.length === 0) return;
     const mapped = data.modules.map(toUiModule);
-    MODULES.splice(0, MODULES.length, ...mapped);
+    const mappedIds = new Set(mapped.map((m) => m.id));
+    const plannedDisplayOnly = MODULES.filter((m) =>
+      ["general_food_ad", "cosmetic_ad", "medical_device_ad"].includes(m.id) && !mappedIds.has(m.id)
+    );
+    const orderIndex = (id) => {
+      const index = MODULE_DISPLAY_ORDER.indexOf(id);
+      return index === -1 ? MODULE_DISPLAY_ORDER.length : index;
+    };
+    const sorted = [...mapped, ...plannedDisplayOnly].sort((a, b) => orderIndex(a.id) - orderIndex(b.id));
+    MODULES.splice(0, MODULES.length, ...sorted);
     const defaultId = data.defaultModuleId;
     const defaultMod = MODULES.find((m) => m.id === defaultId);
     if (defaultMod && defaultMod.available) {

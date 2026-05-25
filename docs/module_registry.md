@@ -13,6 +13,21 @@
 - 모듈별 정책 데이터: `src/modules/{slug}/agency_config.json`
 - 모듈별 보고서 템플릿: `src/modules/{slug}/report-template.md`
 
+## 1.1 Display Priority And Roadmap
+
+현재 1차 실전 MVP는 **건강기능식품 온라인 허위·과대광고 탐지**다. UI와 설명 문서는 다음 순서를 우선 표시한다.
+
+1. 건강기능식품
+2. 일반식품
+3. 화장품
+4. 의료기기
+5. 위조상품
+6. 원산지
+7. 보조금 - 후순위 고급 모듈/프로토타입, 실데이터 준비 후 진행
+8. 입찰담합 - 후순위 고급 모듈/프로토타입, 실데이터 준비 후 진행
+
+보조금·입찰담합의 기존 등록, 코드와 프로토타입 화면은 삭제하지 않는다. 공통 완료 기준은 [`roadmap_easy_first.md`](./roadmap_easy_first.md)를 따른다.
+
 ## 2. Current Active Module
 
 | id | name | category | status |

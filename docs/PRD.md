@@ -106,6 +106,8 @@ Ready 모듈: `counterfeit_goods`.
 Prototype 모듈: `subsidy_fraud`, `bid_collusion`.
 Planned 모듈: `origin_labeling`.
 
+개발 표시 우선순위는 **건강기능식품 → 일반식품 → 화장품 → 의료기기 → 위조상품 → 원산지 → 보조금 → 입찰담합**이다. `false_ad`가 현재 1차 실전 MVP이며, `subsidy_fraud`와 `bid_collusion`은 기존 기능을 유지하는 후순위 프로토타입으로 실데이터 준비 후 진행한다. 모든 모듈의 완성 정의는 [`roadmap_easy_first.md`](./roadmap_easy_first.md)를 따른다.
+
 ## 8. 신고 보상형 업무 흐름 (Reward-Reporting Workflow)
 
 공익레이더의 핵심 흐름은 다음 5단계다. **모든 단계 사이에는 사람 검토가 끼어들 수 있고, 마지막 신고 제출은 반드시 사람이 외부 창구에서 직접 수행한다.**

@@ -7,6 +7,12 @@
 
 공익레이더는 "포상금 자동화 프로그램"이 아닙니다. 사용자가 입력한 공개 URL을 수집·분석해 의심 문구를 추출하고 증거를 정리하며, 사람이 검토할 수 있는 신고서 초안을 생성합니다. 자동 신고는 수행하지 않으며, 실제 신고 제출은 사람이 공식 창구에서 직접 수행합니다. 포상금 수령을 보장하지 않습니다.
 
+> **현재 1차 실전 MVP:** 건강기능식품 온라인 허위·과대광고 탐지
+>
+> **개발 순서:** 건강기능식품 → 일반식품 → 화장품 → 의료기기 → 위조상품 → 원산지 → 보조금 → 입찰담합
+>
+> 보조금·입찰담합은 삭제하지 않고 **후순위 고급 모듈/프로토타입**으로 유지하며, 실데이터 준비 후 진행합니다.
+
 ## 제품 목표 (Product Goal)
 
 공익레이더는 **신고 보상형 의심사례 탐지 보조 시스템**입니다.
@@ -22,7 +28,7 @@
 
 설계 원칙(자세한 정책은 [`docs/OPERATING_POLICY.md`](./docs/OPERATING_POLICY.md), [`docs/PRD.md`](./docs/PRD.md), [`docs/LEGAL_REVIEW.md`](./docs/LEGAL_REVIEW.md), [`docs/approval_gate.md`](./docs/approval_gate.md), [`docs/REPORT_LANGUAGE_GUIDE.md`](./docs/REPORT_LANGUAGE_GUIDE.md), [`scope.md`](./scope.md) 참고):
 
-- **자동 신고 금지** — 외부 신고기관에 어떤 형태로도 자동 제출/자동 로그인하지 않습니다. 코드/UI/문서/정적 검사 4중 차단([`docs/approval_gate.md`](./docs/approval_gate.md)).
+- **자동 신고 금지** — 외부 신고기관 자동 제출, 신고기관 자동 로그인, 공식 신고 양식 자동입력, 포상금 자동신청, 사람 검토 없는 신고 상태 전환을 금지합니다. 코드/UI/문서/정적 검사 4중 차단([`docs/approval_gate.md`](./docs/approval_gate.md)).
 - **사람 검토·승인 필수** — AI 결과는 참고자료이며, 신고서 초안은 사람 검토를 거치고 사람이 명시적으로 승인(`human_approved`)해야 다음 단계로 갑니다.
 - **신고 전 사실관계 점검 필수** — `human_approved` 전이에는 **공개자료 여부 / 원문 URL / 금액 / 기간 / 수급기관 / 사업명 / 의심근거 / 반대 가능성 / 개인정보 점검 / 단정 표현 점검 / 증거 패키지** 11개 항목을 사람이 확인해야 합니다. 점검표 항목과 데이터 구조는 [`docs/PRE_SUBMISSION_FACT_CHECKLIST.md`](./docs/PRE_SUBMISSION_FACT_CHECKLIST.md), 게이트 강제는 [`src/policy/factCheckGate.ts`](./src/policy/factCheckGate.ts) (`requireFactCheckBeforeApproval`), 테스트는 `npm run test:fact-check` 입니다. 검토자 승인 없이는 신고서 확정 불가.
 - **신고서 초안 ≠ 실제 신고 제출** — 초안 생성·증거 패키지 생성은 신고가 아닙니다. 사람이 외부 공식 창구에 직접 제출한 뒤 **접수번호(`externalReceiptNo`)를 입력**해야 `manually_submitted` 로 기록됩니다.
@@ -139,6 +145,7 @@ curl http://localhost:3001/api/cases
 - 자동 신고 기능은 제공하지 않습니다. 모든 신고는 사람이 검토한 뒤 외부 신고기관에 직접 제출합니다.
 - 개인정보, 비공개 자료, 로그인 우회, 약관 위반 크롤링은 수행하지 않습니다.
 - 현재 사용 가능 모듈: **건강기능식품 온라인 허위·과대광고 탐지**. 식품·화장품·의료기기 전체를 한 번에 다루지 않으며, 건강기능식품 모듈이 안정화된 뒤 동일 패턴으로 카테고리를 확장합니다.
+- 모든 모듈의 완료 기준: 공개자료 입력부터 사용자 직접 제출 및 접수번호·처리결과 수동 기록까지의 공통 흐름은 [`docs/roadmap_easy_first.md`](./docs/roadmap_easy_first.md)를 따릅니다.
 
 ## MVP Scope
 
@@ -147,6 +154,7 @@ This project currently does not attempt to cover all reporting or bounty categor
 The first module is intentionally limited to health functional food advertising so that the collection, detection, analysis, evidence, and human review workflow can be completed safely before expanding to other modules.
 
 See [`mvp_scope.md`](./mvp_scope.md) for the detailed MVP scope and keyword set.
+See [`docs/roadmap_easy_first.md`](./docs/roadmap_easy_first.md) for the easy-first roadmap and the completion definition shared by every module.
 
 ## Scoring Agent (신고 후보 우선순위)
 
@@ -320,7 +328,7 @@ API:
 
 ## Counterfeit Goods Module (위조상품 의심 모듈)
 
-1차 모듈 `false_ad` 구조를 복사해 추가한 2차 분야 모듈입니다. 공개 판매게시글에서 **위조상품 의심 후보**를 탐지하며, **위조 여부를 확정하지 않습니다.** 권리자 감정과 관계기관 판단을 대체하지 않으며, 자동 신고/자동 로그인/비공개 채팅방 수집/판매자 개인정보 추적은 수행하지 않습니다.
+1차 모듈 `false_ad` 구조를 복사해 보존한 확장 분야 모듈입니다. 쉬운 모듈 우선 로드맵에서는 일반식품·화장품·의료기기 다음 순서입니다. 공개 판매게시글에서 **위조상품 의심 후보**를 탐지하며, **위조 여부를 확정하지 않습니다.** 권리자 감정과 관계기관 판단을 대체하지 않으며, 자동 신고/자동 로그인/비공개 채팅방 수집/판매자 개인정보 추적은 수행하지 않습니다.
 
 - `moduleId`: `counterfeit_goods` (slug: `counterfeit-goods`, status: `ready`)
 - 룰셋 54+ (HIGH 20 / MEDIUM 20 / LOW 10 / combo 4) — `src/modules/counterfeit-goods/keywords.json`
@@ -339,6 +347,8 @@ API:
 자세한 명세는 [`docs/counterfeit_module.md`](./docs/counterfeit_module.md).
 
 ## Subsidy Fraud Prototype Module (보조금 부정수급 의심 — 프로토타입)
+
+이 기능은 삭제하지 않지만, 현재 1차 실전 MVP가 아닙니다. 쉬운 모듈 우선 로드맵에서 **후순위 고급 모듈/프로토타입**으로 두며 실데이터 준비 후 진행합니다.
 
 The `subsidy_fraud` module is a **prototype** for identifying public-subsidy review candidates using public data. It analyzes:
 
@@ -363,6 +373,8 @@ API:
 자세한 명세는 [`docs/subsidy_module.md`](./docs/subsidy_module.md).
 
 ## Bid Collusion Prototype Module (입찰담합 의심 패턴 — 프로토타입)
+
+이 기능은 삭제하지 않지만, 현재 1차 실전 MVP가 아닙니다. 쉬운 모듈 우선 로드맵에서 **후순위 고급 모듈/프로토타입**으로 두며 실데이터 준비 후 진행합니다.
 
 The `bid_collusion` module analyzes structured public procurement data for **review-worthy collusion patterns**. It checks:
 
@@ -1068,7 +1080,7 @@ These notices are practical guidance only. They do not guarantee reward payment 
 
 기본 화면(`#field`) 구조:
 
-- **좌측 사이드바**: 신고 분야 목록 (5종) — 건강기능식품 허위·과대광고 / 위조상품 온라인 판매 / 보조금 부정수급 / 입찰담합 / 원산지 표시 위반(준비 중)
+- **좌측 사이드바**: 개발 우선순위를 따른 신고 분야 목록 — 건강기능식품 / 일반식품 / 화장품 / 의료기기 / 위조상품 / 원산지 / 보조금(후순위 프로토타입) / 입찰담합(후순위 프로토타입)
 - **중앙 워크스페이스**: 선택한 분야의 9단계 워크플로우 — 제도 확인 → 후보 찾기 → 수집/추출 → 룰 탐지 → AI 분석/점수화 → 증거 패키지 → 신고서 초안 → 사람 검토 → 결과 기록
 - **우측 컨텍스트 패널**: 선택한 분야의 신고처 · 수집해야 할 자료 · 주의사항 · 현재 단계에서 해야 할 일
 
@@ -1082,7 +1094,7 @@ These notices are practical guidance only. They do not guarantee reward payment 
 4. 운영/품질 (`ops`) — 대시보드 상세 · Eval · Feedback · Trace · Scheduler · 프로토타입 분석
 5. 설정 (`settings`) — Settings · Privacy
 
-상단 헤더는 제품명·실행 모드 배지·API 연결 상태·자동신고 없음 배지·오늘 날짜를 표시합니다.
+상단 헤더는 제품명·실행 모드 배지·API 연결 상태·`자동신고 없음 · 사람 검토 필수 · 수동 제출 기록만 가능` 안전 배지·오늘 날짜를 표시합니다.
 이전 워크플로우 사이드바(홈/후보찾기/분석/검토/신고서/결과/가이드/운영/설정 9버튼)는 제거되었고, 해당 뷰들은 보조 메뉴 또는 분야 워크스페이스의 단계 액션에서 진입할 수 있습니다.
 
 자세한 내용은 [`docs/ui_workflow.md`](./docs/ui_workflow.md) 참고.

@@ -2,9 +2,19 @@
 
 > Repository / internal project name: `reward-agent-mvp`
 > 문서 종류: Operating Policy (운영 정책)
-> 관련 문서: [`PRD.md`](./PRD.md), [`scope.md`](../scope.md), [`approval_gate.md`](./approval_gate.md), [`privacy_policy.md`](./privacy_policy.md)
+> 관련 문서: [`roadmap_easy_first.md`](./roadmap_easy_first.md), [`PRD.md`](./PRD.md), [`scope.md`](../scope.md), [`approval_gate.md`](./approval_gate.md), [`privacy_policy.md`](./privacy_policy.md)
 
 본 문서는 공익레이더 운영자·검토자·개발자가 반드시 지켜야 할 **운영 원칙**과 **체크리스트**를 정의한다. 본 문서는 법률 자문을 대체하지 않으며, 공식 신고기관의 지침이 본 문서와 충돌하면 공식 지침을 우선한다.
+
+---
+
+## 0. 현재 MVP와 공통 완성 정의
+
+현재 1차 실전 MVP는 **건강기능식품 온라인 허위·과대광고 탐지**다. 개발 순서와 모든 모듈이 따라야 하는 11단계 완성 정의는 [`roadmap_easy_first.md`](./roadmap_easy_first.md)에 고정한다.
+
+건강기능식품 → 일반식품 → 화장품 → 의료기기 → 위조상품 → 원산지 → 보조금 → 입찰담합 순서로 진행하며, 보조금·입찰담합은 기존 기능을 유지하는 **후순위 고급 모듈/프로토타입**으로 실데이터 준비 후 진행한다.
+
+신고서 초안 생성은 신고가 아니다. 실제 신고는 사람이 공식 신고처에서 직접 제출하며, 시스템에는 접수번호와 처리결과만 수동 기록한다.
 
 ---
 

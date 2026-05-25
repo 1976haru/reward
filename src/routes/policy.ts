@@ -17,6 +17,7 @@ policyRouter.get("/approval-gate", (req, res) => {
     officialLinks: getOfficialReportingLinks(moduleId),
     notice: getApprovalGateNotice(),
     autoReport: false,
-    humanReviewRequired: true
+    humanReviewRequired: true,
+    manualSubmissionRecordOnly: true
   });
 });
