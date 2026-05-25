@@ -51,6 +51,40 @@ export interface SettingsApiConnections {
   naver: SettingsApiConnectionEntry;
 }
 
+/**
+ * 단일 환경변수 상태 항목.
+ * - 시크릿(키)은 present(=설정됨/미설정) 만 노출하고 원문/일부 마스킹은 절대 노출하지 않는다.
+ * - on/off 형 플래그는 enabled 로 노출한다.
+ */
+export interface SettingsEnvFlag {
+  key: string;
+  present?: boolean;
+  enabled?: boolean;
+  label: string;
+  isSecret: boolean;
+}
+
+/**
+ * 초보자가 ".env 를 직접 열지 않고도" 현재 안전 설정을 확인할 수 있는 점검 목록.
+ * 체크리스트 8번에서 요구한 항목을 환경변수 키 기준으로 그대로 노출한다.
+ */
+export interface SettingsEnvStatus {
+  runtimeMode: RuntimeMode;
+  openaiApiKey: SettingsEnvFlag;
+  naverClientId: SettingsEnvFlag;
+  naverClientSecret: SettingsEnvFlag;
+  evidenceScreenshot: SettingsEnvFlag;
+  evidencePdf: SettingsEnvFlag;
+  schedulerEnabled: SettingsEnvFlag;
+  privacyDryRun: SettingsEnvFlag;
+}
+
+/** 초보자용 안전 안내 한 줄. tone 에 따라 UI 색상이 달라진다. */
+export interface SettingsSetupNotice {
+  tone: "safe" | "info" | "warn";
+  text: string;
+}
+
 export interface SettingsScheduler {
   enabled: boolean;
   cron: string;
@@ -87,6 +121,7 @@ export interface SettingsStorage {
 export interface SettingsSafety {
   autoSubmitAllowed: false;
   humanReviewRequired: true;
+  manualSubmissionRecordOnly: true;
   approvalGate: "enabled";
   notes: string[];
 }
@@ -104,6 +139,8 @@ export interface SettingsPayload {
   app: SettingsAppInfo;
   runtime: SettingsRuntimeMode;
   apiConnections: SettingsApiConnections;
+  envStatus: SettingsEnvStatus;
+  setupNotices: SettingsSetupNotice[];
   scheduler: SettingsScheduler;
   privacy: SettingsPrivacy;
   storage: SettingsStorage;
@@ -213,6 +250,75 @@ function buildApiConnectionStatus(args: {
   };
 }
 
+/**
+ * buildEnvStatus — 초보자 설정 점검 카드용. 환경변수 값을 읽되 undefined 여도 죽지 않게
+ * config 의 기본값/parseBool 을 그대로 사용한다. 시크릿은 present 만 노출한다.
+ */
+function buildEnvStatus(runtimeMode: RuntimeMode): SettingsEnvStatus {
+  const openaiPresent = maskSecretStatusOnly(config.openaiApiKey).configured;
+  const naverIdPresent = maskSecretStatusOnly(config.scout.naverClientId).configured;
+  const naverSecretPresent = maskSecretStatusOnly(config.scout.naverClientSecret).configured;
+
+  const secretFlag = (key: string, present: boolean): SettingsEnvFlag => ({
+    key,
+    present,
+    label: present ? "설정됨" : "미설정",
+    isSecret: true
+  });
+  const boolFlag = (key: string, enabled: boolean): SettingsEnvFlag => ({
+    key,
+    enabled,
+    label: enabled ? "true (켜짐)" : "false (꺼짐)",
+    isSecret: false
+  });
+
+  return {
+    runtimeMode,
+    openaiApiKey: secretFlag("OPENAI_API_KEY", openaiPresent),
+    naverClientId: secretFlag("NAVER_CLIENT_ID", naverIdPresent),
+    naverClientSecret: secretFlag("NAVER_CLIENT_SECRET", naverSecretPresent),
+    evidenceScreenshot: boolFlag("EVIDENCE_ENABLE_SCREENSHOT", config.evidence.enableScreenshot === true),
+    evidencePdf: boolFlag("EVIDENCE_ENABLE_PDF", config.evidence.enablePdf === true),
+    schedulerEnabled: boolFlag("SCHEDULER_ENABLED", config.scheduler.enabled === true),
+    privacyDryRun: boolFlag("PRIVACY_DRY_RUN", config.privacy.dryRun === true)
+  };
+}
+
+/**
+ * buildSetupNotices — 초보자가 바로 이해할 수 있는 한국어 안전 안내 문구.
+ * 현재 설정값에 따라 동적으로 생성한다.
+ */
+function buildSetupNotices(runtimeMode: RuntimeMode): SettingsSetupNotice[] {
+  const notices: SettingsSetupNotice[] = [];
+
+  if (runtimeMode === "MOCK") {
+    notices.push({ tone: "safe", text: "현재는 Mock 모드입니다. 실제 AI 비용이 발생하지 않습니다." });
+  } else if (runtimeMode === "MIXED") {
+    notices.push({ tone: "info", text: "현재는 일부 실제 키 + Mock 혼합 모드입니다. 실제 API 비용이 일부 발생할 수 있습니다." });
+  } else {
+    notices.push({ tone: "info", text: "현재는 실제 키가 연결된 모드입니다. 실제 API 비용이 발생할 수 있으니 사람이 먼저 확인하세요." });
+  }
+
+  notices.push({ tone: "safe", text: "자동신고 기능은 없습니다. 실제 신고는 사용자가 공식 창구에서 직접 해야 합니다." });
+  notices.push({ tone: "safe", text: "모든 신고 후보는 사람 검토가 필수이며, 제출 결과는 수동 기록만 가능합니다." });
+  notices.push({ tone: "safe", text: "API 키 원문은 화면에 표시하지 않습니다. (설정됨 / 미설정 만 표시)" });
+
+  const captureOn = config.evidence.enableScreenshot === true || config.evidence.enablePdf === true;
+  if (captureOn) {
+    notices.push({ tone: "info", text: "증거 캡처(스크린샷/PDF)가 켜져 있습니다. 공개 페이지만 분석하세요." });
+  } else {
+    notices.push({ tone: "info", text: "증거 캡처는 현재 꺼져 있습니다." });
+  }
+
+  if (config.privacy.dryRun === true) {
+    notices.push({ tone: "safe", text: "개인정보 처리는 dry-run(미적용 미리보기) 기본값입니다. 실제 삭제 전 사람이 확인합니다." });
+  } else {
+    notices.push({ tone: "warn", text: "PRIVACY_DRY_RUN 이 꺼져 있습니다. 실데이터 검증 전에는 dry-run 사용을 권장합니다." });
+  }
+
+  return notices;
+}
+
 function buildSchedulerSettings(): SettingsScheduler {
   return {
     enabled: config.scheduler.enabled === true,
@@ -256,11 +362,13 @@ function buildSafetySettings(): SettingsSafety {
   return {
     autoSubmitAllowed: false,
     humanReviewRequired: true,
+    manualSubmissionRecordOnly: true,
     approvalGate: "enabled",
     notes: [
       "외부 신고기관 자동 제출 기능을 제공하지 않습니다.",
       "자동 로그인 / 자동 민원 / 포상금 신청을 자동화하는 기능을 제공하지 않습니다.",
-      "모든 신고는 사람이 공식 창구에서 직접 수행합니다."
+      "모든 신고는 사람이 공식 창구에서 직접 수행합니다.",
+      "제출 결과는 사람이 직접 입력하는 수동 기록만 가능합니다."
     ]
   };
 }
@@ -326,6 +434,8 @@ export class SettingsService {
     const app = buildAppInfo();
     const { runtime, openaiConfigured, naverConfigured } = buildRuntimeMode();
     const apiConnections = buildApiConnectionStatus({ openaiConfigured, naverConfigured });
+    const envStatus = buildEnvStatus(runtime.runtimeMode);
+    const setupNotices = buildSetupNotices(runtime.runtimeMode);
     const scheduler = buildSchedulerSettings();
     const privacy = buildPrivacySettings();
     const storage = buildStorageSettings();
@@ -342,6 +452,8 @@ export class SettingsService {
       app,
       runtime,
       apiConnections,
+      envStatus,
+      setupNotices,
       scheduler,
       privacy,
       storage,
@@ -360,6 +472,8 @@ export class SettingsService {
       naverConfigured: r.naverConfigured
     });
   }
+  buildEnvStatus() { return buildEnvStatus(buildRuntimeMode().runtime.runtimeMode); }
+  buildSetupNotices() { return buildSetupNotices(buildRuntimeMode().runtime.runtimeMode); }
   buildSchedulerSettings() { return buildSchedulerSettings(); }
   buildPrivacySettings() { return buildPrivacySettings(); }
   buildStorageSettings() { return buildStorageSettings(); }

@@ -1099,6 +1099,52 @@ button.ghost:hover { border-color: var(--primary); color: var(--primary); }
 .settings-badge.off { background: #f1f5f9; color: #475569; }
 .settings-fallback { background: #fff7ed; border-color: #fed7aa; }
 
+/* ---------- 초보자 설정 점검 카드 (체크리스트 8) ---------- */
+.setup-check-card { background: #f0fdf4; border-color: #bbf7d0; grid-column: 1 / -1; }
+.setup-notice-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.setup-notice {
+  font-size: 12.5px; line-height: 1.5;
+  padding: 7px 10px; border-radius: 8px;
+  border: 1px solid var(--border); position: relative; padding-left: 28px;
+}
+.setup-notice::before { position: absolute; left: 9px; top: 7px; }
+.setup-notice-safe { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+.setup-notice-safe::before { content: "✅"; }
+.setup-notice-info { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+.setup-notice-info::before { content: "ℹ️"; }
+.setup-notice-warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.setup-notice-warn::before { content: "⚠️"; }
+.setup-env-grid { display: flex; flex-direction: column; gap: 2px; }
+
+/* ---------- 초보자 온보딩 카드 (체크리스트 9) ---------- */
+.onboarding-card { background: #f8fafc; border-color: #cbd5e1; }
+.onboarding-setup-summary {
+  background: white; border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; margin: 10px 0 14px;
+}
+.onboarding-setup-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.onboarding-setup-notices { margin: 0 0 8px; }
+.onboarding-steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: 1fr; gap: 10px;
+}
+.onboarding-step {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: white; border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+}
+.onboarding-step-num {
+  flex: 0 0 auto; width: 30px; height: 30px;
+  border-radius: 999px; background: #2563eb; color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 15px;
+}
+.onboarding-step-body { flex: 1 1 auto; }
+.onboarding-step-body h4 { margin: 2px 0 4px; font-size: 14.5px; }
+.onboarding-step-body p { margin: 0 0 8px; }
+.onboarding-step-body button { margin: 0 6px 4px 0; }
+.onboarding-foot-note { margin-top: 12px; font-size: 12px; }
+
 @media (max-width: 768px) {
   .settings-grid { grid-template-columns: 1fr; }
   .settings-row { grid-template-columns: 110px 1fr; }

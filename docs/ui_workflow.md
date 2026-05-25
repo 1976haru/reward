@@ -70,6 +70,36 @@
 - 각 단계 패널 하단의 `step-panel-safety` 가 같은 안전 안내를 단계별로 반복 표시합니다.
 - 우측 컨텍스트 패널의 `context-card-safety` 가 분야별 안전 안내를 표시합니다.
 
+## 6-1. 초보자 온보딩 + 설정 점검 (체크리스트 8~9)
+
+처음 실행한 사용자가 "지금 시스템이 안전하게 설정되어 있는지" 와 "다음에 무엇을 눌러야 하는지" 를 바로 이해하도록 두 가지를 추가했습니다.
+
+### (A) 설정 점검 카드 — 체크리스트 8
+
+- 위치: `설정` 뷰 최상단 `설정 / 실행 환경` 카드 안 `setup-check-card`. 데이터는 `GET /api/settings` 에서 옵니다.
+- `GET /api/settings` 응답이 보강되어 다음을 포함합니다.
+  - `runtime.runtimeMode` — 현재 실행 모드 (`MOCK` / `MIXED` / `REAL_READY`)
+  - `envStatus` — 환경변수 점검 (키 원문 없이 `설정됨/미설정`, on/off 만 표시)
+    - `OPENAI_API_KEY`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` → `present` (설정됨/미설정)
+    - `EVIDENCE_ENABLE_SCREENSHOT`, `EVIDENCE_ENABLE_PDF`, `SCHEDULER_ENABLED`, `PRIVACY_DRY_RUN` → `enabled`
+  - `setupNotices[]` — 초보자용 한국어 안내 (예: "현재는 Mock 모드입니다. 실제 AI 비용이 발생하지 않습니다.")
+  - `safety.manualSubmissionRecordOnly: true` — 수동 제출 기록만 가능
+- **API 키 원문은 절대 응답/화면/로그에 표시하지 않습니다.** `maskSecretStatusOnly()` 가 `configured` boolean 만 반환하며 일부 마스킹조차 제공하지 않습니다.
+- 환경변수가 `undefined` 여도 `config` 의 기본값(`parseBool`)을 사용해 서버가 죽지 않습니다.
+- 확인: `curl http://localhost:3001/api/settings`
+
+### (B) 5단계 실행 가이드 — 체크리스트 9
+
+- 위치: 기본 진입 뷰(`field`) 최상단 `onboarding-card` (`http://localhost:3001` 접속 시 바로 노출).
+- 1차 시작 모듈이 **건강기능식품**임을 명시하고(보조금/입찰담합은 후순위 확장), 다음 5단계를 안내합니다.
+  1. 설정 상태 확인 → `설정 점검하기` (`data-view-target="settings"`)
+  2. 건강기능식품 후보 찾기 또는 URL 준비 → `건강기능식품 후보 찾기` (`discover`)
+  3. URL 분석 실행 → `건강기능식품 분석 시작하기` (`analyze`)
+  4. 의심 문구·위험점수 + 증거 패키지 확인 → `증거 패키지 확인하기` (`analyze`), `신고서 초안 만들기` (`report`)
+  5. 사람 검토 후 직접 사용 → `사람 검토 대기열 보기` (`review`)
+- 모든 버튼은 기존 `data-view-target` 네비게이션을 사용하므로 오류 없이 동작합니다. 아직 준비 중인 분야는 좌측 분야 목록에서 "준비 중" 으로 표시되며 안내 모달만 띄우고 분석은 실행하지 않습니다.
+- 카드 상단 `onboarding-setup-summary` 는 `/api/settings` 의 모드·키 설정·증거 캡처 상태와 안전 안내를 요약합니다. `/api/settings` 실패 시에도 안전 문구 fallback 을 표시합니다.
+
 ## 7. Responsive Layout
 
 | breakpoint | 필드 사이드바 | 워크스페이스 / 컨텍스트 | 워크플로우 stepper |

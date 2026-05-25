@@ -3653,9 +3653,47 @@ async function loadSettings() {
     const data = await res.json();
     if (!data.ok || !data.settings) throw new Error(data.message || "settings failed");
     renderSettings(data.settings);
+    renderOnboardingSetupSummary(data.settings);
   } catch (err) {
     root.innerHTML = SETTINGS_FALLBACK_HTML + `<p class="muted" style="margin-top:8px;font-size:12px;">[debug] ${escapeHtml(err.message)}</p>`;
+    renderOnboardingSetupSummary(null);
   }
+}
+
+// 초보자 온보딩 카드의 "설정 점검 요약" (체크리스트 8~9). /api/settings 실패 시에도 안전 문구를 보여준다.
+function renderOnboardingSetupSummary(settings) {
+  const root = document.getElementById("onboardingSetupSummary");
+  if (!root) return;
+  if (!settings) {
+    root.innerHTML = `
+      <div class="onboarding-setup-fallback">
+        <p class="muted">설정 점검 상태를 불러오지 못했습니다. 설정 화면에서 직접 확인하세요.</p>
+        <p class="muted" style="font-size:12px;">자동신고 없음 · 사람 검토 필수 · 수동 제출 기록만 가능</p>
+      </div>`;
+    return;
+  }
+  const env = settings.envStatus || {};
+  const mode = env.runtimeMode || (settings.runtime && settings.runtime.runtimeMode) || "MOCK";
+  const modeKind = mode === "REAL_READY" ? "ok" : mode === "MIXED" ? "warn" : "off";
+  const notices = Array.isArray(settings.setupNotices) ? settings.setupNotices.slice(0, 4) : [];
+  const chips = [
+    `${settingsBadge("MODE: " + mode, modeKind)}`,
+    env.openaiApiKey ? settingsBadge("OpenAI 키 " + (env.openaiApiKey.present ? "설정됨" : "미설정"), env.openaiApiKey.present ? "ok" : "off") : "",
+    env.evidenceScreenshot || env.evidencePdf
+      ? settingsBadge("증거 캡처 " + ((env.evidenceScreenshot && env.evidenceScreenshot.enabled) || (env.evidencePdf && env.evidencePdf.enabled) ? "켜짐" : "꺼짐"),
+          ((env.evidenceScreenshot && env.evidenceScreenshot.enabled) || (env.evidencePdf && env.evidencePdf.enabled)) ? "warn" : "off")
+      : ""
+  ].filter(Boolean).join(" ");
+  const noticeHtml = notices.map((n) => {
+    const tone = n.tone === "warn" ? "warn" : n.tone === "info" ? "info" : "safe";
+    return `<li class="setup-notice setup-notice-${tone}">${escapeHtml(n.text || "")}</li>`;
+  }).join("");
+  root.innerHTML = `
+    <div class="onboarding-setup-inner">
+      <div class="onboarding-setup-chips">${chips}</div>
+      <ul class="setup-notice-list onboarding-setup-notices">${noticeHtml}</ul>
+      <button class="ghost" type="button" data-view-target="settings">설정 점검 자세히 보기 →</button>
+    </div>`;
 }
 
 function settingsBadge(text, kind) {
@@ -3668,6 +3706,44 @@ function settingsRow(label, valueHtml) {
     <div class="settings-row">
       <div class="settings-label">${escapeHtml(label)}</div>
       <div class="settings-value">${valueHtml}</div>
+    </div>
+  `;
+}
+
+// 초보자 설정 점검 카드 (체크리스트 8) — .env 를 직접 열지 않고도 안전 설정을 확인.
+function renderSetupCheckCard(settings) {
+  if (!settings) return "";
+  const notices = Array.isArray(settings.setupNotices) ? settings.setupNotices : [];
+  const env = settings.envStatus || {};
+  const flag = (f, label) => {
+    if (!f) return "";
+    const on = f.present === true || f.enabled === true;
+    const kind = f.isSecret ? (on ? "ok" : "off") : (on ? "ok" : "off");
+    return settingsRow(`${label} (${f.key})`, settingsBadge(f.label || (on ? "설정됨" : "미설정"), kind));
+  };
+  const noticeHtml = notices.length
+    ? notices.map((n) => {
+        const tone = n.tone === "warn" ? "warn" : n.tone === "info" ? "info" : "safe";
+        return `<li class="setup-notice setup-notice-${tone}">${escapeHtml(n.text || "")}</li>`;
+      }).join("")
+    : `<li class="setup-notice setup-notice-info">설정 안내를 불러오지 못했습니다.</li>`;
+
+  return `
+    <div class="settings-card setup-check-card">
+      <h4 class="settings-card-title">🛡 설정 점검 (초보자용)</h4>
+      <p class="muted" style="margin:2px 0 10px;font-size:12px;">아래는 지금 시스템이 안전하게 설정되어 있는지 보여줍니다. API 키 원문은 표시하지 않습니다.</p>
+      <ul class="setup-notice-list">${noticeHtml}</ul>
+      <div class="setup-env-grid">
+        ${settingsRow("현재 실행 모드", `${settingsBadge(env.runtimeMode || "MOCK", env.runtimeMode === "REAL_READY" ? "ok" : env.runtimeMode === "MIXED" ? "warn" : "off")} <span class="settings-hint">Mock = 실제 비용 없음</span>`)}
+        ${flag(env.openaiApiKey, "OpenAI API 키")}
+        ${flag(env.naverClientId, "Naver Client ID")}
+        ${flag(env.naverClientSecret, "Naver Client Secret")}
+        ${flag(env.evidenceScreenshot, "증거 스크린샷")}
+        ${flag(env.evidencePdf, "증거 PDF")}
+        ${flag(env.schedulerEnabled, "정기 수집 스케줄러")}
+        ${flag(env.privacyDryRun, "개인정보 dry-run")}
+      </div>
+      <p class="muted" style="margin-top:8px;font-size:12px;">자동신고 없음 · 사람 검토 필수 · 수동 제출 기록만 가능</p>
     </div>
   `;
 }
@@ -3801,6 +3877,7 @@ function renderSettings(settings) {
   }
   root.innerHTML = `
     <div class="settings-grid">
+      ${renderSetupCheckCard(settings)}
       ${renderAppSettings(settings.app)}
       ${renderRuntimeSettings(settings.runtime)}
       ${renderApiConnectionSettings(settings.apiConnections)}
