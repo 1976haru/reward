@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "medical_device_false_ad",
+  "category": "medical_device",
+  "lastReviewedAt": "2026-05-26",
+  "disclaimer": "이 룰셋은 의료기기 온라인 광고가 허가 범위를 초과하거나 의료적 효능을 단정하는 허위·과대광고 의심 문구, 또는 의료기기가 아닌 제품을 의료기기처럼 보이게 하는 표현을 탐지하기 위한 보조 자료이며, 법 위반 여부를 확정하지 않는다. 매칭은 검토가 필요한 후보 표현을 의미하며, 최종 판단은 사람이 한다. 허가받은 효능·등급은 공식 허가 범위 내 표현일 수 있으므로 범위를 넘는 단정·치료 표현인지 사람이 검토해야 한다.",
+  "riskWeights": {
+    "HIGH": 25,
+    "MEDIUM": 12,
+    "LOW": 5,
+    "diseaseAndTreatmentCombo": 25,
+    "productAndDiseaseCombo": 15,
+    "repeatedPhrase": 10,
+    "maxScore": 100
+  },
+  "diseaseTerms": [
+    "암", "종양", "당뇨", "혈당", "고혈압", "혈압", "관절염", "관절", "디스크",
+    "허리디스크", "목디스크", "통증", "불면", "불면증", "치매", "중풍", "뇌졸중",
+    "전립선", "이명", "비염", "척추", "신경통", "혈액순환장애"
+  ],
+  "actionTerms": [
+    "치료", "완치", "낫게", "예방", "제거", "회복", "대체",
+    "약 없이", "수술 없이", "병원 갈 필요", "처방 없이", "근본 치료", "재활 없이"
+  ],
+  "exaggerationTerms": [
+    "즉시 완화", "즉시 효과", "하루 만에", "100% 효과", "100% 보장",
+    "기적", "착용하기만 하면", "사용하기만 하면", "부작용 없는", "영구적",
+    "단번에", "통증 완전 제거", "혈압 정상화 보장", "후기로 입증된 효과"
+  ],
+  "productTerms": [
+    "의료기기", "전기치료기", "저주파", "고주파", "온열기", "마사지기",
+    "안마기", "찜질기", "패치", "기기", "디바이스", "측정기", "벨트", "매트"
+  ],
+  "rules": [
+    { "id": "MH001", "keyword": "암 치료 기기", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "의료기기로 암을 치료한다고 표시하는 허가 범위 초과·의료 효능 단정 의심 표현. 검토 필요", "examples": ["이 기기로 암 치료"], "matchType": "keyword" },
+    { "id": "MH002", "keyword": "종양 제거", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "의료적 효능을 단정하는 의심 표현. 검토 필요", "examples": ["종양 제거 효과"], "matchType": "keyword" },
+    { "id": "MH003", "keyword": "당뇨 완치", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "만성질환 완치를 표시하는 의심 표현. 검토 필요", "examples": ["당뇨 완치 기기"], "matchType": "keyword" },
+    { "id": "MH004", "keyword": "혈압 정상화", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "혈압을 정상화한다고 단정하는 의료 효능 의심 표현. 검토 필요", "examples": ["착용하면 혈압 정상화"], "matchType": "keyword" },
+    { "id": "MH005", "keyword": "고혈압 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "의약품·의료 영역 효능을 단정하는 의심 표현. 검토 필요", "examples": ["고혈압 치료 기기"], "matchType": "keyword" },
+    { "id": "MH006", "keyword": "디스크 완치", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "척추질환 완치를 표시하는 의심 표현. 검토 필요", "examples": ["디스크 완치 후기"], "matchType": "keyword" },
+    { "id": "MH007", "keyword": "관절염 치료", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "만성 질환 치료를 표시하는 의심 표현. 검토 필요", "examples": ["관절염 치료에 효과"], "matchType": "keyword" },
+    { "id": "MH008", "keyword": "통증 완전 제거", "riskLevel": "HIGH", "weight": 25, "category": "exaggerated_effect", "reason": "통증을 완전히 제거한다고 단정하는 과장·의료 효능 의심 표현. 검토 필요", "examples": ["통증 완전 제거"], "matchType": "keyword" },
+    { "id": "MH009", "keyword": "수술 없이 완치", "riskLevel": "HIGH", "weight": 25, "category": "medical_substitution", "reason": "수술 없이 완치된다고 표시하는 의료 대체 의심 표현. 검토 필요", "examples": ["수술 없이 완치"], "matchType": "keyword" },
+    { "id": "MH010", "keyword": "병원 치료 대체", "riskLevel": "HIGH", "weight": 25, "category": "medical_substitution", "reason": "병원 치료를 대체한다고 표시하는 의심 표현. 검토 필요", "examples": ["병원 치료 대체 가능"], "matchType": "keyword" },
+    { "id": "MH011", "keyword": "약 없이 혈당", "riskLevel": "HIGH", "weight": 25, "category": "medical_substitution", "reason": "의약품 없이 혈당을 조절한다고 표시하는 의심 표현. 검토 필요", "examples": ["약 없이 혈당 잡는 기기"], "matchType": "keyword" },
+    { "id": "MH012", "keyword": "치매 예방 기기", "riskLevel": "HIGH", "weight": 25, "category": "disease_prevention_claim", "reason": "질병 예방을 단정하는 의심 표현. 검토 필요", "examples": ["치매 예방 기기"], "matchType": "keyword" },
+    { "id": "MH013", "keyword": "뇌졸중 예방", "riskLevel": "HIGH", "weight": 25, "category": "disease_prevention_claim", "reason": "중증질환 예방을 단정하는 의심 표현. 검토 필요", "examples": ["뇌졸중 예방 효과"], "matchType": "keyword" },
+    { "id": "MH014", "keyword": "허가 없이 의료기기", "riskLevel": "HIGH", "weight": 25, "category": "unapproved_device", "reason": "허가 없이 의료기기로 표방하는 의심 표현. 검토 필요", "examples": ["허가 없이 의료기기처럼 판매"], "matchType": "keyword" },
+    { "id": "MH015", "keyword": "의료기기 아닌데 치료", "riskLevel": "HIGH", "weight": 25, "category": "unapproved_device", "reason": "의료기기가 아닌 제품을 치료 효능이 있는 것처럼 표시하는 의심 표현. 검토 필요", "examples": ["의료기기 아니지만 치료됨"], "matchType": "keyword" },
+    { "id": "MH016", "keyword": "허가 범위 초과 효능", "riskLevel": "HIGH", "weight": 25, "category": "scope_overstatement", "reason": "허가 범위를 초과하는 효능을 표시하는 의심 표현. 검토 필요", "examples": ["허가 범위 초과 효능 광고"], "matchType": "keyword" },
+
+    { "id": "MM001", "keyword": "통증 즉시 완화", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "통증 완화를 즉시·단정으로 표시하는 과장 의심 표현. 검토 필요", "examples": ["착용하면 통증 즉시 완화"], "matchType": "keyword" },
+    { "id": "MM002", "keyword": "혈액순환 개선 보장", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_effect", "reason": "효과를 보장한다고 표시하는 과장 의심 표현. 검토 필요", "examples": ["혈액순환 개선 보장"], "matchType": "keyword" },
+    { "id": "MM003", "keyword": "혈당 잡아주는", "riskLevel": "MEDIUM", "weight": 12, "category": "disease_cure_claim", "reason": "혈당 조절 효능을 표시하는 의심 표현. 검토 필요", "examples": ["혈당 잡아주는 측정기"], "matchType": "keyword" },
+    { "id": "MM004", "keyword": "불면증 개선", "riskLevel": "MEDIUM", "weight": 12, "category": "disease_cure_claim", "reason": "수면장애 개선 효능을 표시하는 의심 표현. 검토 필요", "examples": ["불면증 개선 매트"], "matchType": "keyword" },
+    { "id": "MM005", "keyword": "이명 완화", "riskLevel": "MEDIUM", "weight": 12, "category": "disease_cure_claim", "reason": "이명 증상 완화를 표시하는 의심 표현. 검토 필요", "examples": ["이명 완화 기기"], "matchType": "keyword" },
+    { "id": "MM006", "keyword": "전립선 개선", "riskLevel": "MEDIUM", "weight": 12, "category": "disease_cure_claim", "reason": "질환 개선을 표시하는 의심 표현. 검토 필요", "examples": ["전립선 개선 온열기"], "matchType": "keyword" },
+    { "id": "MM007", "keyword": "디스크 개선", "riskLevel": "MEDIUM", "weight": 12, "category": "disease_cure_claim", "reason": "척추질환 개선을 표시하는 의심 표현. 검토 필요", "examples": ["디스크 개선 벨트"], "matchType": "keyword" },
+    { "id": "MM008", "keyword": "신경통 완화", "riskLevel": "MEDIUM", "weight": 12, "category": "disease_cure_claim", "reason": "신경통 완화 효능을 표시하는 의심 표현. 검토 필요", "examples": ["신경통 완화 저주파"], "matchType": "keyword" },
+    { "id": "MM009", "keyword": "처방 없이 사용", "riskLevel": "MEDIUM", "weight": 12, "category": "medical_substitution", "reason": "처방 절차 우회를 암시하는 의심 표현. 검토 필요", "examples": ["처방 없이 사용 가능"], "matchType": "keyword" },
+    { "id": "MM010", "keyword": "재활 없이 회복", "riskLevel": "MEDIUM", "weight": 12, "category": "medical_substitution", "reason": "재활 치료 없이 회복된다고 표시하는 의심 표현. 검토 필요", "examples": ["재활 없이 회복"], "matchType": "keyword" },
+    { "id": "MM011", "keyword": "병원 가지 않아도", "riskLevel": "MEDIUM", "weight": 12, "category": "medical_substitution", "reason": "의료 이용이 불필요하다고 표시하는 의심 표현. 검토 필요", "examples": ["병원 가지 않아도 됩니다"], "matchType": "keyword" },
+    { "id": "MM012", "keyword": "후기로 입증", "riskLevel": "MEDIUM", "weight": 12, "category": "testimonial_overstatement", "reason": "체험담·후기로 효능을 입증했다고 단정하는 과장 의심 표현. 검토 필요", "examples": ["후기로 입증된 효과"], "matchType": "keyword" },
+    { "id": "MM013", "keyword": "사용 전후 완전 달라", "riskLevel": "MEDIUM", "weight": 12, "category": "testimonial_overstatement", "reason": "사용 전후 비교로 효과를 과장하는 의심 표현. 검토 필요", "examples": ["사용 전후 완전 달라요"], "matchType": "keyword" },
+
+    { "id": "ML001", "keyword": "즉시 효과", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "즉각적 효과를 표시하는 과장 의심 표현. 검토 필요", "examples": ["사용 즉시 효과"], "matchType": "keyword" },
+    { "id": "ML002", "keyword": "하루 만에", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "단기간 효과를 단정하는 과장 의심 표현. 검토 필요", "examples": ["하루 만에 개선"], "matchType": "keyword" },
+    { "id": "ML003", "keyword": "100% 보장", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "효과를 100% 보장한다고 표시하는 과장 의심 표현. 검토 필요", "examples": ["효과 100% 보장"], "matchType": "keyword" },
+    { "id": "ML004", "keyword": "부작용 없는", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "부작용이 전혀 없다고 표시하는 과장 의심 표현. 검토 필요", "examples": ["부작용 없는 안전한 기기"], "matchType": "keyword" },
+    { "id": "ML005", "keyword": "기적의", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "기적적 효과를 암시하는 과장 의심 표현. 검토 필요", "examples": ["기적의 치료기"], "matchType": "keyword" },
+    { "id": "ML006", "keyword": "영구적", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "효과가 영구적이라고 표시하는 과장 의심 표현. 검토 필요", "examples": ["영구적 통증 해방"], "matchType": "keyword" },
+    { "id": "ML007", "keyword": "단번에", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "단번에 효과를 표시하는 과장 의심 표현. 검토 필요", "examples": ["단번에 개선"], "matchType": "keyword" },
+    { "id": "ML008", "keyword": "누구나 효과", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "모든 사람에게 효과가 있다고 단정하는 과장 의심 표현. 검토 필요", "examples": ["누구나 효과 보장"], "matchType": "keyword" },
+
+    { "id": "MC001", "keyword": "의료기기명+질병명 동시 등장", "riskLevel": "HIGH", "weight": 25, "category": "product_disease_combo", "reason": "의료기기(저주파/온열기/마사지기 등)와 질병명이 함께 등장해 질환 치료 효능을 암시하는 의심 조합. 검토 필요", "examples": ["이 저주파 기기는 디스크에 좋아요"], "matchType": "combo", "pattern": "(저주파|고주파|온열기|마사지기|안마기|찜질기|전기치료기|측정기|벨트|매트|패치|기기|디바이스)[\\s\\S]{0,15}(암|종양|당뇨|혈당|고혈압|혈압|관절염|디스크|통증|불면|치매|뇌졸중|전립선|이명)" },
+    { "id": "MC002", "keyword": "착용/사용하기만 하면+치료/완치", "riskLevel": "HIGH", "weight": 25, "category": "disease_cure_claim", "reason": "착용·사용만으로 치료·완치된다고 단정하는 의심 조합. 검토 필요", "examples": ["착용하기만 하면 완치"], "matchType": "combo", "pattern": "(착용|사용)하기만\\s*하면[\\s\\S]{0,12}(치료|완치|낫|회복)" },
+    { "id": "MC003", "keyword": "수술 없이+완치", "riskLevel": "HIGH", "weight": 25, "category": "medical_substitution", "reason": "수술 없이 완치된다고 표시하는 의료 대체 의심 조합. 검토 필요", "examples": ["수술 없이 완치"], "matchType": "combo", "pattern": "수술\\s*없이[\\s\\S]{0,12}(완치|치료|회복|해결)" },
+    { "id": "MC004", "keyword": "약 없이+혈압/혈당/통증 개선", "riskLevel": "MEDIUM", "weight": 12, "category": "medical_substitution", "reason": "의약품 없이 증상을 개선한다고 표시하는 의심 조합. 검토 필요", "examples": ["약 없이 혈압 개선"], "matchType": "combo", "pattern": "약\\s*없이[\\s\\S]{0,12}(혈압|혈당|통증)[\\s\\S]{0,6}(개선|완화|정상)" }
+  ]
+}

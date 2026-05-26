@@ -180,6 +180,13 @@ check("[CL36] cosmetic_false_ad 등록됨", Boolean(cosmetic));
 check("[CL36] cosmetic 는 active 아님(3차 확장)", cosmetic?.status !== "active", `status=${cosmetic?.status}`);
 check("[CL36] cosmetic category=cosmetic", cosmetic?.category === "cosmetic");
 check("[CL36] 1차(false_ad active)·2차(general_food 등록) 유지", falseAd?.status === "active" && Boolean(generalFood));
+
+// 의료기기 확장 모듈 (체크리스트 40) — 1·2·3차 모듈을 대체하지 않는다
+const medicalDevice = moduleRegistry.get("medical_device_false_ad");
+check("[CL40] medical_device_false_ad 등록됨", Boolean(medicalDevice));
+check("[CL40] medical_device 는 active 아님(후속 확장)", medicalDevice?.status !== "active", `status=${medicalDevice?.status}`);
+check("[CL40] medical_device category=medical_device", medicalDevice?.category === "medical_device");
+check("[CL40] 1차(false_ad active)·2차(general_food)·3차(cosmetic) 유지", falseAd?.status === "active" && Boolean(generalFood) && Boolean(cosmetic));
 check("false_ad has reportTemplatePath", typeof falseAd?.reportTemplatePath === "string");
 check("false_ad has agencyConfigPath", typeof falseAd?.agencyConfigPath === "string");
 
@@ -617,6 +624,27 @@ check("claimCandidates 우선 분석", dSection.matches.some((m) => m.sourceSect
   // 정상 화장품 광고는 과탐지되지 않음
   const cmNormal = ra.detectDetailed({ text: "수분을 가득 채워주는 데일리 보습 크림입니다. 산뜻하게 발려요." }, "cosmetic_false_ad");
   check("[CL37] 정상 화장품 광고 과탐지 없음", cmNormal.matches.length === 0 && cmNormal.riskScore === 0, `score=${cmNormal.riskScore}`);
+}
+
+// 의료기기 키워드 룰셋 (체크리스트 41)
+{
+  const mdCfg = ra.getConfig("medical_device_false_ad");
+  check("[CL41] medical_device 룰셋 30개 이상", mdCfg.rules.length >= 30, `count=${mdCfg.rules.length}`);
+  const mdCounts = { HIGH: 0, MEDIUM: 0, LOW: 0, combo: 0 };
+  for (const r of mdCfg.rules) {
+    if (r.matchType === "regex" || r.matchType === "combo") mdCounts.combo++;
+    else mdCounts[r.riskLevel]++;
+  }
+  check("[CL41] HIGH/MEDIUM/LOW 모두 존재", mdCounts.HIGH > 0 && mdCounts.MEDIUM > 0 && mdCounts.LOW > 0,
+    `H${mdCounts.HIGH}/M${mdCounts.MEDIUM}/L${mdCounts.LOW}/combo${mdCounts.combo}`);
+  check("[CL41] combo rule 존재", mdCounts.combo >= 1);
+  // 의료기기 금지성 표현 탐지
+  const mdHit = ra.detectDetailed({ text: "이 저주파 기기로 디스크 완치, 수술 없이 완치됩니다." }, "medical_device_false_ad");
+  check("[CL41] 의료기기 금지성 표현 탐지", mdHit.matches.length >= 1 && mdHit.riskScore > 0);
+  check("[CL41] 탐지 결과는 법 위반 확정 아님(중립 문구)", /확정하지 않습니다|검토/.test(mdHit.safetyNotice));
+  // 정상 의료기기 안내는 과탐지되지 않음
+  const mdNormal = ra.detectDetailed({ text: "가정용 온열 마사지기입니다. 사용 후 충분히 휴식하세요." }, "medical_device_false_ad");
+  check("[CL41] 정상 의료기기 안내 과탐지 없음", mdNormal.matches.length === 0 && mdNormal.riskScore === 0, `score=${mdNormal.riskScore}`);
 }
 
 check("matches array exposed", Array.isArray(big.matches));

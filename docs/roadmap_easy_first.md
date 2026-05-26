@@ -11,7 +11,7 @@
 | 1 | 건강기능식품 온라인 허위·과대광고 탐지 | **1차 실전 MVP / 현재 우선 개발** |
 | 2 | 일반식품 온라인 허위·과대광고 탐지 | **2차 쉬운 확장 — 스코프·키워드 룰셋 작성 완료** ([scope](./general_food_false_ad_scope.md), `general_food_false_ad`). 신고서 템플릿·agency_config·E2E 는 다음 단계 |
 | 3 | 화장품 온라인 허위·과대광고 탐지 | **3차 쉬운 확장 — 스코프·키워드 룰셋 작성 완료** ([scope](./cosmetic_false_ad_scope.md), `cosmetic_false_ad`). 신고서 템플릿·agency_config·E2E 는 다음 단계 |
-| 4 | 의료기기 온라인 허위·과대광고 탐지 | 후속 모듈 |
+| 4 | 의료기기 온라인 허위·과대광고 탐지 | **쉬운 확장 — 스코프·키워드 룰셋 작성 완료** ([scope](./medical_device_false_ad_scope.md), `medical_device_false_ad`). 신고서 템플릿·agency_config·E2E 는 다음 단계 |
 | 5 | 위조상품 온라인 판매 의심 탐지 | 확장 모듈 |
 | 6 | 원산지 표시 위반 의심 탐지 | 확장 모듈 |
 | 7 | 보조금 부정수급 의심 탐지 | **후순위 고급 모듈 / 프로토타입, 실데이터 준비 후 진행** |
