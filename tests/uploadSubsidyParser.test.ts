@@ -114,6 +114,32 @@ test("[CL56] convertRowToStandardRecord 는 recordId 와 parsedAt 을 채운다"
   assert.equal(rec.subsidyAmount, 1_000_000);
 });
 
+test("[CL57-59] 정규화 결과 연결: recipientName/주소/사업명 → 정규화 키 (상세주소 원문 미저장)", () => {
+  const rec = convertRowToStandardRecord(
+    {
+      사업명: "2024년 1차 청년 창업 지원사업",
+      보조사업자: "(주)행복나눔",
+      보조금액: "10,000,000원",
+      회계연도: "2024",
+      소재지: "경기도 수원시 팔달구 효원로 1 행복빌딩 3층 302호"
+    },
+    { sourceFileName: "subsidy.csv", sourceFileType: "csv", sourceRowNumber: 2 }
+  );
+  // 57) 기관명 → normalizedRecipientName (법인표현 제거된 compact 키)
+  assert.ok(typeof rec.normalizedRecipientName === "string" && rec.normalizedRecipientName!.length > 0, "normalizedRecipientName 연결");
+  assert.ok(!rec.normalizedRecipientName!.includes("(주)"), "법인표현 제거됨");
+  // 59) 사업명 → projectNameCompactKey (연도/차수 제외 핵심 키)
+  assert.ok(typeof rec.projectNameCompactKey === "string" && rec.projectNameCompactKey!.length > 0, "projectNameCompactKey 연결");
+  assert.ok(!/2024/.test(rec.projectNameCompactKey!), "연도 제거됨");
+  // 58) 주소 → normalizedAddressKey / addressRegionKey (상세주소 제외)
+  assert.ok(typeof rec.normalizedAddressKey === "string" && rec.normalizedAddressKey!.length > 0, "normalizedAddressKey 연결");
+  assert.ok(typeof rec.addressRegionKey === "string" && rec.addressRegionKey!.length > 0, "addressRegionKey 연결");
+  assert.ok(!rec.normalizedAddressKey!.includes("302") && !rec.addressRegionKey!.includes("302"), "상세주소(호수) 키에 미포함");
+  // 상세주소 원문(층/호)이 레코드 어디에도 그대로 저장되지 않는다
+  const blob = JSON.stringify(rec);
+  assert.ok(!blob.includes("302호") && !blob.includes("3층"), "상세주소 원문 미저장");
+});
+
 test("sanitizeUploadRecord 가 sourceText 의 개인정보 패턴을 마스킹한다", () => {
   const rec: StandardSubsidyRecordFromUpload = {
     sourceFileName: "x.csv",

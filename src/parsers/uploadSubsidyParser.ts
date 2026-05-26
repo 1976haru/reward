@@ -20,6 +20,7 @@ import { ensureDir } from "../utils/fs.js";
 import { sanitizeForStorage } from "../policy/privacyGuard.js";
 import { normalizeEntityName } from "../normalizers/entityNameNormalizer.js";
 import { normalizeProjectName } from "../normalizers/projectNameSimilarity.js";
+import { normalizeAddress } from "../normalizers/addressNormalizer.js";
 import {
   StandardSubsidyRecordFromUpload,
   UPLOAD_DOCUMENT_TYPE_KEYWORDS,
@@ -333,6 +334,11 @@ export function convertRowToStandardRecord(
   // 저장 전 마스킹
   const sanitized = sanitizeUploadRecord(record);
 
+  // 상세주소(층/호/동호수) 토큰을 sourceText 에서 마스킹 — 원문 누출 방지 (체크리스트 58).
+  if (typeof sanitized.sourceText === "string" && sanitized.sourceText.length > 0) {
+    sanitized.sourceText = maskDetailAddressTokens(sanitized.sourceText);
+  }
+
   // 기관명·단체명 정규화 (체크리스트 13) — 동일 기관 "후보" 키. 확정 병합 아님.
   if (sanitized.recipientName && sanitized.recipientName.trim().length > 0) {
     const norm = normalizeEntityName(sanitized.recipientName);
@@ -343,6 +349,15 @@ export function convertRowToStandardRecord(
   if (sanitized.projectName && sanitized.projectName.trim().length > 0 && !sanitized.projectName.startsWith("(")) {
     const pn = normalizeProjectName(sanitized.projectName);
     if (pn.compactName.length > 0) sanitized.projectNameCompactKey = pn.compactName;
+  }
+
+  // 주소 정규화 키 (체크리스트 14/58) — 동일 주소 "후보" 비교용. 확정 아님.
+  // 상세주소(층·호·동호수) 원문은 저장하지 않고, 지역 단위 키만 보관한다 (removedDetailTokens 는 키/저장에서 제외).
+  if (typeof mapped.recipientAddress === "string" && mapped.recipientAddress.trim().length > 0) {
+    const addr = normalizeAddress(mapped.recipientAddress);
+    if (addr.normalizedAddressKey.length > 0) sanitized.normalizedAddressKey = addr.normalizedAddressKey;
+    if (addr.addressRegionKey.length > 0) sanitized.addressRegionKey = addr.addressRegionKey;
+    // 주소 원문(raw)은 레코드에 저장하지 않는다 — 정규화 키만 남긴다.
   }
 
   return sanitized;
@@ -816,6 +831,15 @@ export async function collectUploadFilePaths(inputPath: string): Promise<string[
 function truncate(s: string, n: number): string {
   if (typeof s !== "string") return "";
   return s.length > n ? s.slice(0, n) + "…" : s;
+}
+
+/** 상세주소 토큰(N층/N호/N동호수)을 마스킹한다. 동일 주소 분석은 지역 키만 사용하므로 상세는 저장하지 않는다. */
+function maskDetailAddressTokens(text: string): string {
+  if (typeof text !== "string" || text.length === 0) return text;
+  return text
+    .replace(/\d{1,4}\s*층/g, "[masked-address]")
+    .replace(/\d{1,4}\s*호(?![가-힣])/g, "[masked-address]")
+    .replace(/\d{1,4}\s*동\s*\d{1,4}\s*호/g, "[masked-address]");
 }
 
 /** 레코드 고유 식별자 생성: 파일타입_안전파일명_행번호_랜덤. 개인정보 미포함. */

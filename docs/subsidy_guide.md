@@ -21,6 +21,8 @@
 
 > ⚠️ **보조금 부정수급 모듈은 고급 모듈입니다.** 실데이터 기준선과 신고 전 사실점검이 준비된 뒤 사용합니다. 현재는 준비/프로토타입 단계이며, "실전 분석 시작"은 잠금/준비중 상태입니다. 건강기능식품(1차 MVP)·일반식품·화장품·의료기기·위조상품·원산지가 쉬운 분야 확장으로 먼저 진행되며, 보조금은 후순위 고급 모듈로 고정됩니다.
 
+> 🔧 **전처리(정규화) 가이드**: 수집/업로드된 보조금 레코드의 기관명·주소·사업명 정규화는 [`docs/ENTITY_NORMALIZATION_GUIDE.md`](./ENTITY_NORMALIZATION_GUIDE.md), [`docs/ADDRESS_NORMALIZATION_GUIDE.md`](./ADDRESS_NORMALIZATION_GUIDE.md), [`docs/PROJECT_NAME_SIMILARITY_GUIDE.md`](./PROJECT_NAME_SIMILARITY_GUIDE.md)를 참고하세요. 정규화 결과(동일 기관/동일 주소/유사 사업명 후보)는 모두 사람 검토 대상이며, 다음 단계의 반복수급/동일주소/유사사업명 위험룰 입력으로 사용됩니다. 상세주소 원문은 저장하지 않습니다.
+
 ## 2. Reporting Channels
 
 | id | 기관 | 공식 URL |
