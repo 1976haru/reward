@@ -110,8 +110,46 @@ const FALSE_AD_AGENCIES: ReportingAgency[] = [
   })
 ];
 
+/**
+ * 일반식품 허위·과대광고(general_food_false_ad) 공식 신고처 후보 (체크리스트 34).
+ * 최소 포함: 식약처/식품안전 공식 신고 안내, 국민신문고, 관할 지자체·보건소·식품안전관리과.
+ */
+const GENERAL_FOOD_AGENCIES: ReportingAgency[] = [
+  entry({
+    agencyId: "mfds_general_food",
+    agencyName: "식품의약품안전처",
+    moduleId: "general_food_false_ad",
+    category: "general_food",
+    officialUrl: "https://www.mfds.go.kr/wpge/m_660/de010410l001.do",
+    description: "일반식품 온라인 허위·과대광고(질병·의약품 오인 표현 등) 신고 안내 페이지. 사용자가 직접 공식 양식에 따라 제출합니다.",
+    requiredEvidence: ["원본 URL", "광고 문구 원문", "상품명", "화면 캡처/PDF", "수집일시", "질병·의약품 오인 표현 위치"],
+    cautions: COMMON_CAUTIONS
+  }),
+  entry({
+    agencyId: "epeople_general_food",
+    agencyName: "국민신문고",
+    moduleId: "general_food_false_ad",
+    category: "general_food",
+    officialUrl: "https://www.epeople.go.kr",
+    description: "민원·공익신고 통합 창구. 사용자가 직접 접속해 양식을 작성·제출합니다.",
+    requiredEvidence: ["원본 URL", "의심 문구 캡처", "수집일시", "신고 취지 요약(중립 표현)"],
+    cautions: COMMON_CAUTIONS
+  }),
+  entry({
+    agencyId: "local_government_general_food",
+    agencyName: "관할 지자체 · 보건소 · 식품안전관리과",
+    moduleId: "general_food_false_ad",
+    category: "general_food",
+    officialUrl: "https://www.gov.kr",
+    description: "정부24에서 관할 시·군·구청 또는 보건소/식품안전관리과를 찾아 직접 신고합니다. 지자체별 부서 명칭·접수 경로가 다릅니다.",
+    requiredEvidence: ["원본 URL", "캡처/PDF", "관할 지역 확인", "수집일시"],
+    cautions: COMMON_CAUTIONS
+  })
+];
+
 const REGISTRY_BY_MODULE: Record<string, ReportingAgency[]> = {
-  false_ad: FALSE_AD_AGENCIES
+  false_ad: FALSE_AD_AGENCIES,
+  general_food_false_ad: GENERAL_FOOD_AGENCIES
 };
 
 export class ReportingRegistryService {

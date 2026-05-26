@@ -31,6 +31,7 @@
     "check:subsidy-ui-demo": "node scripts/check-subsidy-ui-demo-policy.js",
     "check:api-keys": "node scripts/check-api-key-safety.js",
     "test:real-sample": "tsx scripts/run-real-sample-test.ts",
+    "test:general-food-sample": "tsx scripts/run-general-food-sample-test.ts",
     "test:approval": "tsx tests/approvalGate.test.ts",
     "test:language": "tsx tests/languagePolicy.test.ts",
     "test:privacy": "tsx tests/privacyGuard.test.ts",
