@@ -18,6 +18,11 @@ data/feedback/*
 data/eval/runs/*
 data/traces/*
 data/outcomes/*
+# 실전 샘플 테스트 산출물 / URL 목록은 커밋하지 않는다 (체크리스트 31)
+data/manual-tests/*
+!data/manual-tests/.gitkeep
+data/test-runs/*
+!data/test-runs/.gitkeep
 # 수집기 실제 산출물 — 새 산출물도 기본 차단 (.gitkeep / sample 만 추적)
 data/collector/*
 !data/collector/.gitkeep
