@@ -187,6 +187,13 @@ check("[CL40] medical_device_false_ad 등록됨", Boolean(medicalDevice));
 check("[CL40] medical_device 는 active 아님(후속 확장)", medicalDevice?.status !== "active", `status=${medicalDevice?.status}`);
 check("[CL40] medical_device category=medical_device", medicalDevice?.category === "medical_device");
 check("[CL40] 1차(false_ad active)·2차(general_food)·3차(cosmetic) 유지", falseAd?.status === "active" && Boolean(generalFood) && Boolean(cosmetic));
+
+// 원산지 표시 위반 확장 모듈 (체크리스트 48) — 앞선 모듈을 대체하지 않는다
+const originLabeling = moduleRegistry.get("origin_labeling");
+check("[CL48] origin_labeling 등록됨", Boolean(originLabeling));
+check("[CL48] origin_labeling status=ready (룰셋 연결)", originLabeling?.status === "ready", `status=${originLabeling?.status}`);
+check("[CL48] origin_labeling category=food_labeling", originLabeling?.category === "food_labeling");
+check("[CL48] 위조상품 포함 앞선 확장 유지", falseAd?.status === "active" && Boolean(generalFood) && Boolean(cosmetic) && Boolean(moduleRegistry.get("medical_device_false_ad")) && Boolean(moduleRegistry.get("counterfeit_goods")));
 check("false_ad has reportTemplatePath", typeof falseAd?.reportTemplatePath === "string");
 check("false_ad has agencyConfigPath", typeof falseAd?.agencyConfigPath === "string");
 
@@ -645,6 +652,27 @@ check("claimCandidates 우선 분석", dSection.matches.some((m) => m.sourceSect
   // 정상 의료기기 안내는 과탐지되지 않음
   const mdNormal = ra.detectDetailed({ text: "가정용 온열 마사지기입니다. 사용 후 충분히 휴식하세요." }, "medical_device_false_ad");
   check("[CL41] 정상 의료기기 안내 과탐지 없음", mdNormal.matches.length === 0 && mdNormal.riskScore === 0, `score=${mdNormal.riskScore}`);
+}
+
+// 원산지 표시 위반 키워드 룰셋 (체크리스트 49)
+{
+  const olCfg = ra.getConfig("origin_labeling");
+  check("[CL49] origin_labeling 룰셋 30개 이상", olCfg.rules.length >= 30, `count=${olCfg.rules.length}`);
+  const olCounts = { HIGH: 0, MEDIUM: 0, LOW: 0, combo: 0 };
+  for (const r of olCfg.rules) {
+    if (r.matchType === "regex" || r.matchType === "combo") olCounts.combo++;
+    else olCounts[r.riskLevel]++;
+  }
+  check("[CL49] HIGH/MEDIUM/LOW 모두 존재", olCounts.HIGH > 0 && olCounts.MEDIUM > 0 && olCounts.LOW > 0,
+    `H${olCounts.HIGH}/M${olCounts.MEDIUM}/L${olCounts.LOW}/combo${olCounts.combo}`);
+  check("[CL49] combo rule 존재", olCounts.combo >= 1);
+  // 원산지 표시 의심 표현 탐지
+  const olHit = ra.detectDetailed({ text: "100% 국내산 강조, 그런데 원산지 미표시. 수입산 원료 사용 가능." }, "origin_labeling");
+  check("[CL49] 원산지 표시 의심 표현 탐지", olHit.matches.length >= 1 && olHit.riskScore > 0);
+  check("[CL49] 탐지 결과는 위반 확정 아님(중립 문구)", /확정하지 않습니다|확정하지 않|검토/.test(olHit.safetyNotice));
+  // 정상 원산지 표시 문구는 과탐지되지 않음
+  const olNormal = ra.detectDetailed({ text: "원산지: 국내산(경기도)으로 명확히 표시되어 있습니다. 신선하게 배송합니다." }, "origin_labeling");
+  check("[CL49] 정상 원산지 표시 과탐지 없음", olNormal.matches.length === 0 && olNormal.riskScore === 0, `score=${olNormal.riskScore}`);
 }
 
 check("matches array exposed", Array.isArray(big.matches));

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "origin_labeling",
+  "category": "food_labeling",
+  "lastReviewedAt": "2026-05-26",
+  "disclaimer": "이 룰셋은 온라인 판매글의 원산지 표시 불일치·누락 의심 후보를 탐지하기 위한 보조 자료이며, 원산지 표시 위반 여부를 확정하지 않는다. 매칭은 검토가 필요한 후보 표현을 의미하며, 최종 판단은 관계기관(국립농산물품질관리원 등)과 사람의 검토에 따른다. 특정 판매자를 위반 업체로 단정하지 않는다.",
+  "riskWeights": {
+    "HIGH": 25,
+    "MEDIUM": 12,
+    "LOW": 5,
+    "diseaseAndTreatmentCombo": 25,
+    "productAndDiseaseCombo": 15,
+    "repeatedPhrase": 10,
+    "maxScore": 100
+  },
+  "diseaseTerms": [
+    "국내산", "국산", "수입산", "원산지", "혼합", "원료", "농가", "산지", "직송", "표기"
+  ],
+  "actionTerms": [
+    "미표시", "누락", "불일치", "별도 표기 없음", "표시 없음", "문의", "확인 요망"
+  ],
+  "exaggerationTerms": [
+    "100% 국내산", "전량 국내산", "우리 농산물", "신토불이", "프리미엄 국산", "청정 국내산"
+  ],
+  "productTerms": [
+    "농산물", "수산물", "축산물", "가공식품", "건강식품", "반찬", "김치", "고춧가루",
+    "참기름", "꿀", "버섯", "나물", "젓갈", "한우", "쌀", "잡곡"
+  ],
+  "rules": [
+    { "id": "OL_H001", "keyword": "원산지 미표시", "riskLevel": "HIGH", "weight": 25, "category": "origin_missing", "reason": "원산지 표시가 없다는 표현 — 표시 누락 의심. 검토 필요", "examples": ["원산지 미표시 상품"], "matchType": "keyword" },
+    { "id": "OL_H002", "keyword": "원산지 표시 없음", "riskLevel": "HIGH", "weight": 25, "category": "origin_missing", "reason": "원산지 표시가 없음 — 표시 누락 의심. 검토 필요", "examples": ["원산지 표시 없음"], "matchType": "keyword" },
+    { "id": "OL_H003", "keyword": "원산지 별도 표기 없음", "riskLevel": "HIGH", "weight": 25, "category": "origin_missing", "reason": "원산지를 별도로 표기하지 않는다는 표현 — 누락 의심. 검토 필요", "examples": ["원산지 별도 표기 없음"], "matchType": "keyword" },
+    { "id": "OL_H004", "keyword": "원산지 표기 생략", "riskLevel": "HIGH", "weight": 25, "category": "origin_missing", "reason": "원산지 표기를 생략한다는 표현 — 누락 의심. 검토 필요", "examples": ["원산지 표기 생략"], "matchType": "keyword" },
+    { "id": "OL_H005", "keyword": "국내산 둔갑", "riskLevel": "HIGH", "weight": 25, "category": "origin_mismatch", "reason": "수입산을 국내산으로 둔갑시킨다는 의심 표현. 검토 필요", "examples": ["수입산을 국내산 둔갑"], "matchType": "keyword" },
+    { "id": "OL_H006", "keyword": "국산으로 판매", "riskLevel": "HIGH", "weight": 25, "category": "origin_mismatch", "reason": "실제 원산지와 다르게 국산으로 표시·판매할 가능성 — 표시 불일치 의심. 검토 필요", "examples": ["수입 원료를 국산으로 판매"], "matchType": "keyword" },
+    { "id": "OL_H007", "keyword": "수입산을 국내산", "riskLevel": "HIGH", "weight": 25, "category": "origin_mismatch", "reason": "수입산을 국내산으로 표시할 가능성 — 표시 불일치 의심. 검토 필요", "examples": ["수입산을 국내산으로 표기"], "matchType": "keyword" },
+    { "id": "OL_H008", "keyword": "원산지 세탁", "riskLevel": "HIGH", "weight": 25, "category": "origin_mismatch", "reason": "원산지를 바꿔 표시하는 행위를 가리키는 의심 표현. 검토 필요", "examples": ["원산지 세탁 의혹"], "matchType": "keyword" },
+    { "id": "OL_H009", "keyword": "원산지 변경 표시", "riskLevel": "HIGH", "weight": 25, "category": "origin_mismatch", "reason": "원산지를 다르게 변경 표시한다는 의심 표현. 검토 필요", "examples": ["원산지 변경 표시"], "matchType": "keyword" },
+    { "id": "OL_H010", "keyword": "혼합 원료 원산지 누락", "riskLevel": "HIGH", "weight": 25, "category": "mixed_origin_missing", "reason": "혼합 원료의 원산지를 누락한다는 의심 표현. 검토 필요", "examples": ["혼합 원료 원산지 누락"], "matchType": "keyword" },
+    { "id": "OL_H011", "keyword": "혼합 비율 미표시", "riskLevel": "HIGH", "weight": 25, "category": "mixed_origin_missing", "reason": "혼합 원료의 비율·원산지를 표시하지 않는다는 의심 표현. 검토 필요", "examples": ["혼합 비율 미표시"], "matchType": "keyword" },
+    { "id": "OL_H012", "keyword": "상세페이지 원산지 다름", "riskLevel": "HIGH", "weight": 25, "category": "detail_option_mismatch", "reason": "상품명/옵션과 상세페이지의 원산지가 다르다는 의심 표현. 검토 필요", "examples": ["상세페이지 원산지 다름"], "matchType": "keyword" },
+    { "id": "OL_H013", "keyword": "표기와 실제 원산지 불일치", "riskLevel": "HIGH", "weight": 25, "category": "origin_mismatch", "reason": "표기와 실제 원산지가 다르다는 의심 표현. 검토 필요", "examples": ["표기와 실제 원산지 불일치"], "matchType": "keyword" },
+    { "id": "OL_H014", "keyword": "거짓 원산지", "riskLevel": "HIGH", "weight": 25, "category": "origin_mismatch", "reason": "원산지를 거짓으로 표시한다는 의심 표현. 검토 필요", "examples": ["거짓 원산지 표시 의혹"], "matchType": "keyword" },
+
+    { "id": "OL_M001", "keyword": "원산지 문의", "riskLevel": "MEDIUM", "weight": 12, "category": "origin_inquiry_redirect", "reason": "원산지를 게시글에 표시하지 않고 문의로 유도하는 신호. 검토 필요", "examples": ["원산지는 문의 주세요"], "matchType": "keyword" },
+    { "id": "OL_M002", "keyword": "원산지 확인 요망", "riskLevel": "MEDIUM", "weight": 12, "category": "origin_inquiry_redirect", "reason": "원산지를 직접 표시하지 않고 확인을 요망하는 신호. 검토 필요", "examples": ["원산지 확인 요망"], "matchType": "keyword" },
+    { "id": "OL_M003", "keyword": "수입산 원료 사용 가능", "riskLevel": "MEDIUM", "weight": 12, "category": "import_origin_ambiguous", "reason": "수입산 원료가 섞일 수 있다는 모호한 표현 — 원산지 표시 명확성 검토 필요", "examples": ["수입산 원료 사용 가능"], "matchType": "keyword" },
+    { "id": "OL_M004", "keyword": "원산지 변동 가능", "riskLevel": "MEDIUM", "weight": 12, "category": "import_origin_ambiguous", "reason": "원산지가 수시로 바뀔 수 있다는 모호한 표현 — 표시 명확성 검토 필요", "examples": ["원산지 변동 가능"], "matchType": "keyword" },
+    { "id": "OL_M005", "keyword": "원산지 상이할 수 있음", "riskLevel": "MEDIUM", "weight": 12, "category": "import_origin_ambiguous", "reason": "원산지가 다를 수 있다는 모호한 표현. 검토 필요", "examples": ["원산지 상이할 수 있음"], "matchType": "keyword" },
+    { "id": "OL_M006", "keyword": "국내 가공", "riskLevel": "MEDIUM", "weight": 12, "category": "domestic_emphasis", "reason": "국내 가공을 강조하나 원료 원산지는 불명확할 수 있음 — 검토 필요", "examples": ["국내 가공 제품"], "matchType": "keyword" },
+    { "id": "OL_M007", "keyword": "국내 포장", "riskLevel": "MEDIUM", "weight": 12, "category": "domestic_emphasis", "reason": "국내 포장을 강조하나 원료 원산지는 불명확할 수 있음 — 검토 필요", "examples": ["국내 포장 완료"], "matchType": "keyword" },
+    { "id": "OL_M008", "keyword": "100% 국내산", "riskLevel": "MEDIUM", "weight": 12, "category": "domestic_emphasis", "reason": "전량 국내산 단정 표현 — 원료 원산지 근거 확인 필요", "examples": ["100% 국내산"], "matchType": "keyword" },
+    { "id": "OL_M009", "keyword": "전량 국내산", "riskLevel": "MEDIUM", "weight": 12, "category": "domestic_emphasis", "reason": "전량 국내산 단정 표현 — 근거 확인 필요", "examples": ["전량 국내산 원료"], "matchType": "keyword" },
+    { "id": "OL_M010", "keyword": "우리 농산물", "riskLevel": "MEDIUM", "weight": 12, "category": "domestic_emphasis", "reason": "국산 인상을 주는 표현 — 실제 원산지 정보 확인 필요", "examples": ["우리 농산물로 만든"], "matchType": "keyword" },
+    { "id": "OL_M011", "keyword": "신토불이", "riskLevel": "MEDIUM", "weight": 12, "category": "domestic_emphasis", "reason": "국산 인상을 주는 표현 — 실제 원산지 정보 확인 필요", "examples": ["신토불이 식품"], "matchType": "keyword" },
+    { "id": "OL_M012", "keyword": "옵션별 원산지 상이", "riskLevel": "MEDIUM", "weight": 12, "category": "detail_option_mismatch", "reason": "옵션마다 원산지가 다른데 표시가 불명확할 수 있음 — 검토 필요", "examples": ["옵션별 원산지 상이"], "matchType": "keyword" },
+    { "id": "OL_M013", "keyword": "원산지 표기 추후", "riskLevel": "MEDIUM", "weight": 12, "category": "origin_inquiry_redirect", "reason": "원산지 표기를 추후로 미루는 신호. 검토 필요", "examples": ["원산지 표기 추후 안내"], "matchType": "keyword" },
+
+    { "id": "OL_L001", "keyword": "산지직송", "riskLevel": "LOW", "weight": 5, "category": "origin_info_lacking", "reason": "산지직송 표현 (정상일 수 있으나 원산지 정보 부족 시 검토 필요)", "examples": ["산지직송 채소"], "matchType": "keyword" },
+    { "id": "OL_L002", "keyword": "국내 농가", "riskLevel": "LOW", "weight": 5, "category": "domestic_emphasis", "reason": "국내 농가 표현 (정상일 수 있으나 원산지 명시 확인 필요)", "examples": ["국내 농가 직거래"], "matchType": "keyword" },
+    { "id": "OL_L003", "keyword": "농가 직거래", "riskLevel": "LOW", "weight": 5, "category": "domestic_emphasis", "reason": "농가 직거래 표현 (문맥 확인 필요)", "examples": ["농가 직거래 상품"], "matchType": "keyword" },
+    { "id": "OL_L004", "keyword": "국산 느낌", "riskLevel": "LOW", "weight": 5, "category": "domestic_emphasis", "reason": "국산 인상을 주는 모호한 표현 (문맥 확인 필요)", "examples": ["국산 느낌 가득"], "matchType": "keyword" },
+    { "id": "OL_L005", "keyword": "청정 지역", "riskLevel": "LOW", "weight": 5, "category": "domestic_emphasis", "reason": "청정 지역 강조 (원산지 명시 여부 확인 필요)", "examples": ["청정 지역에서 재배"], "matchType": "keyword" },
+    { "id": "OL_L006", "keyword": "프리미엄 국산", "riskLevel": "LOW", "weight": 5, "category": "domestic_emphasis", "reason": "프리미엄 국산 강조 (근거·원산지 확인 필요)", "examples": ["프리미엄 국산 한우"], "matchType": "keyword" },
+    { "id": "OL_L007", "keyword": "원산지 별도 안내", "riskLevel": "LOW", "weight": 5, "category": "origin_inquiry_redirect", "reason": "원산지를 게시글이 아닌 별도로 안내한다는 표현 (문맥 확인 필요)", "examples": ["원산지 별도 안내 예정"], "matchType": "keyword" },
+    { "id": "OL_L008", "keyword": "수입 후 국내 가공", "riskLevel": "LOW", "weight": 5, "category": "import_origin_ambiguous", "reason": "수입 후 국내 가공 표현 (원료 원산지 표시 명확성 확인 필요)", "examples": ["수입 후 국내 가공"], "matchType": "keyword" },
+
+    { "id": "OL_C001", "keyword": "국내산 강조 + 원산지 정보 없음", "riskLevel": "HIGH", "weight": 25, "category": "domestic_no_origin_combo", "reason": "국내산/국산을 강조하면서 원산지 표시가 없거나 미표시인 조합 — 표시 불일치 의심 증가", "examples": ["100% 국내산인데 원산지 미표시"], "matchType": "combo", "pattern": "(국내산|국산|우리\\s*농산물|전량\\s*국내산)[^\\n\\.]{0,40}(원산지\\s*(미표시|표시\\s*없음|별도\\s*표기\\s*없음|문의))" },
+    { "id": "OL_C002", "keyword": "국산/우리농산물 + 수입산 원료 가능성", "riskLevel": "HIGH", "weight": 25, "category": "domestic_import_combo", "reason": "국산을 내세우면서 수입산 원료 가능성을 함께 표시하는 조합 — 표시 불일치 의심", "examples": ["우리 농산물인데 수입산 원료 사용 가능"], "matchType": "combo", "pattern": "(국내산|국산|우리\\s*농산물|신토불이)[^\\n\\.]{0,40}(수입산\\s*원료|수입\\s*원료|원산지\\s*변동|원산지\\s*상이)" },
+    { "id": "OL_C003", "keyword": "산지직송 + 원산지 미표시", "riskLevel": "MEDIUM", "weight": 15, "category": "domestic_no_origin_combo", "reason": "산지직송/농가 표현과 원산지 미표시가 함께 등장하는 조합 — 검토 필요", "examples": ["산지직송인데 원산지 표시 없음"], "matchType": "combo", "pattern": "(산지\\s*직송|국내\\s*농가|농가\\s*직거래)[^\\n\\.]{0,40}(원산지\\s*(미표시|표시\\s*없음|문의|별도))" },
+    { "id": "OL_C004", "keyword": "혼합 원료 + 원산지 누락", "riskLevel": "HIGH", "weight": 25, "category": "mixed_origin_combo", "reason": "혼합 원료를 표시하면서 각 원료 원산지를 누락하는 조합 — 표시 누락 의심", "examples": ["혼합 원료인데 원산지 누락"], "matchType": "combo", "pattern": "(혼합\\s*원료|혼합\\s*비율|블렌딩)[^\\n\\.]{0,40}(원산지\\s*(누락|미표시|표시\\s*없음))" },
+    { "id": "OL_C005", "keyword": "상품명 국내산 + 상세 수입산", "riskLevel": "HIGH", "weight": 25, "category": "detail_option_combo", "reason": "상품명/옵션은 국내산인데 상세페이지는 수입산으로 표시되는 불일치 조합 — 표시 불일치 의심", "examples": ["상품명 국내산, 상세 수입산"], "matchType": "combo", "pattern": "(상품명|옵션|제목)[^\\n\\.]{0,15}(국내산|국산)[^\\n\\.]{0,40}(상세|상세페이지)[^\\n\\.]{0,15}(수입산|중국산|외국산)" }
+  ]
+}

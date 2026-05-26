@@ -9,6 +9,7 @@ import { loadCounterfeitKeywordsSync } from "../modules/counterfeit-goods/keywor
 import { loadGeneralFoodKeywordsSync } from "../modules/general-food-false-ad/keywordLoader.js";
 import { loadCosmeticKeywordsSync } from "../modules/cosmetic-false-ad/keywordLoader.js";
 import { loadMedicalDeviceKeywordsSync } from "../modules/medical-device-false-ad/keywordLoader.js";
+import { loadOriginLabelingKeywordsSync } from "../modules/origin-labeling/keywordLoader.js";
 import { splitSentences } from "../services/TextExtractor.js";
 
 export type SectionName = "claim" | "review" | "ingredient" | "usage" | "warning" | "seller" | "main";
@@ -100,6 +101,8 @@ const KEYWORD_LOADERS: Record<string, () => KeywordConfig> = {
   cosmetic_false_ad: () => loadCosmeticKeywordsSync() as KeywordConfig,
   // 의료기기 허위·과대광고 (후속 확장) — false-ad 와 동일 KeywordConfig 스키마
   medical_device_false_ad: () => loadMedicalDeviceKeywordsSync() as KeywordConfig,
+  // 원산지 표시 위반 의심 (후속 확장) — false-ad 와 동일 KeywordConfig 스키마
+  origin_labeling: () => loadOriginLabelingKeywordsSync() as KeywordConfig,
   // counterfeit_goods 의 KeywordConfig는 brandTerms 등 추가 필드를 가지지만,
   // RuleAgent 가 사용하는 필드(rules, riskWeights, schemaVersion, moduleId)는 동일하므로
   // KeywordConfig 로 안전하게 cast 한다.
