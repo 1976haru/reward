@@ -82,17 +82,31 @@ UI에서는 SUBMITTED 버튼 클릭 시 `window.confirm` 다이얼로그로 사�
 | `PATCH /api/review/queue/:caseId/status` | 동일 (Case API wrapper) |
 | 응답 공통 필드 | `autoReport: false`, `humanReviewRequired: true`, `safetyNotice` |
 
-## 7. Official Links
+## 7. Official Links (체크리스트 20)
 
-`getOfficialReportingLinks("false_ad")` 반환:
+`getOfficialReportingLinks("false_ad")` 반환 (건강기능식품 허위·과대광고 1차 MVP 신고처 후보):
 
-| 기관 | URL | 비고 |
-|---|---|---|
-| 식품의약품안전처 | https://www.mfds.go.kr/wpge/m_660/de010410l001.do | 온라인 불법유통 신고 안내 (단순 링크) |
-| 국민신문고 | https://www.epeople.go.kr | 민원·공익신고 통합 창구 (사용자 직접 작성) |
-| 국민권익위원회 | https://www.acrc.go.kr | 공익신고 제도 일반 안내 |
+| agencyId | 기관 | URL | 비고 |
+|---|---|---|---|
+| `mfds` | 식품의약품안전처 | https://www.mfds.go.kr/wpge/m_660/de010410l001.do | 온라인 불법유통 신고 안내 (단순 링크) |
+| `epeople` | 국민신문고 | https://www.epeople.go.kr | 민원·공익신고 통합 창구 (사용자 직접 작성) |
+| `acrc` | 국민권익위원회 | https://www.acrc.go.kr | 공익신고 제도 일반 안내 |
+| `foodsafetykorea` | 식품안전나라 | https://www.foodsafetykorea.go.kr/portal/fooddanger/puff.do | 허위·과대광고 유형 안내·신고 |
+| `local_government` | 관할 지자체 · 보건소 · 식품안전관리과 | https://www.gov.kr | 정부24 — 관할 부서 찾기 (지자체별 경로 상이) |
 
-링크는 `target="_blank"` + `rel="noreferrer noopener"`로 열린다. 자동 로그인·자동 입력은 일절 하지 않는다.
+링크는 `target="_blank"` + `rel="noreferrer noopener"`로 열린다. **자동 로그인·자동 입력·자동 제출은 일절 하지 않는다.** 신고서 내용·API 키·개인정보를 링크 URL에 자동으로 붙이지 않는다.
+
+### 7.1 링크 공식성 (Officiality)
+
+- 모든 URL은 **정부/공공기관 공식 도메인(`*.go.kr`)** 만 사용한다. 블로그·뉴스·법무법인 홍보글·커뮤니티 링크는 금지한다.
+- 최소 포함 요건(체크리스트 20): 식약처/식품안전 공식 신고 안내, 국민신문고, 관할 지자체·보건소·식품안전관리과 안내 — 현재 5개 모두 충족.
+- 링크는 "단순 외부 링크 열기"만 허용한다. 코드 정의 위치: [`src/policy/approvalGate.ts`](../src/policy/approvalGate.ts) `FALSE_AD_LINKS`.
+
+### 7.2 URL 관리 기준 (Maintenance)
+
+- 공식 기관이 페이지 구조를 바꾸면 URL이 변경될 수 있다. 변경 시 `src/policy/approvalGate.ts`의 `FALSE_AD_LINKS` 와 본 표를 함께 갱신한다.
+- 모듈별 신고처 메타데이터는 `src/modules/false-ad/agency_config.json` 에서도 관리한다 (스키마: [`agency_config_schema.md`](./agency_config_schema.md) §5 `primaryAgencies`, §12 `maintenancePolicy`).
+- `maintenancePolicy.officialSourcesOnly = true`, 검토 주기 `before_each_release`, `staleAfterDays` 경과 시 사람 재검토 권고. URL 변경/검토 후 `lastReviewedAt` 을 갱신한다.
 
 ## 8. Static Safety Check
 

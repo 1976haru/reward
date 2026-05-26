@@ -87,6 +87,20 @@ const FALSE_AD_LINKS: OfficialReportingLink[] = [
     label: "국민권익위원회 (공익신고 제도 안내)",
     url: "https://www.acrc.go.kr",
     caution: "공익신고 제도 일반 안내. 구체 접수 경로는 사이트 내 공식 안내를 확인하세요."
+  },
+  {
+    agencyId: "foodsafetykorea",
+    agencyName: "식품안전나라",
+    label: "식품안전나라 (허위·과대광고 유형 안내·신고)",
+    url: "https://www.foodsafetykorea.go.kr/portal/fooddanger/puff.do",
+    caution: "허위·과대광고 유형 확인 및 안내 페이지입니다. 직접 접수 채널 여부는 공식 안내를 확인하고 사용자가 직접 제출해야 합니다."
+  },
+  {
+    agencyId: "local_government",
+    agencyName: "관할 지자체 · 보건소 · 식품안전관리과",
+    label: "정부24 (관할 지자체·보건소 식품안전 부서 찾기)",
+    url: "https://www.gov.kr",
+    caution: "지자체별 부서 명칭과 접수 경로가 다릅니다. 관할 시·군·구청 또는 보건소/식품안전관리과 공식 안내를 사용자가 직접 확인해 제출해야 합니다."
   }
 ];
 

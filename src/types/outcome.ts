@@ -87,9 +87,11 @@ export interface OutcomeEntry {
   agencyName?: string;
   agencyChannel?: string;
   // 제출 / 접수 정보
+  submittedManually?: boolean;    // 사용자가 외부 공식 창구에 직접 제출한 사실의 내부 기록 (시스템 자동 제출 아님)
+  recorderName?: string;          // 결과를 기록한 사람 (reviewerName/recorderName)
   submittedAt?: string;           // YYYY-MM-DD (사용자 입력)
   receivedAt?: string;
-  referenceNumber?: string;       // 접수번호 (마스킹된 형태로 저장 가능)
+  referenceNumber?: string;       // 접수번호/externalReceiptNo (마스킹된 형태로 저장 가능)
   referenceNumberMasked?: boolean;
   // 처리 정보
   status: OutcomeStatus;
@@ -98,8 +100,9 @@ export interface OutcomeEntry {
   rejectionReason?: string;       // 반려 사유 (마스킹)
   supplementRequest?: string;     // 보완 요청 내용 (마스킹)
   // 포상/보상
+  rewardRelated?: boolean;        // 포상/보상 관련 사안인지 여부 (지급 보장 아님)
   rewardOutcome: RewardOutcome;
-  rewardAmount?: number | null;   // "사용자 입력 지급 확인 금액" — 0 이상
+  rewardAmount?: number | null;   // "사용자 입력 지급 확인 금액" — 0 이상. 실제 지급 확인 후에만 입력
   rewardCurrency?: string;        // "KRW" 등
   // 후속 처리
   followUpDueAt?: string;         // 다음 확인일
@@ -117,6 +120,12 @@ export interface CreateOutcomeInput {
   moduleId?: string;
   agencyName?: string;
   agencyChannel?: string;
+  // 수동 제출 안전장치 (체크리스트 21)
+  submittedManually?: boolean;
+  confirmManualSubmission?: boolean;   // 입력 검증용 — 저장은 submittedManually 로 반영
+  reviewerName?: string;               // recorderName 의 별칭. 누가 외부 창구에 직접 제출/기록했는지
+  recorderName?: string;
+  externalReceiptNo?: string;          // referenceNumber 의 별칭 (외부 접수번호)
   submittedAt?: string;
   receivedAt?: string;
   referenceNumber?: string;
@@ -125,6 +134,7 @@ export interface CreateOutcomeInput {
   resultSummary?: string;
   rejectionReason?: string;
   supplementRequest?: string;
+  rewardRelated?: boolean;
   rewardOutcome?: RewardOutcome;
   rewardAmount?: number | null;
   rewardCurrency?: string;
@@ -193,6 +203,7 @@ export const OUTCOME_SAFETY_NOTICE =
 export const OUTCOME_LIMITS = {
   agencyName: 80,
   agencyChannel: 120,
+  recorderName: 80,
   referenceNumber: 80,
   resultSummary: 1000,
   rejectionReason: 1000,

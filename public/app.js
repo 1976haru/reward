@@ -1918,7 +1918,11 @@ function renderQueueDetail(d) {
 
     <h4 style="margin:10px 0 4px;">공식 신고처 열기 (외부 링크)</h4>
     <div id="queueOfficialLinks" class="muted">불러오는 중...</div>
-    <p class="muted" style="font-size:12px;margin:4px 0;">아래 링크는 단순 외부 링크입니다. 시스템은 자동 입력·자동 로그인·자동 제출을 수행하지 않습니다. 사용자가 공식 양식에 따라 직접 제출해야 합니다.</p>
+    <ul class="muted" style="font-size:12px;margin:4px 0;padding-left:18px;list-style:disc;">
+      <li>공식 신고처 링크만 제공합니다.</li>
+      <li>실제 신고는 사용자가 공식 창구에서 직접 제출해야 합니다.</li>
+      <li>공익레이더는 자동 제출·자동 로그인·자동 양식입력을 하지 않습니다.</li>
+    </ul>
 
     <h4 style="margin:10px 0 4px;">상태 변경</h4>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">${transitionBtns || '<span class="muted">전이 가능한 상태가 없습니다.</span>'}</div>
@@ -1953,15 +1957,17 @@ async function loadApprovalGateLinks(moduleId) {
   try {
     const res = await fetch(`/api/policy/approval-gate?moduleId=${encodeURIComponent(moduleId || "false_ad")}`);
     const data = await res.json();
-    if (!data.ok || !Array.isArray(data.officialLinks)) {
+    const links = Array.isArray(data.officialReportingLinks) ? data.officialReportingLinks
+      : Array.isArray(data.officialLinks) ? data.officialLinks : null;
+    if (!data.ok || !links) {
       root.textContent = "공식 링크를 불러오지 못했습니다.";
       return;
     }
-    if (data.officialLinks.length === 0) {
+    if (links.length === 0) {
       root.textContent = "공식 링크 데이터가 등록되어 있지 않습니다.";
       return;
     }
-    root.innerHTML = data.officialLinks.map((l) => `
+    root.innerHTML = links.map((l) => `
       <div class="evi-item" style="border-left:4px solid #2563eb;margin-bottom:4px;">
         <div class="label">${escapeHtml(l.agencyName)}</div>
         <div class="value">
@@ -2600,6 +2606,8 @@ function renderOutcomeList() {
       : (o.status === "SUPPLEMENT_REQUESTED") ? "warn" : "muted";
     const reward = o.rewardOutcome && o.rewardOutcome !== "UNKNOWN" ? `<span class="badge muted" style="margin-left:4px;">${escapeHtml(o.rewardOutcome)}</span>` : "";
     const masked = o.piiMasked ? '<span class="badge warn" style="margin-left:4px;">PII 마스킹</span>' : "";
+    const manual = o.submittedManually ? '<span class="badge muted" style="margin-left:4px;">수동 제출 기록</span>' : "";
+    const recorder = o.recorderName ? ` · 기록자 ${escapeHtml(String(o.recorderName))}` : "";
     const ref = o.referenceNumber ? `· 접수 <code>${escapeHtml(String(o.referenceNumber))}</code>` : "";
     return `
       <div class="ops-top-row">
@@ -2612,8 +2620,8 @@ function renderOutcomeList() {
           <div class="muted" style="font-size:12px;">
             <span class="badge ${statusCls}">${escapeHtml(o.status)}</span>
             · 결과 <span class="badge muted">${escapeHtml(o.decision)}</span>
-            ${reward} ${masked}
-            · 제출 ${escapeHtml(o.submittedAt || "-")} · 접수 ${escapeHtml(o.receivedAt || "-")} · 다음 확인 ${escapeHtml(o.followUpDueAt || "-")}
+            ${reward} ${masked} ${manual}
+            · 제출 ${escapeHtml(o.submittedAt || "-")} · 접수 ${escapeHtml(o.receivedAt || "-")} · 다음 확인 ${escapeHtml(o.followUpDueAt || "-")}${recorder}
           </div>
         </div>
       </div>
@@ -2629,9 +2637,13 @@ async function saveOutcome() {
     if (status) status.textContent = "Case ID 를 입력하세요.";
     return;
   }
+  const confirmManual = !!document.getElementById("outcomeConfirmManual")?.checked;
   const payload = {
     agencyName: (document.getElementById("outcomeAgencyName")?.value || "").trim() || undefined,
     agencyChannel: (document.getElementById("outcomeAgencyChannel")?.value || "").trim() || undefined,
+    recorderName: (document.getElementById("outcomeRecorderName")?.value || "").trim() || undefined,
+    confirmManualSubmission: confirmManual || undefined,
+    submittedManually: confirmManual || undefined,
     referenceNumber: (document.getElementById("outcomeRefNumber")?.value || "").trim() || undefined,
     submittedAt: document.getElementById("outcomeSubmittedAt")?.value || undefined,
     receivedAt: document.getElementById("outcomeReceivedAt")?.value || undefined,

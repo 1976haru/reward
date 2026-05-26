@@ -35,6 +35,12 @@ const OutcomeInputSchema = z.object({
   moduleId: z.string().max(80).optional(),
   agencyName: z.string().max(OUTCOME_LIMITS.agencyName).optional(),
   agencyChannel: z.string().max(OUTCOME_LIMITS.agencyChannel).optional(),
+  submittedManually: z.boolean().optional(),
+  confirmManualSubmission: z.boolean().optional(),
+  reviewerName: z.string().max(OUTCOME_LIMITS.recorderName).optional(),
+  recorderName: z.string().max(OUTCOME_LIMITS.recorderName).optional(),
+  externalReceiptNo: z.string().max(OUTCOME_LIMITS.referenceNumber).optional(),
+  rewardRelated: z.boolean().optional(),
   submittedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   receivedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   followUpDueAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -61,6 +67,36 @@ caseOutcomesRouter.post("/:caseId/outcome", async (req, res) => {
   }
   try {
     const input = OutcomeInputSchema.parse(req.body ?? {});
+
+    // 수동 제출 안전장치 (체크리스트 21) — 제출 사실을 남기는 기록이면 사람 확인 요건을 강제한다.
+    // 시스템 자동 제출이 아니라, 사용자가 외부 공식 창구에 직접 제출했음을 사람이 기록하는 것임을 보장한다.
+    const effectiveStatus = input.status ?? "SUBMITTED_MANUALLY";
+    if (effectiveStatus !== "NOT_SUBMITTED") {
+      const recorder = input.recorderName ?? input.reviewerName;
+      const hasReceiptBasis =
+        (typeof input.externalReceiptNo === "string" && input.externalReceiptNo.trim().length > 0) ||
+        (typeof input.referenceNumber === "string" && input.referenceNumber.trim().length > 0) ||
+        (typeof input.notes === "string" && input.notes.trim().length > 0);
+      if (input.confirmManualSubmission !== true && input.submittedManually !== true) {
+        return res.status(400).json(errorBody(
+          "MANUAL_CONFIRMATION_REQUIRED",
+          "제출 기록을 남기려면 confirmManualSubmission=true 가 필요합니다. 이 도구는 외부 신고를 자동 제출하지 않으며, 사용자가 외부 공식 창구에 직접 제출한 사실만 기록합니다."
+        ));
+      }
+      if (!recorder || recorder.trim().length === 0) {
+        return res.status(400).json(errorBody(
+          "RECORDER_REQUIRED",
+          "제출 기록을 남기려면 reviewerName 또는 recorderName(외부 공식 창구에 직접 제출/기록한 사람)이 필요합니다."
+        ));
+      }
+      if (!hasReceiptBasis) {
+        return res.status(400).json(errorBody(
+          "RECEIPT_BASIS_REQUIRED",
+          "제출 기록을 남기려면 externalReceiptNo(접수번호) 또는 referenceNumber, 또는 수동 제출 근거(memo)가 필요합니다."
+        ));
+      }
+    }
+
     const result = await repo.upsertByCaseId(caseId, { ...input, caseId });
 
     // Trace: state_change + human_action

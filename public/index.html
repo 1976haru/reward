@@ -363,7 +363,11 @@
             <a class="report-official-link" href="https://www.clean.go.kr/menu.es?mid=a10613010000" target="_blank" rel="noopener noreferrer">국민권익위원회 — 청렴포털 ↗</a>
             <a class="report-official-link" href="https://www.epeople.go.kr" target="_blank" rel="noopener noreferrer">국민신문고 ↗</a>
           </div>
-          <p class="muted" style="margin-top:8px;font-size:12px;">자동 제출 / 자동 로그인 기능은 제공하지 않습니다. 사용자가 사람이 위 페이지에 접속해 직접 제출합니다.</p>
+          <ul class="muted" style="margin-top:8px;font-size:12px;list-style:disc;padding-left:20px;">
+            <li>공식 신고처 링크만 제공합니다.</li>
+            <li>실제 신고는 사용자가 공식 창구에서 직접 제출해야 합니다.</li>
+            <li>공익레이더는 자동 제출·자동 로그인·자동 양식입력을 하지 않습니다.</li>
+          </ul>
         </section>
 
         <section class="card">
@@ -388,6 +392,11 @@
             시스템은 신고 제출이나 포상금 신청을 자동 수행하지 않습니다. 포상금/보상금 수령을 보장하지 않습니다.
             접수번호/메모에는 담당자 개인정보를 포함하지 마세요.
           </p>
+          <ul class="report-flow-warning" style="list-style:disc;padding-left:20px;margin:6px 0;">
+            <li>이 기록은 사용자가 외부 공식 창구에 직접 제출한 뒤 남기는 내부 기록입니다.</li>
+            <li>공익레이더가 신고를 자동 제출한 것이 아닙니다.</li>
+            <li>포상금 지급 여부는 공식 기관 판단에 따르며 보장되지 않습니다.</li>
+          </ul>
 
           <h4 class="ops-section-title">결과 기록</h4>
           <div class="ops-twocol" style="gap:8px;">
@@ -424,10 +433,16 @@
               <textarea id="outcomeRejectionReason" placeholder="반려 사유 (개인정보 금지)" style="min-height:48px;"></textarea>
               <label style="font-size:12px;">보완 요청 내용 (있을 경우)</label>
               <textarea id="outcomeSupplementRequest" placeholder="보완 요청 내용 (개인정보 금지)" style="min-height:48px;"></textarea>
-              <label style="font-size:12px;">메모</label>
+              <label style="font-size:12px;">기록자 (reviewerName / recorderName)</label>
+              <input id="outcomeRecorderName" type="text" placeholder="외부 창구에 직접 제출/기록한 사람" />
+              <label style="font-size:12px;">메모 (수동 제출 근거)</label>
               <textarea id="outcomeNotes" placeholder="메모 (담당자 개인정보 금지)" style="min-height:48px;"></textarea>
             </div>
           </div>
+          <label style="display:flex;gap:6px;align-items:center;margin-top:8px;font-size:12px;">
+            <input id="outcomeConfirmManual" type="checkbox" />
+            외부 공식 창구에 사람이 직접 제출했음을 확인합니다 (confirmManualSubmission). 이 기록은 자동 제출이 아닙니다.
+          </label>
           <div style="display:flex;gap:6px;align-items:center;margin-top:8px;">
             <button class="primary" type="button" id="outcomeSaveBtn">결과 저장 (upsert)</button>
             <button class="ghost" type="button" id="outcomeRefreshBtn">목록 새로고침</button>

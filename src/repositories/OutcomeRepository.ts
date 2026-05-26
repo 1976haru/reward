@@ -138,6 +138,34 @@ export class JsonOutcomeRepository {
       if (typeof input.agencyChannel !== "string") throw new OutcomeValidationError("agencyChannel 은 문자열이어야 합니다.");
       sanitized.agencyChannel = clamp(input.agencyChannel.trim(), OUTCOME_LIMITS.agencyChannel);
     }
+    // 수동 제출 사실 (시스템 자동 제출 아님)
+    if (input.submittedManually !== undefined) {
+      sanitized.submittedManually = input.submittedManually === true;
+    } else if (input.confirmManualSubmission === true) {
+      sanitized.submittedManually = true;
+    }
+    // 기록자 (reviewerName 별칭 허용) — 마스킹 후 저장
+    {
+      const recorder = input.recorderName ?? input.reviewerName;
+      if (recorder !== undefined) {
+        if (typeof recorder !== "string") throw new OutcomeValidationError("recorderName 은 문자열이어야 합니다.");
+        const r = maskText(clamp(recorder.trim(), OUTCOME_LIMITS.recorderName), { enabled: true });
+        sanitized.recorderName = r.masked;
+        if (r.changed) piiMasked = true;
+      }
+    }
+    if (input.rewardRelated !== undefined) {
+      sanitized.rewardRelated = input.rewardRelated === true;
+    }
+    // externalReceiptNo 는 referenceNumber 의 별칭 — referenceNumber 미지정 시에만 채택
+    if (input.referenceNumber === undefined && input.externalReceiptNo !== undefined) {
+      if (typeof input.externalReceiptNo !== "string") throw new OutcomeValidationError("externalReceiptNo 문자열 오류");
+      const ref = clamp(input.externalReceiptNo.trim(), OUTCOME_LIMITS.referenceNumber);
+      const r = maskText(ref, { enabled: true });
+      sanitized.referenceNumber = r.masked;
+      sanitized.referenceNumberMasked = r.changed;
+      if (r.changed) piiMasked = true;
+    }
     for (const k of ["submittedAt", "receivedAt", "followUpDueAt"] as const) {
       const v = input[k];
       if (v !== undefined) {
@@ -223,6 +251,8 @@ export class JsonOutcomeRepository {
       moduleId: sanitized.moduleId,
       agencyName: sanitized.agencyName,
       agencyChannel: sanitized.agencyChannel,
+      submittedManually: sanitized.submittedManually ?? false,
+      recorderName: sanitized.recorderName,
       submittedAt: sanitized.submittedAt,
       receivedAt: sanitized.receivedAt,
       referenceNumber: sanitized.referenceNumber,
@@ -232,6 +262,7 @@ export class JsonOutcomeRepository {
       resultSummary: sanitized.resultSummary,
       rejectionReason: sanitized.rejectionReason,
       supplementRequest: sanitized.supplementRequest,
+      rewardRelated: sanitized.rewardRelated ?? false,
       rewardOutcome: sanitized.rewardOutcome ?? "UNKNOWN",
       rewardAmount: sanitized.rewardAmount ?? null,
       rewardCurrency: sanitized.rewardCurrency,
