@@ -3842,6 +3842,12 @@ function renderApiConnectionSettings(api) {
       <h4 class="settings-card-title">API 연결 상태</h4>
       ${settingsRow("OpenAI", `${settingsBadge(openai.configured ? "연결됨" : "미연결", openai.configured ? "ok" : "off")} <span class="settings-hint">API 키 원문은 표시되지 않습니다</span>`)}
       ${settingsRow("Naver", `${settingsBadge(naver.configured ? "연결됨" : "미연결", naver.configured ? "ok" : "off")} <span class="settings-hint">API 키 원문은 표시되지 않습니다</span>`)}
+      <ul class="muted" style="list-style:disc;padding-left:20px;margin:8px 0 0;font-size:12px;">
+        <li>기본값은 Mock 모드입니다.</li>
+        <li>Real 모드는 사용자가 직접 API 키를 설정하고 MOCK_AI=false로 변경한 경우에만 사용됩니다.</li>
+        <li>API 사용 시 비용이 발생할 수 있습니다.</li>
+        <li>API 키 원문은 화면에 표시하지 않습니다. (설정됨 / 미설정 만 표시)</li>
+      </ul>
     </div>
   `;
 }

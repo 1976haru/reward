@@ -675,6 +675,32 @@ check("mock 모드에서 외부 API 미호출 (isMockMode)", az.isMockMode());
 // 기본값(MOCK_AI 미설정)은 mock 이어야 한다 — 실제 OpenAI 호출 금지
 check("기본 분석 경로는 외부 API 미사용", llmHigh.usedExternalApi !== true);
 
+// OpenAI Real 모드 안전 준비 (체크리스트 22)
+// - MOCK_AI=true(또는 키 없음)이면 외부 API를 호출하지 않는다.
+check("[CL22] mock 모드 usedExternalApi=false", llmHigh.usedExternalApi === false);
+check("[CL22] mock 모드 analysisMode는 mock/fallback 중 하나", llmHigh.analysisMode === "mock" || llmHigh.analysisMode === "fallback", `mode=${llmHigh.analysisMode}`);
+// - MOCK_AI=false 인데 키가 없어도 서버가 죽지 않고 안전 결과(mock)를 반환한다.
+const noKeyAgent = new AnalyzerAgent();
+let noKeyDidNotThrow = true;
+let noKeyResult: any = null;
+try { noKeyResult = await noKeyAgent.analyzeWithContext(highRiskInput); }
+catch { noKeyDidNotThrow = false; }
+check("[CL22] 키 없음 상태에서 분석이 예외 없이 동작", noKeyDidNotThrow && noKeyResult !== null);
+check("[CL22] 키 없음 상태에서 외부 API 미사용", noKeyResult && noKeyResult.usedExternalApi === false);
+// - 응답 필수 안전 필드.
+check("[CL22] notLegalConclusion=true", llmHigh.notLegalConclusion === true);
+check("[CL22] rewardGuaranteed=false", llmHigh.rewardGuaranteed === false);
+// - API 키 원문이 분석 결과에 포함되지 않는다.
+{
+  const llmJson = JSON.stringify(llmHigh);
+  const realKey = (process.env.OPENAI_API_KEY || "").trim();
+  check("[CL22] 분석 응답에 OPENAI_API_KEY 원문 미포함", realKey.length === 0 || !llmJson.includes(realKey));
+  check("[CL22] 분석 응답에 'sk-' 형태 키 패턴 미노출", !/sk-[A-Za-z0-9]{16,}/.test(llmJson));
+  // - 금지 문구가 출력되지 않는다.
+  check("[CL22] 금지문구 미출력 (포상금 보장/위법 확정/사기 확정)",
+    !/포상금\s*보장/.test(llmJson) && !/위법\s*확정/.test(llmJson) && !/사기\s*확정/.test(llmJson));
+}
+
 // 14) Scoring Agent — 14 tests
 const sa = new ScoringAgentNew();
 
