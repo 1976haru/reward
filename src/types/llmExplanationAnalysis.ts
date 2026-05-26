@@ -35,6 +35,10 @@ export interface LlmExplanationResult {
   limitations: string[];
   safetyDisclaimers: string[];
   reviewRequired: boolean;
+  /** 항상 true — 위법/부정수급 확정이 아니다(체크리스트 63). */
+  notLegalConclusion: true;
+  /** 항상 false — 포상금 지급 보장이 아니다(체크리스트 63). */
+  rewardGuaranteed: false;
   createdAt: string;
   isFixtureBased?: boolean;
   // 체크리스트 25: 근거 검증용 citation. 섹션별(claimCitations) 또는 공통(citations)으로 연결한다.

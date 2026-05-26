@@ -10,6 +10,8 @@ import {
   extractClaimsFromLlmExplanationResult,
   extractClaimsFromRewardScoreResult,
   extractClaimsFromRiskScoreResult,
+  extractClaimsFromReportJson,
+  extractClaimsFromSubsidyRuleResult,
   validateClaim,
   validateReportCitations,
   writeCitationValidationReport
@@ -225,6 +227,93 @@ test("22. 근거 없는 문장에 근거 보강 필요 경고가 생성된다", 
   assert.ok(report.missingClaimIds.length > 0);
   const blob = JSON.stringify(report.issues);
   assert.ok(blob.includes("근거 보강 필요"));
+});
+
+// ---------- 체크리스트 64: strict 표준 필드 + 룰 5종 결과 입력 ----------
+
+const cl64RuleResults = {
+  ruleResults: [
+    {
+      ruleId: "repeat_recipient",
+      ruleName: "반복수급 검토 후보",
+      severity: "high",
+      candidateId: "repeat_recipient:aaa",
+      involvedRecordIds: ["rec-1", "rec-2"],
+      evidenceRefs: ["공시URL:https://example.org/notice/1"],
+      reason: "동일 수급기관 후보 반복 등장",
+      caution: "다년도 정상 사업일 수 있습니다."
+    },
+    {
+      ruleId: "budget_anomaly",
+      ruleName: "예산집행 이상치 검토 후보",
+      severity: "high",
+      candidateId: "budget_anomaly:bbb",
+      involvedRecordIds: ["rec-9"],
+      evidenceRefs: [], // 근거 없음 → 근거 보강 필요
+      reason: "교부금액 이상치"
+    }
+  ]
+};
+
+test("[CL64] 룰 5종 결과(rule-results.json)에서 핵심 주장을 추출한다", () => {
+  const { claims, kind } = extractClaimsFromReportJson(cl64RuleResults);
+  assert.equal(kind, "subsidy-rule-results");
+  assert.ok(claims.some((c) => c.kind === "core"));
+  const single = extractClaimsFromSubsidyRuleResult(cl64RuleResults.ruleResults[0]);
+  assert.ok(single.length >= 1);
+});
+
+test("[CL64] strict 표준 필드가 모두 존재한다", () => {
+  const { claims } = extractClaimsFromReportJson(cl64RuleResults);
+  const report = validateReportCitations(claims, { mode: "strict" });
+  for (const key of [
+    "totalClaims",
+    "supportedClaims",
+    "unsupportedClaims",
+    "warningClaims",
+    "failedClaims",
+    "strictPassed",
+    "suggestedFixes",
+    "privacyBlockedCitations"
+  ]) {
+    assert.ok(key in report, `누락 필드: ${key}`);
+  }
+  assert.equal(typeof report.strictPassed, "boolean");
+  assert.ok(Array.isArray(report.suggestedFixes));
+});
+
+test("[CL64] 근거 없는 핵심 주장은 strict fail + suggestedFixes 근거 보강 필요", () => {
+  const { claims } = extractClaimsFromReportJson(cl64RuleResults);
+  const report = validateReportCitations(claims, { mode: "strict" });
+  // 두 번째 룰(evidenceRefs 비어있음)은 근거 없는 핵심 주장 → 보강 필요
+  assert.ok(report.unsupportedClaims >= 1);
+  assert.equal(report.strictPassed, false);
+  assert.ok(report.suggestedFixes.some((f) => f.suggestion.includes("근거 보강 필요")));
+});
+
+test("[CL64] 근거가 모두 있으면 strictPassed=true", () => {
+  const supported = {
+    ruleResults: [cl64RuleResults.ruleResults[0]] // evidenceRefs 공개 URL 보유
+  };
+  const { claims } = extractClaimsFromReportJson(supported);
+  const report = validateReportCitations(claims, { mode: "strict" });
+  assert.equal(report.strictPassed, true);
+  assert.equal(report.unsupportedClaims, 0);
+});
+
+test("[CL64] 로그인 필요/비공개 URL 근거는 privacyBlockedCitations 로 차단된다", () => {
+  const claims: ReportClaim[] = [
+    {
+      claimId: "c#1",
+      text: "반복수급 검토 후보입니다.",
+      kind: "core",
+      section: "ruleCandidate",
+      citations: [{ type: "source_url", sourceUrl: "https://portal.example.org/login?next=/x" }]
+    }
+  ];
+  const report = validateReportCitations(claims, { mode: "strict" });
+  assert.ok(report.privacyBlockedCitations >= 1, "로그인 URL 차단");
+  assert.equal(report.strictPassed, false);
 });
 
 async function main(): Promise<void> {

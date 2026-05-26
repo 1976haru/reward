@@ -15,6 +15,7 @@ import {
   CitationIssue,
   CitationIssueCode,
   CitationReference,
+  CitationSuggestedFix,
   CitationType,
   CitationValidationMode,
   CitationValidationOptions,
@@ -409,6 +410,28 @@ export function validateReportCitations(
   const hasWarning = claimResults.some((r) => r.status === "warning");
   const status: ClaimValidationStatus = hasFail ? "fail" : hasWarning ? "warning" : "pass";
 
+  // 체크리스트 64 표준 집계.
+  // 보강 필요(needsCitationReinforcement) = 핵심 주장이 강한 공개근거가 없거나, 계산 주장이 모델표시가 없는 경우.
+  // 약한 근거(record_id 등)만 있어도 핵심 주장은 보강 필요로 본다.
+  const warningClaims = claimResults.filter((r) => r.status === "warning").length;
+  const failedClaims = claimResults.filter((r) => r.status === "fail").length;
+  const unsupportedClaims = claimResults.filter((r) => r.needsCitationReinforcement).length;
+  const supportedClaims = claimResults.length - unsupportedClaims;
+  // strict 기준 통과 = 보강 필요 주장·fail 없음.
+  const strictPassed = unsupportedClaims === 0 && failedClaims === 0;
+  const privacyBlockedCitations = blockedPersonalInfoCount + blockedPrivateUrlCount;
+  const suggestedFixes: CitationSuggestedFix[] = claimResults
+    .filter((r) => r.needsCitationReinforcement)
+    .map((r) => ({
+      claimId: r.claimId,
+      section: r.section,
+      kind: r.kind,
+      suggestion:
+        r.kind === "core"
+          ? "근거 보강 필요 — 핵심 주장에 원문 URL / 파일명+행번호 / evidenceId / recordId 같은 공개자료 근거를 추가하세요."
+          : "근거 보강 필요 — 공개자료 근거 또는 모델 계산 결과(검토 신호) 표시를 추가하세요."
+    }));
+
   const isFixtureBased = Boolean(options.isFixtureBased) || fixtureCitationCount > 0;
   const notes = [
     "근거 검증은 deterministic하게 수행되었으며 실제 LLM API를 호출하지 않습니다.",
@@ -427,6 +450,13 @@ export function validateReportCitations(
     citedClaims,
     missingClaims,
     coreClaims,
+    supportedClaims,
+    unsupportedClaims,
+    warningClaims,
+    failedClaims,
+    strictPassed,
+    suggestedFixes,
+    privacyBlockedCitations,
     blockedPersonalInfoCount,
     blockedPrivateUrlCount,
     fixtureCitationCount,
@@ -639,11 +669,14 @@ export function renderCitationValidationReportMarkdown(report: CitationValidatio
   lines.push("");
   lines.push(`- 전체 claims: ${report.totalClaims}`);
   lines.push(`- 핵심 주장(core): ${report.coreClaims}`);
-  lines.push(`- 근거 보유 claims: ${report.citedClaims}`);
-  lines.push(`- 근거 누락 claims: ${report.missingClaims}`);
-  lines.push(`- 개인정보 차단 건수: ${report.blockedPersonalInfoCount}`);
-  lines.push(`- 로그인필요/비공개 URL 차단 건수: ${report.blockedPrivateUrlCount}`);
+  lines.push(`- 근거 보유 claims(supportedClaims): ${report.supportedClaims}`);
+  lines.push(`- 근거 누락 claims(unsupportedClaims): ${report.unsupportedClaims}`);
+  lines.push(`- warningClaims: ${report.warningClaims} / failedClaims: ${report.failedClaims}`);
+  lines.push(`- strictPassed: ${report.strictPassed}`);
+  lines.push(`- 개인정보/비공개 차단 citation(privacyBlockedCitations): ${report.privacyBlockedCitations}`);
   lines.push(`- fixture citation claims: ${report.fixtureCitationCount}`);
+  lines.push("");
+  lines.push("> 근거 검증은 법 위반 확정이 아니라 환각·오류 방지 장치입니다. 근거 없는 주장은 근거 보강 필요로 표시됩니다.");
   lines.push("");
 
   if (report.missingClaimIds.length > 0) {
@@ -686,11 +719,47 @@ export async function writeCitationValidationReport(
   return { reportJsonFile, reportMdFile };
 }
 
+// 체크리스트 60 보조금 룰 5종 결과(SubsidyRiskRuleResult) → 핵심 주장 추출.
+// 각 룰 후보 주장은 공개자료 근거(evidenceRefs/involvedRecordIds)가 필요한 core 주장이다.
+export function extractClaimsFromSubsidyRuleResult(result: unknown): ReportClaim[] {
+  if (!result || typeof result !== "object") return [];
+  const r = result as UnknownRecord;
+  const fixture = Boolean(r.isFixtureBased);
+  const sourceResultId = sanitize(r.candidateId) || sanitize(r.ruleId) || "subsidy-rule";
+  const base = { sourceResultId, counter: { n: 0 } };
+  const recordCites = citationsFromRecordIds(r.involvedRecordIds, fixture);
+  const refCites = asStringArray(r.evidenceRefs).flatMap((ref) => extractCitationsFromText(ref, fixture));
+  const ruleResultCite: CitationReference[] = r.candidateId
+    ? [recordIdCitation(`ruleResult:${sanitize(r.candidateId)}`, fixture)]
+    : [];
+  const claims: ReportClaim[] = [];
+  const push = (kind: ClaimKind, section: string, text: unknown, extra: CitationReference[]) => {
+    const cites = [...extra, ...explicitCitations(r, section), ...extractCitationsFromText(text, fixture)];
+    const claim = buildClaim(base, kind, section, text, cites);
+    if (claim) claims.push(claim);
+  };
+
+  // "반복수급/동일주소/결과물·정산/예산집행/사업명 유사 후보" 주장 — 공개자료 근거 필요.
+  const ruleName = sanitize(r.ruleName) || sanitize(r.ruleId) || "룰";
+  push("core", "ruleCandidate", `${ruleName}: ${sanitize(r.reason) || "검토 후보"}`, [
+    ...recordCites,
+    ...refCites,
+    ...ruleResultCite
+  ]);
+  if (r.caution) push("disclaimer", "caution", r.caution, []);
+  return claims;
+}
+
 // 입력 리포트 JSON의 형태를 보고 적절한 추출기를 선택한다.
 export function extractClaimsFromReportJson(value: unknown): { claims: ReportClaim[]; kind: string } {
   if (!value || typeof value !== "object") return { claims: [], kind: "unknown" };
   const obj = value as UnknownRecord;
 
+  // 체크리스트 60 룰 5종 결과(rule-results.json)
+  if (Array.isArray(obj.ruleResults)) {
+    const claims = (obj.ruleResults as unknown[]).flatMap(extractClaimsFromSubsidyRuleResult);
+    return { claims, kind: "subsidy-rule-results" };
+  }
   // 묶음 리포트
   if (Array.isArray(obj.explanations)) {
     const claims = (obj.explanations as unknown[]).flatMap(extractClaimsFromLlmExplanationResult);
@@ -711,6 +780,9 @@ export function extractClaimsFromReportJson(value: unknown): { claims: ReportCla
   }
   if (obj.finalRiskScore !== undefined || obj.riskGrade !== undefined) {
     return { claims: extractClaimsFromRiskScoreResult(obj), kind: "risk-score" };
+  }
+  if (obj.ruleId !== undefined && obj.severity !== undefined) {
+    return { claims: extractClaimsFromSubsidyRuleResult(obj), kind: "subsidy-rule-results" };
   }
   if (Array.isArray(obj.claims)) {
     return { claims: obj.claims as ReportClaim[], kind: "claims" };

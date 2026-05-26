@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { ZodError, z } from "zod";
+import path from "node:path";
+import { readdir, readFile } from "node:fs/promises";
 import {
   validateReportCitations,
   extractClaimsFromReportJson,
+  writeCitationValidationReport,
   CITATION_VALIDATION_NOTICE
 } from "../analysis/citationValidator.js";
 import type {
@@ -10,6 +13,10 @@ import type {
   CitationValidationReport,
   ReportClaim
 } from "../types/citationValidation.js";
+
+const CITATION_OUTPUT_DIR = process.env.CITATION_OUTPUT_DIR ?? "data/analysis/citation-validation";
+const CITATION_HUMAN_REVIEW_NOTICE =
+  "부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람 검토가 필요합니다. 근거 검증은 환각·오류 방지 장치입니다.";
 
 // 자체 포함 샘플 claims (외부 호출/테스트 의존 없음, deterministic).
 // 일부는 강한 근거가 있고, 하나는 핵심 주장인데 근거가 없어 "보강 필요"로 표시된다.
@@ -88,21 +95,27 @@ function toCitationApiResult(report: CitationValidationReport) {
     mode: report.mode,
     status: report.status,
     totalClaims: report.totalClaims,
-    supportedClaims: report.citedClaims,
-    unsupportedClaims: report.missingClaims,
+    supportedClaims: report.supportedClaims,
+    unsupportedClaims: report.unsupportedClaims,
     coreClaims: report.coreClaims,
     warnings,
-    failedClaims,
+    warningClaims: report.warningClaims,
+    failedClaims: report.failedClaims,
     passed,
-    strictPassed,
+    strictPassed: report.strictPassed,
     unsupportedClaimIds: report.missingClaimIds,
+    privacyBlockedCitations: report.privacyBlockedCitations,
     blockedPersonalInfoCount: report.blockedPersonalInfoCount,
     blockedPrivateUrlCount: report.blockedPrivateUrlCount,
-    suggestedFixes,
+    suggestedFixes: report.suggestedFixes.length ? report.suggestedFixes : suggestedFixes,
     notes: report.notes,
     notice: CITATION_VALIDATION_NOTICE,
+    reviewRequired: true,
+    notLegalConclusion: true,
+    rewardGuaranteed: false,
     // 근거 없는 핵심 주장 안내 (UI 표시용)
     reinforcementNotice: "근거 없는 주장은 신고 전 보강이 필요합니다. 근거 검증은 법 위반 확정이 아니라 환각·오류 방지 장치입니다.",
+    humanReviewNotice: CITATION_HUMAN_REVIEW_NOTICE,
     autoReport: false,
     humanReviewRequired: true
   };
@@ -127,7 +140,7 @@ const ValidateBodySchema = z.object({
 });
 
 // POST /api/citations/validate — 입력 claims 또는 리포트 JSON 의 근거 검증
-citationsRouter.post("/validate", (req, res) => {
+citationsRouter.post("/validate", async (req, res) => {
   try {
     const body = ValidateBodySchema.parse(req.body ?? {});
     const mode: CitationValidationMode = body.mode === "strict" ? "strict" : "warning";
@@ -147,11 +160,42 @@ citationsRouter.post("/validate", (req, res) => {
     }
 
     const report = validateReportCitations(claims, { mode, isFixtureBased: source === "fixture" });
-    res.json({ ok: true, source, ...toCitationApiResult(report) });
+    const written = await writeCitationValidationReport(CITATION_OUTPUT_DIR, report);
+    res.json({ ok: true, source, runId: report.reportId, outputDir: path.dirname(written.reportJsonFile), ...toCitationApiResult(report) });
   } catch (error) {
     if (error instanceof ZodError) {
       return res.status(400).json({ ok: false, error: "VALIDATION_ERROR", message: (error as Error).message });
     }
+    res.status(500).json({ ok: false, error: "INTERNAL_ERROR", message: (error as Error).message });
+  }
+});
+
+// GET /api/citations/latest — 가장 최근 근거 검증 실행 결과 요약
+citationsRouter.get("/latest", async (_req, res) => {
+  try {
+    const runsRoot = path.join(process.cwd(), CITATION_OUTPUT_DIR, "runs");
+    let entries: string[] = [];
+    try {
+      entries = (await readdir(runsRoot, { withFileTypes: true }))
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name)
+        .sort();
+    } catch {
+      entries = [];
+    }
+    if (entries.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        error: "NO_RUN_FOUND",
+        message: "근거 검증 실행 기록이 없습니다. 먼저 POST /api/citations/validate 또는 `npm run validate:citations -- --fixture --strict` 을 실행하세요."
+      });
+    }
+    const latest = entries[entries.length - 1];
+    const report = JSON.parse(
+      await readFile(path.join(runsRoot, latest, "citation-validation-report.json"), "utf8")
+    ) as CitationValidationReport;
+    res.json({ ok: true, source: "latest-run", runId: report.reportId, ...toCitationApiResult(report) });
+  } catch (error) {
     res.status(500).json({ ok: false, error: "INTERNAL_ERROR", message: (error as Error).message });
   }
 });

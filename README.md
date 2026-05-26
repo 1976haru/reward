@@ -802,8 +802,11 @@ npm run check:reward-score
 npm run test:llm-explanation
 npm run analysis:llm-explain -- --fixture 100
 npm run analysis:llm-explain -- --input data/risk/score/runs/xxx/risk-score-report.json
+npm run analysis:llm-explain -- --input data/risk/runs/xxx/rule-results.json   # 체크리스트 60 룰 5종 결과 입력
 npm run check:llm-explanation
 ```
+
+> 체크리스트 63: 결과에 `candidateId`·`notLegalConclusion:true`·`rewardGuaranteed:false`를 포함하고 산출물은 `data/analysis/llm-explanation/runs/{runId}/`에 `llm-explanation-report.json`·`llm-explanation-summary.md`·`metadata.json`(`llmApiCalled:false`)로 저장합니다. 선택 API: `POST /api/subsidy/analysis/explain/run`, `GET /api/subsidy/analysis/explain/latest`.
 
 ## Citation Validation / 근거 검증 모듈 (Hallucination Guard)
 
@@ -824,8 +827,11 @@ npm run test:citations
 npm run validate:citations -- --fixture
 npm run validate:citations -- --fixture --strict
 npm run validate:citations -- --input data/analysis/llm-explanation/runs/xxx/llm-explanation-report.json
+npm run validate:citations -- --input data/risk/runs/xxx/rule-results.json --strict   # 체크리스트 60 룰 5종 결과
 npm run check:citations
 ```
+
+> 체크리스트 64: 검증 결과에 `totalClaims`·`supportedClaims`·`unsupportedClaims`·`warningClaims`·`failedClaims`·`strictPassed`·`suggestedFixes`·`privacyBlockedCitations`를 포함합니다. `rule-results.json`(룰 5종)을 직접 입력으로 받아 핵심 주장 근거를 검증합니다. `--fixture --strict`는 근거 누락 사례를 일부러 포함한 데모이며, `rule-results → analysis:llm-explain → validate:citations --strict` 실제 파이프라인으로 strict 통과를 확인할 수 있습니다. 선택 API: `POST /api/citations/validate`, `GET /api/citations/latest`.
 
 ## 브라우저에서 보조금 엔진 결과 확인 (UI 연결)
 

@@ -123,7 +123,10 @@ function normalizeCandidate(input: unknown): LlmExplanationCandidateInput {
     sanitizeText(safe.scoreId) ||
     sanitizeText(safe.id) ||
     `candidate_${Math.random().toString(36).slice(2, 10)}`;
-  const sourceCandidateIds = sanitizeStringArray(safe.sourceCandidateIds);
+  // 체크리스트 60 rule-results.json: involvedRecordIds → sourceCandidateIds 로 함께 인식.
+  const sourceCandidateIds = sanitizeStringArray(safe.sourceCandidateIds).length
+    ? sanitizeStringArray(safe.sourceCandidateIds)
+    : sanitizeStringArray(safe.involvedRecordIds);
   const signals = [
     ...sanitizeStringArray(safe.signals),
     ...sanitizeStringArray(safe.riskSignals),
@@ -131,11 +134,15 @@ function normalizeCandidate(input: unknown): LlmExplanationCandidateInput {
     ...sanitizeStringArray(safe.matchedSignals),
     ...sanitizeStringArray(safe.missingSignals),
     ...sanitizeStringArray(safe.spendingSignals),
-    ...sanitizeStringArray(safe.networkSignals)
+    ...sanitizeStringArray(safe.networkSignals),
+    ...sanitizeStringArray(safe.suggestedNextCheck)
   ];
+  // 체크리스트 60 rule-results.json: evidenceRefs → keyEvidence 근거로 인식.
   const evidenceSummary = sanitizeStringArray(safe.evidenceSummary).length
     ? sanitizeStringArray(safe.evidenceSummary)
-    : sanitizeStringArray(safe.evidence);
+    : sanitizeStringArray(safe.evidence).length
+      ? sanitizeStringArray(safe.evidence)
+      : sanitizeStringArray(safe.evidenceRefs);
   const reasons = sanitizeStringArray(safe.reasons).length
     ? sanitizeStringArray(safe.reasons)
     : [sanitizeText(safe.reason)].filter(Boolean);
@@ -161,6 +168,10 @@ function normalizeCandidate(input: unknown): LlmExplanationCandidateInput {
 
 function inferRuleSummaries(safe: UnknownRecord): string[] {
   const out: string[] = [];
+  // 체크리스트 60 rule-results.json: ruleName/ruleId 를 룰 요약으로 인식.
+  const ruleName = sanitizeText(safe.ruleName);
+  if (ruleName) out.push(ruleName);
+  else if (typeof safe.ruleId === "string" && safe.ruleId) out.push(`${sanitizeText(safe.ruleId)} 룰 검토 후보`);
   if (safe.finalRiskScore !== undefined || safe.riskGrade) out.push("100점 위험점수 결과");
   if (safe.rewardPossibilityScore !== undefined || safe.rewardPossibilityLevel) out.push("보상가능성 점수 결과");
   if (safe.networkKey || Array.isArray(safe.networkSignals)) out.push("계약업체 연관성 탐지 결과");
@@ -324,6 +335,8 @@ export function createFallbackLlmExplanation(
     limitations: createFallbackLimitations(candidate),
     safetyDisclaimers: [...LLM_EXPLANATION_SAFETY_DISCLAIMERS].map(sanitizeExplanationOutputText),
     reviewRequired: true,
+    notLegalConclusion: true,
+    rewardGuaranteed: false,
     createdAt: candidate.createdAt ?? new Date(0).toISOString(),
     isFixtureBased: Boolean(options.isFixtureBased || candidate.isFixtureBased),
     sourceCandidateIds: candidate.sourceCandidateIds,
@@ -405,11 +418,35 @@ export function renderLlmExplanationReportMarkdown(report: LlmExplanationReport)
   return rendered;
 }
 
+/** 체크리스트 63 metadata.json 본문. */
+export function buildLlmExplanationMetadata(report: LlmExplanationReport): Record<string, unknown> {
+  return {
+    runId: report.runId,
+    createdAt: report.createdAt,
+    totalInputCandidates: report.totalInputCandidates,
+    totalExplanations: report.totalExplanations,
+    isFixtureBased: report.isFixtureBased,
+    sourceNote: report.sourceNote,
+    deterministicFallbackOnly: true,
+    llmApiCalled: false,
+    reviewRequired: true,
+    notLegalConclusion: true,
+    rewardGuaranteed: false,
+    notice: LLM_EXPLANATION_NOTICE
+  };
+}
+
 export async function writeLlmExplanationReport(
   outputDir: string,
   report: LlmExplanationReport,
   options: { strictCitationValidation?: boolean } = {}
-): Promise<{ reportJsonFile: string; reportMdFile: string; citationValidation: CitationValidationReport }> {
+): Promise<{
+  reportJsonFile: string;
+  reportMdFile: string;
+  summaryMdFile: string;
+  metadataFile: string;
+  citationValidation: CitationValidationReport;
+}> {
   // 체크리스트 25: 리포트 생성 전 근거 검증 게이트.
   // 기본은 non-strict(warning)로 시작하되, strict일 때 핵심 주장 근거가 없으면 생성을 중단한다.
   const mode: CitationValidationMode = options.strictCitationValidation ? "strict" : "warning";
@@ -424,11 +461,17 @@ export async function writeLlmExplanationReport(
   await ensureDir(runDir);
   const reportJsonFile = path.join(runDir, "llm-explanation-report.json");
   const reportMdFile = path.join(runDir, "llm-explanation-report.md");
+  const summaryMdFile = path.join(runDir, "llm-explanation-summary.md");
+  const metadataFile = path.join(runDir, "metadata.json");
   report.reportJsonFile = reportJsonFile;
   report.reportMdFile = reportMdFile;
   await writeFile(reportJsonFile, JSON.stringify(report, null, 2), "utf8");
-  await writeFile(reportMdFile, renderLlmExplanationReportMarkdown(report), "utf8");
-  return { reportJsonFile, reportMdFile, citationValidation };
+  const markdown = renderLlmExplanationReportMarkdown(report);
+  await writeFile(reportMdFile, markdown, "utf8");
+  // 체크리스트 63: llm-explanation-summary.md 및 metadata.json 추가 산출.
+  await writeFile(summaryMdFile, markdown, "utf8");
+  await writeFile(metadataFile, JSON.stringify(buildLlmExplanationMetadata(report), null, 2), "utf8");
+  return { reportJsonFile, reportMdFile, summaryMdFile, metadataFile, citationValidation };
 }
 
 export { LLM_EXPLANATION_NOTICE, LLM_EXPLANATION_RECOMMENDED_PHRASES };

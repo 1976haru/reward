@@ -21,6 +21,11 @@ import {
   REWARD_POSSIBILITY_SCORE_NOTICE
 } from "../scoring/rewardPossibilityScore.js";
 import {
+  generateLlmExplanationReport,
+  writeLlmExplanationReport,
+  LLM_EXPLANATION_NOTICE
+} from "../analysis/llmExplanationAnalysis.js";
+import {
   analyzeSubsidySample,
   buildSubsidyReportMarkdown,
   getSubsidyCandidate,
@@ -525,6 +530,87 @@ subsidyRouter.get("/reward-score/latest", async (_req, res) => {
       disclaimer: SCORE_DISCLAIMER,
       humanReviewNotice: "부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람 검토가 필요합니다.",
       safetyNotice: REWARD_POSSIBILITY_SCORE_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// ---------- LLM 설명형 분석 (체크리스트 63) ----------
+
+const EXPLAIN_OUTPUT_DIR = process.env.ANALYSIS_OUTPUT_DIR ?? "data/analysis/llm-explanation";
+
+// POST /api/subsidy/analysis/explain/run — 합성 데모(룰 5종 → 위험점수) → 설명형 분석
+// deterministic fallback 분석기만 사용하며 실제 LLM API를 호출하지 않는다.
+subsidyRouter.post("/analysis/explain/run", async (req, res) => {
+  try {
+    const body = ScoreRunSchema.parse(req.body ?? {});
+    const topN = body.topN ?? 50;
+    // 룰 5종 결과 → 위험점수 결과 → 설명형 분석 입력으로 사용.
+    const risk = generateRiskScoreReport(demoRuleResults(), { isFixtureBased: true, limit: topN });
+    const report = generateLlmExplanationReport(risk.topScores, {
+      isFixtureBased: true,
+      sourceNote: "api-demo-risk-score",
+      limit: topN
+    });
+    const written = await writeLlmExplanationReport(EXPLAIN_OUTPUT_DIR, report);
+    res.json({
+      ok: true,
+      runId: report.runId,
+      inputMode: "fixture",
+      deterministicFallbackOnly: true,
+      llmApiCalled: false,
+      totalInputCandidates: report.totalInputCandidates,
+      totalExplanations: report.totalExplanations,
+      explanations: report.explanations,
+      reviewRequired: true,
+      notLegalConclusion: true,
+      rewardGuaranteed: false,
+      citationValidation: {
+        status: written.citationValidation.status,
+        strictPassed: written.citationValidation.strictPassed,
+        unsupportedClaims: written.citationValidation.unsupportedClaims
+      },
+      disclaimer: SCORE_DISCLAIMER,
+      humanReviewNotice: "설명형 분석은 공개자료 기준 검토 보조 의견입니다. 부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람 검토가 필요합니다.",
+      safetyNotice: LLM_EXPLANATION_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
+    }
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// GET /api/subsidy/analysis/explain/latest — 최근 설명형 분석 결과
+subsidyRouter.get("/analysis/explain/latest", async (_req, res) => {
+  try {
+    const runDir = await findLatestRunDir(EXPLAIN_OUTPUT_DIR);
+    if (!runDir) {
+      return res.status(404).json(
+        errorBody("NO_RUN_FOUND", "설명형 분석 실행 기록이 없습니다. 먼저 POST /api/subsidy/analysis/explain/run 또는 `npm run analysis:llm-explain -- --fixture 100` 을 실행하세요.")
+      );
+    }
+    const report = JSON.parse(await readFile(path.join(runDir, "llm-explanation-report.json"), "utf8"));
+    res.json({
+      ok: true,
+      runId: report.runId,
+      createdAt: report.createdAt,
+      deterministicFallbackOnly: true,
+      llmApiCalled: false,
+      totalExplanations: report.totalExplanations,
+      explanations: report.explanations,
+      reviewRequired: true,
+      notLegalConclusion: true,
+      rewardGuaranteed: false,
+      disclaimer: SCORE_DISCLAIMER,
+      humanReviewNotice: "설명형 분석은 공개자료 기준 검토 보조 의견입니다. 부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람 검토가 필요합니다.",
+      safetyNotice: LLM_EXPLANATION_NOTICE,
       autoReport: false,
       humanReviewRequired: true
     });

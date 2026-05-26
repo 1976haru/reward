@@ -137,3 +137,38 @@ npm run check:citations
 - 정책 검사: [`scripts/check-citation-validation-policy.js`](../scripts/check-citation-validation-policy.js)
 
 본 가이드는 법률 자문을 대체하지 않으며, 모든 결과는 사람 검토 대상이다.
+
+## 13. strict 모드 표준 결과 + 룰 5종 입력 (체크리스트 64)
+
+### 13.1 strict 모드의 의미
+- strict 모드는 **근거 없는 핵심 주장(core)이 하나라도 있으면 fail** 처리합니다. 환각·오류를 신고 전에 걸러내는 장치이며, **법 위반 확정이 아닙니다.**
+- 핵심 주장에는 다음 중 하나 이상의 **공개자료 근거**가 있어야 합니다: `sourceUrl` / `sourceFileName`+`sourceRowNumber` / `evidenceId` / `recordId` / `candidateId` / `originalTextSnippet` / `computed_model`(계산 주장) / `ruleResultId`.
+- 로그인 필요 URL, 비공개·내부자료, 개인정보 원문은 근거로 인정하지 않습니다(차단).
+
+### 13.2 검증 결과 표준 필드
+`totalClaims`, `supportedClaims`, `unsupportedClaims`, `warningClaims`, `failedClaims`, `strictPassed`, `suggestedFixes`, `privacyBlockedCitations`.
+
+### 13.3 검증 대상이 되는 핵심 주장(룰 5종 연계)
+반복수급 후보 · 동일주소 후보 · 결과물/정산 근거 부족 · 예산집행 이상치 후보 · 사업명 유사 반복 후보 · 위험점수 산출 근거 · 보상가능성 점수 산출 근거 · 공개자료 출처/수집일시 — 모두 근거가 연결돼야 합니다. `rule-results.json`(체크리스트 60)을 직접 입력으로 받아 룰 후보 주장을 추출합니다.
+
+### 13.4 unsupportedClaims가 있을 때 처리 방법
+- `suggestedFixes`에 해당 주장이 "근거 보강 필요"로 표시됩니다.
+- strict 모드에서는 fail로 끝나며(CLI exit 1), 사람이 공개자료 근거(원문 URL·파일명+행번호·evidenceId 등)를 보강한 뒤 재검증합니다.
+
+### 13.5 개인정보 원문을 근거에 넣지 않는 이유
+근거에 개인정보가 남으면 유출·오남용 위험이 있습니다. 개인정보가 포함된 citation은 `privacyBlockedCitations`로 차단되고 근거로 인정되지 않습니다.
+
+### 13.6 strict 통과 예시(실제 파이프라인)
+`rule-results.json`(공개 URL 근거 포함) → `analysis:llm-explain` → 생성된 설명 리포트를 strict 검증하면 핵심 주장이 공개 URL 근거를 가지므로 통과합니다.
+```bash
+npm run analysis:llm-explain -- --input data/risk/runs/<id>/rule-results.json
+npm run validate:citations -- --input data/analysis/llm-explanation/runs/<id>/llm-explanation-report.json --strict
+```
+> `--fixture --strict`는 근거 누락 사례를 일부러 포함해 strict가 fail을 어떻게 처리하는지 보여주는 데모이며, 위 실제 파이프라인 명령으로 strict 통과를 확인할 수 있습니다.
+
+### 13.7 다음 단계: 신고 전 사실점검 11항목 연결
+strict 통과한 설명형 분석 결과를 입력으로 **신고 전 사실점검 11항목 → 보조금 신고서 초안**을 다음 단계에서 진행합니다(이번 범위 밖).
+
+### 13.8 API
+- `POST /api/citations/validate`(claims/report/fixture, strict 옵션), `GET /api/citations/latest`.
+- 응답에 `strictPassed` / `suggestedFixes` / `privacyBlockedCitations` / `notLegalConclusion:true` / `rewardGuaranteed:false` 와 "부정수급으로 단정하지 않음 / 포상금 지급 보장하지 않음 / 사람 검토 필요" 안내가 포함됩니다.

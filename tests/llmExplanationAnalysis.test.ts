@@ -174,6 +174,68 @@ test("21. 권장 표현이 포함된다", () => {
   }
 });
 
+// ---------- 체크리스트 63: 보조금 룰 5종 결과 입력 + 신규 필드 ----------
+
+const cl63RuleResults = [
+  {
+    ruleId: "repeat_recipient",
+    ruleName: "반복수급 검토 후보",
+    severity: "high",
+    candidateId: "repeat_recipient:aaa",
+    involvedRecordIds: ["rec-1", "rec-2"],
+    evidenceRefs: ["공시URL:https://example.org/notice/1"],
+    reason: "동일 수급기관 후보가 3건 반복 등장",
+    caution: "다년도 정상 사업일 수 있습니다.",
+    suggestedNextCheck: ["동일 기관 여부 확인"],
+    reviewRequired: true,
+    notLegalConclusion: true
+  },
+  {
+    ruleId: "similar_project_repeat",
+    ruleName: "사업명 유사 반복 검토 후보",
+    severity: "medium",
+    candidateId: "similar_project_repeat:bbb",
+    involvedRecordIds: ["rec-3", "rec-4"],
+    evidenceRefs: ["공시URL:https://example.org/notice/2"],
+    reason: "핵심 사업명 유사도 0.9",
+    reviewRequired: true,
+    notLegalConclusion: true
+  }
+];
+
+test("[CL63] 룰 5종 결과를 입력으로 설명형 분석을 생성한다", () => {
+  const report = generateLlmExplanationReport(cl63RuleResults, { sourceNote: "rule-results" });
+  assert.ok(report.totalExplanations >= 1);
+  for (const e of report.explanations) {
+    assert.ok(e.summary.length > 0, "summary");
+    assert.ok(e.whyFlagged.length >= 1, "whyFlagged");
+    assert.ok(e.keyEvidence.length >= 1, "keyEvidence");
+    assert.ok(e.additionalChecks.length >= 1, "additionalChecks");
+    assert.equal(e.reviewRequired, true);
+    assert.equal(e.notLegalConclusion, true);
+    assert.equal(e.rewardGuaranteed, false);
+  }
+});
+
+test("[CL63] keyEvidence 가 evidenceRefs(공개 URL)를 근거로 반영한다", () => {
+  const report = generateLlmExplanationReport(cl63RuleResults, { isFixtureBased: true });
+  const blob = JSON.stringify(report.explanations);
+  assert.ok(blob.includes("example.org/notice"), "공개 URL 근거 반영");
+});
+
+test("[CL63] summary.md / metadata.json 이 생성되고 LLM 미호출이 표시된다", async () => {
+  const out = path.join(os.tmpdir(), `cl63-llm-${Date.now()}`);
+  cleanupDirs.push(out);
+  const report = generateLlmExplanationReport(cl63RuleResults, { isFixtureBased: true });
+  await writeLlmExplanationReport(out, report);
+  const summary = await readFile(path.join(out, "runs", report.runId, "llm-explanation-summary.md"), "utf8");
+  assert.ok(summary.includes("LLM 설명형 분석 요약"));
+  const meta = JSON.parse(await readFile(path.join(out, "runs", report.runId, "metadata.json"), "utf8"));
+  assert.equal(meta.llmApiCalled, false);
+  assert.equal(meta.deterministicFallbackOnly, true);
+  assert.equal(meta.rewardGuaranteed, false);
+});
+
 async function main(): Promise<void> {
   let passed = 0;
   let failed = 0;

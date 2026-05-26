@@ -26,6 +26,7 @@ function candidatesFromReportJson(value: unknown): unknown[] {
   const obj = value as Record<string, unknown>;
   if (Array.isArray(value)) return value;
   if (Array.isArray(obj.explanations)) return obj.explanations;
+  if (Array.isArray(obj.ruleResults)) return obj.ruleResults; // 체크리스트 60 rule-results.json
   if (Array.isArray(obj.topScores)) return obj.topScores;
   if (Array.isArray(obj.topCandidates)) return obj.topCandidates;
   if (Array.isArray(obj.candidates)) return obj.candidates;
@@ -65,15 +66,19 @@ async function main(): Promise<void> {
   }
 
   const report = generateLlmExplanationReport(inputs, { isFixtureBased, sourceNote });
-  const { reportJsonFile, reportMdFile } = await writeLlmExplanationReport(outputDir, report);
+  const { reportJsonFile, reportMdFile, summaryMdFile, metadataFile } =
+    await writeLlmExplanationReport(outputDir, report);
 
   console.log("");
   console.log("LLM_EXPLANATION_ANALYSIS_RUN_OK");
   console.log(`totalInputCandidates: ${report.totalInputCandidates}`);
   console.log(`totalExplanations: ${report.totalExplanations}`);
+  console.log("deterministicFallbackOnly: true (실제 LLM API 미호출)");
   console.log(`outputDir: ${path.join(outputDir, "runs", report.runId)}`);
-  console.log(`report.json: ${reportJsonFile}`);
-  console.log(`report.md: ${reportMdFile}`);
+  console.log(`llm-explanation-report.json: ${reportJsonFile}`);
+  console.log(`llm-explanation-report.md: ${reportMdFile}`);
+  console.log(`llm-explanation-summary.md: ${summaryMdFile}`);
+  console.log(`metadata.json: ${metadataFile}`);
   if (report.isFixtureBased) console.log("fixture 기반 검증입니다. 실제 LLM API 호출은 수행하지 않았습니다.");
 }
 

@@ -117,3 +117,43 @@
 - 사실관계 점검표와 연결
 - 신고서 초안 생성 전 승인 게이트 연결
 - 대시보드에서 설명형 분석 표시
+
+## 12. 위험점수·보상가능성·룰 5종 입력 (체크리스트 63)
+
+### 12.1 설명형 분석이 하는 일
+- 위험점수(체크리스트 61), 보상가능성 점수(체크리스트 62), 룰 5종 결과(체크리스트 60 `rule-results.json`)를 입력으로 받아, "왜 검토 후보인지 / 어떤 공개자료 근거가 있는지 / 추가로 무엇을 확인해야 하는지"를 사람이 읽기 쉬운 한국어로 분리해 보여줍니다.
+- 결과 항목: `candidateId`, `summary`, `whyFlagged`, `keyEvidence`, `riskSignals`, `rewardPossibilityNote`, `additionalChecks`, `limitations`, `safetyDisclaimers`, `reviewRequired:true`, `notLegalConclusion:true`, `rewardGuaranteed:false`.
+
+### 12.2 설명형 분석이 하지 않는 일
+- 부정수급/위법을 확정하지 않습니다. 공개자료 기반 **검토 보조 의견**일 뿐입니다.
+- 포상금 지급을 보장하지 않으며(`rewardGuaranteed:false`), 자동 신고·자동 제출을 하지 않습니다.
+- 대표자명·전화번호·주민번호·계좌번호·상세주소 원문은 설명에 넣지 않습니다(마스킹/제외).
+
+### 12.3 deterministic fallback과 실제 LLM 호출의 차이
+- **deterministic fallback(기본값)**: 입력 점수·신호를 규칙 기반 템플릿으로 정리합니다. 같은 입력이면 항상 같은 결과이고, 외부 API·키가 필요 없습니다.
+- **실제 LLM 호출(미사용)**: OpenAI 등 외부 모델을 호출하는 방식. 본 단계에서는 사용하지 않습니다.
+
+### 12.4 기본 검증에서 실제 LLM을 호출하지 않는 이유
+- 검증 재현성(같은 입력→같은 출력), 비용·키 노출 방지, 개인정보의 외부 전송 차단, 환각 위험 축소를 위해 기본 검증은 deterministic fallback만 사용합니다. metadata.json에 `llmApiCalled:false`, `deterministicFallbackOnly:true`로 표시됩니다.
+
+### 12.5 입력 형식 / 실행 명령 / 출력 위치
+```bash
+npm run analysis:llm-explain -- --fixture 100                                  # fixture 검증(LLM 미호출)
+npm run analysis:llm-explain -- --input data/risk/score/runs/<id>/risk-score-report.json
+npm run analysis:llm-explain -- --input data/risk/runs/<id>/rule-results.json   # 룰 5종 결과 입력
+npm run test:llm-explanation
+npm run check:llm-explanation
+```
+출력(gitignore): `data/analysis/llm-explanation/runs/{runId}/` 에 `llm-explanation-report.json` · `llm-explanation-summary.md` · `metadata.json`.
+
+### 12.6 개인정보 원문을 근거/설명에 넣지 않는 이유
+개인정보가 분석 결과·로그·산출물에 남으면 유출·오남용 위험이 있습니다. 따라서 정규화 키·공개 URL·recordId만 사용하고 원문은 마스킹/제외합니다.
+
+### 12.7 다음 단계: 신고 전 사실점검 11항목 연결
+설명형 분석 결과와 근거검증(strict) 통과 결과를 입력으로 **신고 전 사실점검 11항목 → 보조금 신고서 초안**을 다음 단계에서 진행합니다(이번 범위 밖). 자동 신고·자동 제출은 없습니다.
+
+### 12.8 API
+- `POST /api/subsidy/analysis/explain/run`(합성 데모, deterministic), `GET /api/subsidy/analysis/explain/latest`.
+- 응답에 `deterministicFallbackOnly:true` / `llmApiCalled:false` / `notLegalConclusion:true` / `rewardGuaranteed:false` 와 "부정수급으로 단정하지 않음 / 포상금 지급 보장하지 않음 / 사람 검토 필요" 안내가 포함됩니다.
+
+근거검증 연계는 [CITATION_VALIDATION_GUIDE.md](CITATION_VALIDATION_GUIDE.md)를 참고하세요.

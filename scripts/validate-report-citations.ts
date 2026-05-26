@@ -70,12 +70,18 @@ async function main(): Promise<void> {
   console.log(`status: ${report.status}`);
   console.log(`totalClaims: ${report.totalClaims}`);
   console.log(`coreClaims: ${report.coreClaims}`);
-  console.log(`citedClaims: ${report.citedClaims}`);
-  console.log(`missingClaims: ${report.missingClaims}`);
+  console.log(`supportedClaims: ${report.supportedClaims}`);
+  console.log(`unsupportedClaims: ${report.unsupportedClaims}`);
+  console.log(`warningClaims: ${report.warningClaims}`);
+  console.log(`failedClaims: ${report.failedClaims}`);
+  console.log(`strictPassed: ${report.strictPassed}`);
+  console.log(`privacyBlockedCitations: ${report.privacyBlockedCitations}`);
   console.log(`blockedPersonalInfoCount: ${report.blockedPersonalInfoCount}`);
   console.log(`blockedPrivateUrlCount: ${report.blockedPrivateUrlCount}`);
+  console.log(`suggestedFixes: ${report.suggestedFixes.length}`);
   console.log(`report.json: ${reportJsonFile}`);
   console.log(`report.md: ${reportMdFile}`);
+  console.log("근거 검증은 법 위반 확정이 아니라 환각·오류 방지 장치입니다. 근거 없는 주장은 근거 보강 필요로 표시됩니다.");
   if (report.isFixtureBased) console.log("fixture 기반 검증입니다. 실데이터 근거처럼 표현하지 않습니다.");
 
   // strict 모드에서 근거 없는 핵심 주장이 있으면 실패 종료한다.

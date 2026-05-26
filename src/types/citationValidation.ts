@@ -102,6 +102,14 @@ export interface ClaimValidationResult {
   isFixtureBased: boolean;
 }
 
+/** 근거 없는 주장에 대한 보강 제안(체크리스트 64). */
+export interface CitationSuggestedFix {
+  claimId: string;
+  section: string;
+  kind: ClaimKind;
+  suggestion: string;
+}
+
 export interface CitationValidationReport {
   reportId: string;
   title: string;
@@ -111,6 +119,17 @@ export interface CitationValidationReport {
   citedClaims: number;
   missingClaims: number;
   coreClaims: number;
+  // 체크리스트 64 표준 필드(이름 통일). 위 citedClaims/missingClaims와 동일 값 별칭 포함.
+  supportedClaims: number;
+  unsupportedClaims: number;
+  warningClaims: number;
+  failedClaims: number;
+  /** strict 모드 기준 통과 여부(근거 없는 핵심 주장·fail 없음). */
+  strictPassed: boolean;
+  /** 근거 없는 주장 보강 제안. */
+  suggestedFixes: CitationSuggestedFix[];
+  /** 개인정보/비공개 URL로 차단된 citation 총 건수. */
+  privacyBlockedCitations: number;
   blockedPersonalInfoCount: number;
   blockedPrivateUrlCount: number;
   fixtureCitationCount: number;
