@@ -1025,6 +1025,37 @@ check("NaverSearchAdapter disabled without keys", !naverAdapter.isEnabled());
 
 check("scoutAgent.listTopics returns 12", scoutAgent.listTopics("false_ad").length === 12);
 
+// Naver Search 연결 안전 점검 (체크리스트 23) — 키 없이도 mock으로 안전 동작, 키 원문 미노출
+{
+  // 1) 키가 없을 때 Naver search()는 예외 없이 빈 배열을 반환한다 (서버 미중단).
+  let naverDidNotThrow = true;
+  let naverOut: any[] = [];
+  try { naverOut = await naverAdapter.search("당뇨 완치", { limit: 5, moduleId: "false_ad", topicId: "blood-sugar" }); }
+  catch { naverDidNotThrow = false; }
+  check("[CL23] 키 없음 상태에서 Naver search 예외 없이 동작", naverDidNotThrow);
+  check("[CL23] 키 없음 상태에서 Naver는 외부 호출 없이 빈 결과", Array.isArray(naverOut) && naverOut.length === 0);
+
+  // 2) scoutAgent.discover는 sourceTypes:["naver"]를 받아도 키 없으면 mock으로 폴백한다.
+  const disc = await scoutAgent.discover({ moduleId: "false_ad", topics: [], mode: "quick", sourceTypes: ["naver"], maxCandidates: 5 });
+  check("[CL23] 키 없음 → naver는 fallback 처리", disc.sourceFallbacks.includes("naver"));
+  check("[CL23] 키 없음 → 외부 API 미사용(usedSources에 naver 없음)", !disc.usedSources.includes("naver"));
+  check("[CL23] mock 폴백 후보가 반환되거나 안전 빈 결과", Array.isArray(disc.candidates));
+
+  // 3) 응답에 Naver 키 원문/패턴이 포함되지 않는다 (mock 환경에서는 키 자체가 없음).
+  const discJson = JSON.stringify(disc);
+  const naverId = (process.env.NAVER_CLIENT_ID || "").trim();
+  const naverSecret = (process.env.NAVER_CLIENT_SECRET || "").trim();
+  check("[CL23] discover 결과에 NAVER_CLIENT_ID 원문 미포함", naverId.length === 0 || !discJson.includes(naverId));
+  check("[CL23] discover 결과에 NAVER_CLIENT_SECRET 원문 미포함", naverSecret.length === 0 || !discJson.includes(naverSecret));
+
+  // 4) 후보는 자동 신고로 이어지지 않는다 — 발굴 후보 상태는 NEW(분석/신고 전).
+  check("[CL23] 발굴 후보는 NEW 상태(자동 신고/분석 아님)", disc.candidates.every((c) => c.status === "NEW"));
+
+  // 5) 금지 문구 미출력.
+  check("[CL23] discover 금지문구 미출력(포상금 보장/위법 확정/사기 확정)",
+    !/포상금\s*보장/.test(discJson) && !/위법\s*확정/.test(discJson) && !/사기\s*확정/.test(discJson));
+}
+
 // 19) Scheduler — 10 tests
 const cfg = loadSchedulerConfig();
 check("scheduler default disabled", cfg.enabled === false);

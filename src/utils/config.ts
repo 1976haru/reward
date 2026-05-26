@@ -42,6 +42,7 @@ export const config = {
   scout: {
     mock: parseBool(process.env.MOCK_SCOUT, true),
     dailyLimit: Number(process.env.SCOUT_DAILY_LIMIT ?? 50),
+    requestDelayMs: Number(process.env.SCOUT_REQUEST_DELAY_MS ?? 1000),
     naverClientId: process.env.NAVER_CLIENT_ID ?? "",
     naverClientSecret: process.env.NAVER_CLIENT_SECRET ?? "",
     openaiWebSearchEnabled: parseBool(process.env.OPENAI_WEB_SEARCH_ENABLED, false),

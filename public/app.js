@@ -290,6 +290,14 @@ function renderAppHeaderMeta(data) {
     naverBadge.classList.toggle("status-chip-ok", ok);
     naverBadge.classList.toggle("status-chip-off", !ok);
   }
+  // 후보 발굴 화면의 Naver 키 상태 — 키 원문 없이 "설정됨/미설정"만 표시
+  const discoverNaverStatus = document.getElementById("discoverNaverStatus");
+  if (discoverNaverStatus) {
+    const ok = Boolean(api.naver && api.naver.configured);
+    discoverNaverStatus.textContent = "Naver 키: " + (ok ? "설정됨" : "미설정");
+    discoverNaverStatus.classList.toggle("ok", ok);
+    discoverNaverStatus.classList.toggle("muted", !ok);
+  }
   if (dateEl && data.todayDate) dateEl.textContent = data.todayDate;
 }
 

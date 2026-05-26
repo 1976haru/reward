@@ -126,6 +126,103 @@ curl -X POST http://localhost:3001/api/analyze/llm \
 
 ---
 
+# Naver Search API 설정 가이드 (초보자용)
+
+Naver Search API는 **공개 웹 검색 결과로 "분석 후보 URL"을 찾는 용도**입니다.
+**자동 신고용이 아닙니다.** 찾은 후보는 사람이 직접 선택한 뒤 분석 단계로 넘어갑니다.
+
+> ## 먼저 알아둘 점
+>
+> - **기본값은 mock 후보 발굴입니다.** (`MOCK_SCOUT=true`) — 키 없이도 화면이 동작하며 외부 호출이 없습니다.
+> - **Naver API는 본인이 직접** `NAVER_CLIENT_ID`와 `NAVER_CLIENT_SECRET`을 **둘 다** 입력했을 때만 활성화됩니다.
+> - 키가 없으면 서버가 죽지 않고 **mock 후보 발굴**로 안전하게 동작합니다.
+> - **API 키는 절대 GitHub에 올리면 안 됩니다.** (`.env`는 커밋되지 않도록 설정되어 있습니다.)
+> - **과도한 호출을 하면 네이버 정책상 제한될 수 있습니다.** 공식 API만 사용하며, 검색 결과 HTML 스크래핑·대량 크롤링·CAPTCHA 우회는 하지 않습니다.
+> - 검색 결과는 **신고 대상 확정이 아니라 "분석 후보"**입니다.
+
+---
+
+## 1. 네이버 개발자센터 접속
+
+1. 웹 브라우저에서 <https://developers.naver.com> 에 접속합니다.
+2. 네이버 계정으로 로그인합니다. (없으면 네이버 회원가입 후 진행)
+
+## 2. 애플리케이션 등록
+
+1. 상단 메뉴 **Application → 애플리케이션 등록**으로 이동합니다.
+   (또는 <https://developers.naver.com/apps/#/register> 로 직접 이동)
+2. **애플리케이션 이름**을 적습니다. (예: `gongik-radar`)
+3. **사용 API**에서 **검색**을 선택합니다.
+4. **환경 추가**에서 **WEB 설정**을 선택하고, 서비스 URL은 로컬 테스트면 `http://localhost:3001` 을 입력합니다.
+5. **등록하기**를 누릅니다.
+
+## 3. 검색 API 사용 설정
+
+- 위 2번에서 **사용 API = 검색**을 반드시 선택해야 검색 API를 호출할 수 있습니다.
+- 등록 후 **내 애플리케이션** 화면에서 검색 API가 추가되어 있는지 확인합니다.
+
+## 4. Client ID 확인 / 5. Client Secret 확인
+
+1. **Application → 내 애플리케이션 → (등록한 앱 선택)** 으로 이동합니다.
+2. **개요(Overview)** 화면에 다음 두 값이 보입니다.
+   - **Client ID** → `NAVER_CLIENT_ID`에 넣을 값
+   - **Client Secret** → `NAVER_CLIENT_SECRET`에 넣을 값 (**보안 비밀**이므로 공유 금지)
+
+## 6. `.env`에 입력하기
+
+`.env` 파일을 열어 아래 값을 채웁니다. (없으면 `.env.example`을 복사: `Copy-Item .env.example .env`)
+
+```dotenv
+# 둘 다 채워야 Naver adapter 가 활성화됩니다.
+NAVER_CLIENT_ID=여기에_Client_ID
+NAVER_CLIENT_SECRET=여기에_Client_Secret
+
+# 실제 Naver 검색을 쓰려면 mock 끄기 (기본값은 true 유지 권장)
+MOCK_SCOUT=false
+
+# 과도한 호출 방지용 최소 대기(ms)
+SCOUT_REQUEST_DELAY_MS=1000
+
+# 후보 발굴 기본 mock 스위치 (안전 기본값 true)
+MOCK_DISCOVERY=true
+```
+
+저장 후 서버를 다시 시작합니다. (`npm run dev`)
+
+> 🔒 `.env`는 `.gitignore`에 등록되어 있어 **GitHub에 올라가지 않습니다.** 직접 커밋·공유하지 마세요.
+
+## 7. 후보 URL 발굴 동작 확인
+
+서버 실행 후:
+
+```bash
+curl -X POST http://localhost:3001/api/scout/discover \
+  -H "content-type: application/json" \
+  -d "{\"moduleId\":\"false_ad\",\"topic\":\"건강기능식품 당뇨 완치 광고\",\"sourceTypes\":[\"naver\"]}"
+```
+
+응답에서 다음을 확인하세요. (키 원문은 절대 표시되지 않습니다.)
+
+- `sourceType`: `"naver"`(키 설정+사용 시) 또는 `"mock"`
+- `usedExternalApi`: 키가 없으면 `false`
+- `apiKeyConfigured`: `true` / `false` 상태값만 표시
+- `discoveryCandidates[].status`: `"needs_review"` (자동 분석/자동 신고로 이어지지 않음)
+- `humanReviewRequired`: `true`
+- `warnings`: 키 미설정 시 "mock 모드 동작" 안내 포함
+
+브라우저에서는 **후보 찾기 화면**에서 Naver 키 상태("설정됨/미설정")와 안전 안내를 볼 수 있습니다.
+
+## 8. 안전 수칙 요약 (Naver)
+
+- ✅ 기본값은 mock 후보 발굴입니다. 검증은 mock으로 먼저 하세요.
+- ✅ Naver adapter는 `NAVER_CLIENT_ID` + `NAVER_CLIENT_SECRET`을 둘 다 설정한 경우에만 활성화됩니다.
+- ✅ 후보 URL은 신고 대상 확정이 아니라 "분석 후보"이며, 사람이 선택해야 분석으로 진행됩니다.
+- ✅ API 키 원문은 화면·API 응답·로그·trace 어디에도 표시되지 않습니다.
+- 🚫 키를 코드/문서/스크린샷/채팅으로 공유하거나 `.env`를 커밋하지 마세요.
+- 🚫 대량 검색·대량 크롤링·검색 HTML 스크래핑·CAPTCHA 우회는 하지 않습니다. 공식 API만 사용합니다.
+
+---
+
 ## 관련 문서
 
 - 환경변수 전체 목록: [`.env.example`](../.env.example)
@@ -133,4 +230,4 @@ curl -X POST http://localhost:3001/api/analyze/llm \
 - 운영 정책: [`docs/OPERATING_POLICY.md`](./OPERATING_POLICY.md)
 - 개인정보 처리: [`docs/privacy_policy.md`](./privacy_policy.md)
 
-> Naver Search API 연결, 신고처 Registry, API 키 안전검사 확장은 **다음 단계**에서 진행합니다. 본 문서는 OpenAI API 연결까지만 다룹니다.
+> 공식 신고처 URL Registry, API 키 안전검사 전체 확장, 실패 fallback 고도화는 **다음 단계**에서 진행합니다. 본 문서는 OpenAI · Naver Search API 연결까지 다룹니다.

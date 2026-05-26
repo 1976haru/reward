@@ -1030,7 +1030,7 @@ dist/              tsc 빌드 산출물 (gitignored)
 
 `.env.example`을 `.env`로 복사한 뒤 값을 채워 사용합니다. `.env`는 절대 커밋하지 않습니다.
 
-> 🔑 **OpenAI API 발급·연결을 처음 한다면** 초보자용 단계별 가이드 [`docs/API_SETUP.md`](./docs/API_SETUP.md)를 먼저 보세요. 기본값은 `MOCK_AI=true`(비용 없음)이며, 실제 호출은 본인이 직접 `MOCK_AI=false` + `OPENAI_API_KEY`를 설정한 경우에만 동작합니다.
+> 🔑 **OpenAI / Naver Search API 발급·연결을 처음 한다면** 초보자용 단계별 가이드 [`docs/API_SETUP.md`](./docs/API_SETUP.md)를 먼저 보세요. 기본값은 `MOCK_AI=true`·`MOCK_SCOUT=true`(비용·외부호출 없음)이며, 실제 호출은 본인이 직접 키를 설정한 경우에만 동작합니다. Naver Search API는 `NAVER_CLIENT_ID`+`NAVER_CLIENT_SECRET`이 둘 다 있을 때만 활성화되고, 없으면 mock 후보 발굴로 안전하게 동작합니다.
 
 | 변수 | 기본값 | 설명 |
 |---|---|---|

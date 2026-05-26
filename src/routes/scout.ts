@@ -57,13 +57,36 @@ scoutRouter.get("/sources", (_req, res) => {
 });
 
 // POST /api/scout/discover
+// topic(단수, 자유 텍스트)도 허용한다(문서/호환용). 내부 발굴은 모듈 시드 주제 기준으로 동작한다.
 const DiscoverBodySchema = z.object({
   moduleId: z.string().default("false_ad"),
+  topic: z.string().max(200).optional(),
   topics: z.array(z.string()).default([]),
   mode: z.enum(DISCOVERY_MODES).default("quick"),
   sourceTypes: z.array(z.enum(["mock", "naver", "openai_web_search", "rss", "manual"])).optional(),
   maxCandidates: z.number().int().positive().max(200).optional()
 });
+
+// 후보를 체크리스트 23 표준 형태(분석 후보)로 정규화한다. 신고 대상 확정이 아니다.
+function toDiscoveryCandidateView(c: {
+  id: string; moduleId: string; title: string; url: string;
+  snippet?: string; source: string; firstScore: number; foundAt: string;
+}) {
+  return {
+    candidateId: c.id,
+    moduleId: c.moduleId,
+    sourceType: typeof c.source === "string" && c.source.includes("naver") ? "naver" : "mock",
+    title: c.title,
+    url: c.url,
+    snippet: c.snippet ?? "",
+    summary: c.snippet ?? "",
+    discoveredAt: c.foundAt,
+    score: c.firstScore,
+    priorityHint: c.firstScore,
+    status: "needs_review" as const,   // 자동 분석/자동 신고로 이어지지 않음 — 사람이 선택해야 분석 단계로 진행
+    humanReviewRequired: true as const
+  };
+}
 
 scoutRouter.post("/discover", async (req, res) => {
   try {
@@ -78,10 +101,32 @@ scoutRouter.post("/discover", async (req, res) => {
       sourceTypes: input.sourceTypes,
       maxCandidates: input.maxCandidates
     });
+
+    // Naver Search API 상태 — 키 원문은 절대 노출하지 않고 boolean 상태만 표시한다.
+    const apiKeyConfigured = Boolean(config.scout.naverClientId && config.scout.naverClientSecret);
+    const usedExternalApi = result.usedSources.includes("naver");
+    const sourceType: "naver" | "mock" = usedExternalApi ? "naver" : "mock";
+
+    const warnings: string[] = [];
+    if (!apiKeyConfigured) {
+      warnings.push("Naver API 키 미설정으로 mock 모드로 동작합니다. (NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 를 .env 에 설정하면 공개 검색 후보 발굴이 활성화됩니다.)");
+    }
+    if (result.sourceFallbacks.includes("naver") && apiKeyConfigured) {
+      warnings.push("Naver adapter 가 일시적으로 비활성화되어 mock 후보로 폴백했습니다.");
+    }
+    warnings.push("검색 결과는 신고 대상 확정이 아니라 분석 후보입니다. 사람이 선택한 뒤 분석으로 진행됩니다.");
+
     res.status(201).json({
       ok: true,
       moduleId: input.moduleId,
+      // 체크리스트 23 — Naver adapter 상태(키 원문 없이 상태값만)
+      sourceType,
+      usedExternalApi,
+      apiKeyConfigured,
+      warnings,
       candidates: result.candidates,
+      // 표준 분석 후보 뷰 (candidateId/sourceType/status:needs_review/humanReviewRequired 포함)
+      discoveryCandidates: result.candidates.map(toDiscoveryCandidateView),
       added: result.added.length,
       usedSources: result.usedSources,
       sourceFallbacks: result.sourceFallbacks,
