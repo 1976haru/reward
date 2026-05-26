@@ -173,6 +173,13 @@ check("[CL32] general_food_false_ad 등록됨", Boolean(generalFood));
 check("[CL32] general_food 는 active 아님(2차 확장)", generalFood?.status !== "active", `status=${generalFood?.status}`);
 check("[CL32] general_food category=general_food", generalFood?.category === "general_food");
 check("[CL32] false_ad(1차 MVP) 여전히 active·default 유지", falseAd?.status === "active" && defaultModule?.id === "false_ad");
+
+// 화장품 3차 확장 모듈 (체크리스트 36) — 1차/2차 모듈을 대체하지 않는다
+const cosmetic = moduleRegistry.get("cosmetic_false_ad");
+check("[CL36] cosmetic_false_ad 등록됨", Boolean(cosmetic));
+check("[CL36] cosmetic 는 active 아님(3차 확장)", cosmetic?.status !== "active", `status=${cosmetic?.status}`);
+check("[CL36] cosmetic category=cosmetic", cosmetic?.category === "cosmetic");
+check("[CL36] 1차(false_ad active)·2차(general_food 등록) 유지", falseAd?.status === "active" && Boolean(generalFood));
 check("false_ad has reportTemplatePath", typeof falseAd?.reportTemplatePath === "string");
 check("false_ad has agencyConfigPath", typeof falseAd?.agencyConfigPath === "string");
 
@@ -589,6 +596,27 @@ check("claimCandidates 우선 분석", dSection.matches.some((m) => m.sourceSect
   // 정상 일반식품 광고는 과탐지되지 않음
   const gfNormal = ra.detectDetailed({ text: "신선한 과일로 만든 수제 주스입니다. 맛있게 드세요." }, "general_food_false_ad");
   check("[CL33] 정상 일반식품 광고 과탐지 없음", gfNormal.matches.length === 0 && gfNormal.riskScore === 0, `score=${gfNormal.riskScore}`);
+}
+
+// 화장품 키워드 룰셋 (체크리스트 37)
+{
+  const cmCfg = ra.getConfig("cosmetic_false_ad");
+  check("[CL37] cosmetic 룰셋 30개 이상", cmCfg.rules.length >= 30, `count=${cmCfg.rules.length}`);
+  const cmCounts = { HIGH: 0, MEDIUM: 0, LOW: 0, combo: 0 };
+  for (const r of cmCfg.rules) {
+    if (r.matchType === "regex" || r.matchType === "combo") cmCounts.combo++;
+    else cmCounts[r.riskLevel]++;
+  }
+  check("[CL37] HIGH/MEDIUM/LOW 모두 존재", cmCounts.HIGH > 0 && cmCounts.MEDIUM > 0 && cmCounts.LOW > 0,
+    `H${cmCounts.HIGH}/M${cmCounts.MEDIUM}/L${cmCounts.LOW}/combo${cmCounts.combo}`);
+  check("[CL37] combo rule 존재", cmCounts.combo >= 1);
+  // 화장품 금지성 표현 탐지
+  const cmHit = ra.detectDetailed({ text: "이 크림으로 아토피 치료, 주름 완전 제거 효과." }, "cosmetic_false_ad");
+  check("[CL37] 화장품 금지성 표현 탐지", cmHit.matches.length >= 1 && cmHit.riskScore > 0);
+  check("[CL37] 탐지 결과는 법 위반 확정 아님(중립 문구)", /확정하지 않습니다|검토/.test(cmHit.safetyNotice));
+  // 정상 화장품 광고는 과탐지되지 않음
+  const cmNormal = ra.detectDetailed({ text: "수분을 가득 채워주는 데일리 보습 크림입니다. 산뜻하게 발려요." }, "cosmetic_false_ad");
+  check("[CL37] 정상 화장품 광고 과탐지 없음", cmNormal.matches.length === 0 && cmNormal.riskScore === 0, `score=${cmNormal.riskScore}`);
 }
 
 check("matches array exposed", Array.isArray(big.matches));

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "cosmetic_false_ad",
+  "category": "cosmetic",
+  "lastReviewedAt": "2026-05-26",
+  "disclaimer": "이 룰셋은 화장품 온라인 광고가 의약품이나 인정된 기능성 화장품 범위를 넘어 보이는 허위·과대광고 의심 문구를 탐지하기 위한 보조 자료이며, 법 위반 여부를 확정하지 않는다. 매칭은 검토가 필요한 후보 표현을 의미하며, 최종 판단은 사람이 한다. 미백·주름개선·자외선차단 등은 인정된 기능성 화장품 범위 내 표현일 수 있으므로 범위를 넘는 단정·치료 표현인지 사람이 검토해야 한다.",
+  "riskWeights": {
+    "HIGH": 25,
+    "MEDIUM": 12,
+    "LOW": 5,
+    "diseaseAndTreatmentCombo": 25,
+    "productAndDiseaseCombo": 15,
+    "repeatedPhrase": 10,
+    "maxScore": 100
+  },
+  "diseaseTerms": [
+    "아토피", "여드름", "여드름균", "피부염", "건선", "지루성", "주사",
+    "탈모", "원형탈모", "백반증", "기미", "검버섯", "사마귀", "무좀",
+    "습진", "두드러기", "켈로이드", "흉터", "모낭염"
+  ],
+  "actionTerms": [
+    "치료", "완치", "낫게", "제거", "재생", "복원", "대체",
+    "약 대신", "약 없이", "병원 갈 필요", "처방 없이", "근본 개선", "의약품 수준"
+  ],
+  "exaggerationTerms": [
+    "완전 제거", "즉시 제거", "하루 만에", "100% 효과", "100% 보장",
+    "기적", "바르기만 하면", "부작용 없는", "영구적", "단번에", "흉터 완전 제거",
+    "주름 완전 제거", "재생 효과 보장"
+  ],
+  "productTerms": [
+    "크림", "세럼", "앰플", "토너", "로션", "에센스", "마스크팩",
+    "연고", "밤", "젤", "오일", "화장품", "스킨", "기능성 화장품"
+  ],
+  "rules": [
+    { "id": "CH001", "keyword": "아토피 치료", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "화장품으로 피부질환을 치료한다고 표시하는 의약품 오인 의심 표현. 검토 필요", "examples": ["이 크림으로 아토피 치료"], "matchType": "keyword" },
+    { "id": "CH002", "keyword": "아토피 완치", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "피부질환 완치를 표시하는 의심 표현. 검토 필요", "examples": ["아토피 완치 후기"], "matchType": "keyword" },
+    { "id": "CH003", "keyword": "여드름 치료", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "여드름(질환)을 치료한다고 표시하는 의약품 오인 의심 표현. 검토 필요", "examples": ["여드름 치료 세럼"], "matchType": "keyword" },
+    { "id": "CH004", "keyword": "피부염 치료", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "피부염 치료를 표시하는 의심 표현. 검토 필요", "examples": ["피부염 치료에 효과"], "matchType": "keyword" },
+    { "id": "CH005", "keyword": "건선 치료", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "만성 피부질환 치료를 표시하는 의심 표현. 검토 필요", "examples": ["건선 치료 크림"], "matchType": "keyword" },
+    { "id": "CH006", "keyword": "지루성 피부염 완치", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "피부질환 완치를 표시하는 의심 표현. 검토 필요", "examples": ["지루성 피부염 완치"], "matchType": "keyword" },
+    { "id": "CH007", "keyword": "탈모 치료", "riskLevel": "HIGH", "weight": 25, "category": "hair_loss_treatment", "reason": "탈모(의약품 영역)를 치료한다고 표시하는 의심 표현. 검토 필요", "examples": ["탈모 치료 토닉"], "matchType": "keyword" },
+    { "id": "CH008", "keyword": "발모 효과", "riskLevel": "HIGH", "weight": 25, "category": "hair_loss_treatment", "reason": "발모(의약품 효능)를 표시하는 의심 표현. 검토 필요", "examples": ["발모 효과 입증"], "matchType": "keyword" },
+    { "id": "CH009", "keyword": "원형탈모 완치", "riskLevel": "HIGH", "weight": 25, "category": "hair_loss_treatment", "reason": "탈모 질환 완치를 표시하는 의심 표현. 검토 필요", "examples": ["원형탈모 완치 사례"], "matchType": "keyword" },
+    { "id": "CH010", "keyword": "백반증 치료", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "색소질환 치료를 표시하는 의심 표현. 검토 필요", "examples": ["백반증 치료 크림"], "matchType": "keyword" },
+    { "id": "CH011", "keyword": "무좀 치료", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "감염성 피부질환 치료를 표시하는 의심 표현. 검토 필요", "examples": ["무좀 치료 연고처럼"], "matchType": "keyword" },
+    { "id": "CH012", "keyword": "습진 치료", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "피부질환 치료를 표시하는 의심 표현. 검토 필요", "examples": ["습진 치료에 특효"], "matchType": "keyword" },
+    { "id": "CH013", "keyword": "흉터 완전 제거", "riskLevel": "HIGH", "weight": 25, "category": "exaggerated_regeneration", "reason": "흉터를 완전히 제거한다고 단정하는 과장·의약품 오인 의심 표현. 검토 필요", "examples": ["흉터 완전 제거"], "matchType": "keyword" },
+    { "id": "CH014", "keyword": "주름 완전 제거", "riskLevel": "HIGH", "weight": 25, "category": "wrinkle_overstatement", "reason": "주름을 완전히 제거한다고 단정하는 과장 의심 표현(기능성 범위 초과 가능). 검토 필요", "examples": ["주름 완전 제거"], "matchType": "keyword" },
+    { "id": "CH015", "keyword": "의약품 수준 효능", "riskLevel": "HIGH", "weight": 25, "category": "medicine_substitution", "reason": "의약품 수준 효능을 주장하는 의심 표현. 검토 필요", "examples": ["의약품 수준 효능"], "matchType": "keyword" },
+    { "id": "CH016", "keyword": "병원 시술 대체", "riskLevel": "HIGH", "weight": 25, "category": "medicine_substitution", "reason": "의료 시술을 대체한다고 표시하는 의심 표현. 검토 필요", "examples": ["병원 시술 대체 가능"], "matchType": "keyword" },
+
+    { "id": "CM001", "keyword": "주름 즉시 제거", "riskLevel": "MEDIUM", "weight": 12, "category": "wrinkle_overstatement", "reason": "주름을 즉시 제거한다고 표시하는 과장 의심 표현. 검토 필요", "examples": ["바르면 주름 즉시 제거"], "matchType": "keyword" },
+    { "id": "CM002", "keyword": "주름 영구 개선", "riskLevel": "MEDIUM", "weight": 12, "category": "wrinkle_overstatement", "reason": "영구적 개선을 단정하는 과장 의심 표현. 검토 필요", "examples": ["주름 영구 개선"], "matchType": "keyword" },
+    { "id": "CM003", "keyword": "미백 즉시", "riskLevel": "MEDIUM", "weight": 12, "category": "whitening_overstatement", "reason": "미백 효과를 즉시·단정으로 표시하는 과장 의심 표현(기능성 범위 검토). 검토 필요", "examples": ["미백 즉시 효과"], "matchType": "keyword" },
+    { "id": "CM004", "keyword": "기미 완전 제거", "riskLevel": "MEDIUM", "weight": 12, "category": "whitening_overstatement", "reason": "기미를 완전 제거한다고 단정하는 과장 의심 표현. 검토 필요", "examples": ["기미 완전 제거"], "matchType": "keyword" },
+    { "id": "CM005", "keyword": "검버섯 제거", "riskLevel": "MEDIUM", "weight": 12, "category": "whitening_overstatement", "reason": "검버섯 제거(시술·의약품 영역)를 표시하는 의심 표현. 검토 필요", "examples": ["검버섯 제거 크림"], "matchType": "keyword" },
+    { "id": "CM006", "keyword": "피부 재생 보장", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_regeneration", "reason": "피부 재생을 보장한다고 표시하는 과장 의심 표현. 검토 필요", "examples": ["피부 재생 보장"], "matchType": "keyword" },
+    { "id": "CM007", "keyword": "세포 재생", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_regeneration", "reason": "세포 재생 등 의약품 오인 효능을 표시하는 의심 표현. 검토 필요", "examples": ["세포 재생 촉진"], "matchType": "keyword" },
+    { "id": "CM008", "keyword": "여드름 흉터 제거", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_regeneration", "reason": "여드름 흉터 제거를 단정하는 과장 의심 표현. 검토 필요", "examples": ["여드름 흉터 제거"], "matchType": "keyword" },
+    { "id": "CM009", "keyword": "모공 완전", "riskLevel": "MEDIUM", "weight": 12, "category": "exaggerated_regeneration", "reason": "모공을 완전히 없앤다고 표시하는 과장 의심 표현. 검토 필요", "examples": ["모공 완전 사라짐"], "matchType": "keyword" },
+    { "id": "CM010", "keyword": "탈모 개선 보장", "riskLevel": "MEDIUM", "weight": 12, "category": "hair_loss_treatment", "reason": "탈모 개선을 보장한다고 표시하는 의심 표현. 검토 필요", "examples": ["탈모 개선 보장"], "matchType": "keyword" },
+    { "id": "CM011", "keyword": "처방 없이", "riskLevel": "MEDIUM", "weight": 12, "category": "medicine_substitution", "reason": "처방 절차 우회를 암시하는 의심 표현. 검토 필요", "examples": ["처방 없이 사용 가능"], "matchType": "keyword" },
+    { "id": "CM012", "keyword": "약 없이 개선", "riskLevel": "MEDIUM", "weight": 12, "category": "medicine_substitution", "reason": "의약품 없이 개선된다고 표시하는 의심 표현. 검토 필요", "examples": ["약 없이 개선"], "matchType": "keyword" },
+    { "id": "CM013", "keyword": "기능성 화장품 그 이상", "riskLevel": "MEDIUM", "weight": 12, "category": "functional_scope_overstatement", "reason": "인정된 기능성 화장품 범위를 넘는다고 암시하는 의심 표현. 검토 필요", "examples": ["기능성 화장품 그 이상의 효과"], "matchType": "keyword" },
+
+    { "id": "CL001", "keyword": "즉시 효과", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "즉각적 효과를 표시하는 과장 의심 표현. 검토 필요", "examples": ["바르면 즉시 효과"], "matchType": "keyword" },
+    { "id": "CL002", "keyword": "하루 만에", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "단기간 효과를 단정하는 과장 의심 표현. 검토 필요", "examples": ["하루 만에 동안 피부"], "matchType": "keyword" },
+    { "id": "CL003", "keyword": "100% 보장", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "효과를 100% 보장한다고 표시하는 과장 의심 표현. 검토 필요", "examples": ["효과 100% 보장"], "matchType": "keyword" },
+    { "id": "CL004", "keyword": "단번에", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "단번에 효과를 표시하는 과장 의심 표현. 검토 필요", "examples": ["단번에 톤업"], "matchType": "keyword" },
+    { "id": "CL005", "keyword": "기적의", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "기적적 효과를 암시하는 과장 의심 표현. 검토 필요", "examples": ["기적의 크림"], "matchType": "keyword" },
+    { "id": "CL006", "keyword": "부작용 없는", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "부작용이 전혀 없다고 표시하는 과장 의심 표현. 검토 필요", "examples": ["부작용 없는 안전한"], "matchType": "keyword" },
+    { "id": "CL007", "keyword": "영구적", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "효과가 영구적이라고 표시하는 과장 의심 표현. 검토 필요", "examples": ["영구적 미백"], "matchType": "keyword" },
+    { "id": "CL008", "keyword": "동안 피부 완성", "riskLevel": "LOW", "weight": 5, "category": "instant_or_guarantee", "reason": "결과를 단정하는 과장 의심 표현. 검토 필요", "examples": ["동안 피부 완성"], "matchType": "keyword" },
+
+    { "id": "CC001", "keyword": "화장품명+피부질환명 동시 등장", "riskLevel": "HIGH", "weight": 25, "category": "product_disease_combo", "reason": "화장품(크림/세럼 등)과 피부질환명이 함께 등장해 질환 효능을 암시하는 의심 조합. 검토 필요", "examples": ["이 크림은 아토피에 좋아요"], "matchType": "combo", "pattern": "(크림|세럼|앰플|토너|로션|에센스|마스크팩|밤|젤|오일|스킨)[\\s\\S]{0,15}(아토피|여드름|피부염|건선|지루성|탈모|백반증|무좀|습진)" },
+    { "id": "CC002", "keyword": "바르기만 하면+치료/완치", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "바르기만 하면 치료·완치된다고 단정하는 의심 조합. 검토 필요", "examples": ["바르기만 하면 완치"], "matchType": "combo", "pattern": "바르기만\\s*하면[\\s\\S]{0,12}(치료|완치|낫|제거)" },
+    { "id": "CC003", "keyword": "주름+완전/즉시 제거", "riskLevel": "MEDIUM", "weight": 12, "category": "wrinkle_overstatement", "reason": "주름을 완전·즉시 제거한다고 과장하는 의심 조합. 검토 필요", "examples": ["주름 완전 제거"], "matchType": "combo", "pattern": "주름[\\s\\S]{0,8}(완전|즉시|영구)[\\s\\S]{0,6}(제거|개선)" },
+    { "id": "CC004", "keyword": "피부염/아토피/여드름+치료", "riskLevel": "HIGH", "weight": 25, "category": "skin_disease_treatment", "reason": "피부질환과 치료가 함께 등장하는 의약품 오인 의심 조합. 검토 필요", "examples": ["여드름 치료"], "matchType": "combo", "pattern": "(아토피|여드름|피부염|건선|습진)[\\s\\S]{0,10}(치료|완치|낫)" }
+  ]
+}

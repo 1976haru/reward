@@ -15,7 +15,7 @@ function zodErrorMessage(err: ZodError): string {
 // GET /api/rules/false_ad — 룰셋 메타(설정+요약) 공개. rules는 keyword/regex 표시 정보만.
 rulesRouter.get("/:moduleId", (req, res) => {
   const { moduleId } = req.params;
-  const SUPPORTED_MODULES = new Set(["false_ad", "general_food_false_ad", "counterfeit_goods"]);
+  const SUPPORTED_MODULES = new Set(["false_ad", "general_food_false_ad", "cosmetic_false_ad", "counterfeit_goods"]);
   if (!SUPPORTED_MODULES.has(moduleId)) {
     return res.status(404).json({
       ok: false,
@@ -90,7 +90,7 @@ const DetectBodySchema = z
 detectRouter.post("/rules", (req, res) => {
   try {
     const input = DetectBodySchema.parse(req.body);
-    const SUPPORTED_MODULES = new Set(["false_ad", "general_food_false_ad", "counterfeit_goods"]);
+    const SUPPORTED_MODULES = new Set(["false_ad", "general_food_false_ad", "cosmetic_false_ad", "counterfeit_goods"]);
     if (!SUPPORTED_MODULES.has(input.moduleId)) {
       return res.status(404).json({
         ok: false,
