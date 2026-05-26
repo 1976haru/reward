@@ -166,6 +166,13 @@ check("default module is false_ad", defaultModule?.id === "false_ad", `default=$
 const planned = moduleRegistry.get("counterfeit_goods");
 check("counterfeit_goods registered", Boolean(planned));
 check("counterfeit_goods is not active", planned?.status !== "active", `status=${planned?.status}`);
+
+// 일반식품 2차 확장 모듈 (체크리스트 32) — 건강기능식품 1차 MVP 를 대체하지 않는다
+const generalFood = moduleRegistry.get("general_food_false_ad");
+check("[CL32] general_food_false_ad 등록됨", Boolean(generalFood));
+check("[CL32] general_food 는 active 아님(2차 확장)", generalFood?.status !== "active", `status=${generalFood?.status}`);
+check("[CL32] general_food category=general_food", generalFood?.category === "general_food");
+check("[CL32] false_ad(1차 MVP) 여전히 active·default 유지", falseAd?.status === "active" && defaultModule?.id === "false_ad");
 check("false_ad has reportTemplatePath", typeof falseAd?.reportTemplatePath === "string");
 check("false_ad has agencyConfigPath", typeof falseAd?.agencyConfigPath === "string");
 
@@ -562,6 +569,27 @@ const dSection = ra.detectDetailed({
   mainText: "일반 설명. 추가 문맥."
 });
 check("claimCandidates 우선 분석", dSection.matches.some((m) => m.sourceSection === "claim" && m.keyword === "당뇨 완치"));
+
+// 일반식품 키워드 룰셋 (체크리스트 33)
+{
+  const gfCfg = ra.getConfig("general_food_false_ad");
+  check("[CL33] general_food 룰셋 30개 이상", gfCfg.rules.length >= 30, `count=${gfCfg.rules.length}`);
+  const gfCounts = { HIGH: 0, MEDIUM: 0, LOW: 0, combo: 0 };
+  for (const r of gfCfg.rules) {
+    if (r.matchType === "regex" || r.matchType === "combo") gfCounts.combo++;
+    else gfCounts[r.riskLevel]++;
+  }
+  check("[CL33] HIGH/MEDIUM/LOW 모두 존재", gfCounts.HIGH > 0 && gfCounts.MEDIUM > 0 && gfCounts.LOW > 0,
+    `H${gfCounts.HIGH}/M${gfCounts.MEDIUM}/L${gfCounts.LOW}/combo${gfCounts.combo}`);
+  check("[CL33] combo rule 존재", gfCounts.combo >= 1);
+  // 일반식품 금지성 표현 탐지
+  const gfHit = ra.detectDetailed({ text: "이 발효액으로 당뇨 완치, 항암 효과도 있어요." }, "general_food_false_ad");
+  check("[CL33] 일반식품 금지성 표현 탐지", gfHit.matches.length >= 1 && gfHit.riskScore > 0);
+  check("[CL33] 탐지 결과는 법 위반 확정 아님(중립 문구)", /확정하지 않습니다|검토/.test(gfHit.safetyNotice));
+  // 정상 일반식품 광고는 과탐지되지 않음
+  const gfNormal = ra.detectDetailed({ text: "신선한 과일로 만든 수제 주스입니다. 맛있게 드세요." }, "general_food_false_ad");
+  check("[CL33] 정상 일반식품 광고 과탐지 없음", gfNormal.matches.length === 0 && gfNormal.riskScore === 0, `score=${gfNormal.riskScore}`);
+}
 
 check("matches array exposed", Array.isArray(big.matches));
 check("highlightedSegments exposed", Array.isArray(big.highlightedSegments) && big.highlightedSegments.length > 0);

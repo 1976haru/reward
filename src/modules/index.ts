@@ -3,6 +3,7 @@
 
 import { moduleRegistry, type ModuleDefinition } from "../core/moduleRegistry.js";
 import { falseAdDefinition } from "./false-ad/index.js";
+import { generalFoodFalseAdDefinition } from "./general-food-false-ad/index.js";
 import { counterfeitGoodsDefinition } from "./counterfeit-goods/index.js";
 import { subsidyFraudDefinition } from "./subsidy-fraud/index.js";
 import { bidCollusionDefinition } from "./bid-collusion/index.js";
@@ -40,6 +41,8 @@ let bootstrapped = false;
 export function bootstrapModules(): void {
   if (bootstrapped) return;
   moduleRegistry.register(falseAdDefinition, { isDefault: true });
+  // 일반식품 허위·과대광고 — 2차 확장 (룰셋 준비 완료, 신고서/agency_config 는 다음 단계)
+  moduleRegistry.register(generalFoodFalseAdDefinition);
   // 위조상품 모듈 — ready 상태로 등록 (룰/스카웃/리포트 최소 연결 완료)
   moduleRegistry.register(counterfeitGoodsDefinition);
   // 보조금 부정수급 의심 — prototype 상태 (체크리스트 25)
