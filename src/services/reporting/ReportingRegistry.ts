@@ -221,11 +221,59 @@ const MEDICAL_DEVICE_AGENCIES: ReportingAgency[] = [
   })
 ];
 
+/**
+ * 위조상품 온라인 판매 의심(counterfeit_goods) 공식 신고처 후보 (체크리스트 46).
+ * 최소 포함: 특허청 위조상품 신고 안내, 지식재산침해 원스톱 신고상담센터, 국민신문고, 관할 행정기관(단순 후보).
+ */
+const COUNTERFEIT_AGENCIES: ReportingAgency[] = [
+  entry({
+    agencyId: "kipo_counterfeit",
+    agencyName: "특허청 (위조상품 신고)",
+    moduleId: "counterfeit_goods",
+    category: "counterfeit_goods",
+    officialUrl: "https://www.kipo.go.kr/ko/kpoContentView.do?menuCd=SCD0200346",
+    description: "위조상품 신고포상금제도·지식재산침해 신고 안내 페이지. 위조 여부는 권리자 감정·관계기관 판단이 필요하며, 사용자가 직접 공식 양식에 따라 제출합니다.",
+    requiredEvidence: ["판매게시글 URL", "상품명/브랜드 표시", "가격/구성품", "상품·로고 이미지 캡처", "동일 판매자 추정 근거", "수집일시"],
+    cautions: COMMON_CAUTIONS
+  }),
+  entry({
+    agencyId: "koipa_ippolice",
+    agencyName: "지식재산침해 원스톱 신고상담센터",
+    moduleId: "counterfeit_goods",
+    category: "counterfeit_goods",
+    officialUrl: "https://www.koipa.re.kr/ippolice/",
+    description: "지식재산(상표권 등) 침해 신고·상담 안내. 사용자가 직접 접속해 상담·신고합니다. 위조 확정이 아니라 검토 요청 취지입니다.",
+    requiredEvidence: ["판매게시글 URL", "위조 의심 증거화면", "상표 표시 캡처", "수집일시"],
+    cautions: COMMON_CAUTIONS
+  }),
+  entry({
+    agencyId: "epeople_counterfeit",
+    agencyName: "국민신문고",
+    moduleId: "counterfeit_goods",
+    category: "counterfeit_goods",
+    officialUrl: "https://www.epeople.go.kr",
+    description: "민원·공익신고 통합 창구. 사용자가 직접 접속해 양식을 작성·제출합니다.",
+    requiredEvidence: ["원본 URL", "의심 표현 캡처", "수집일시", "신고 취지 요약(중립 표현)"],
+    cautions: COMMON_CAUTIONS
+  }),
+  entry({
+    agencyId: "local_authority_counterfeit",
+    agencyName: "관할 행정기관 · 수사기관 (단순 후보)",
+    moduleId: "counterfeit_goods",
+    category: "counterfeit_goods",
+    officialUrl: "https://www.gov.kr",
+    description: "사안에 따라 관할 행정기관·수사기관이 접수처가 될 수 있습니다. 단순 후보 안내이며, 구체 접수처는 사용자가 공식 안내로 직접 확인합니다.",
+    requiredEvidence: ["원본 URL", "캡처/PDF", "수집일시"],
+    cautions: COMMON_CAUTIONS
+  })
+];
+
 const REGISTRY_BY_MODULE: Record<string, ReportingAgency[]> = {
   false_ad: FALSE_AD_AGENCIES,
   general_food_false_ad: GENERAL_FOOD_AGENCIES,
   cosmetic_false_ad: COSMETIC_AGENCIES,
-  medical_device_false_ad: MEDICAL_DEVICE_AGENCIES
+  medical_device_false_ad: MEDICAL_DEVICE_AGENCIES,
+  counterfeit_goods: COUNTERFEIT_AGENCIES
 };
 
 export class ReportingRegistryService {

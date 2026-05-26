@@ -359,6 +359,10 @@ export class ReportService {
     lines.push(`- 원본 URL: ${url}`);
     lines.push(`- 수집일시: ${captured}`);
     lines.push(`- 상품명/모델명: ${productName}`);
+    lines.push(`- 브랜드/상표 관련 표현: ${matches.filter((m) => m.category === "brand_lookalike" || m.category === "brand_mention" || m.category === "brand_replica_combo" || m.category === "factory_brand_combo").map((m) => escapeMd(sanitizeReportText(m.keyword, warnings))).slice(0, 6).join(", ") || "(브랜드 표시 확인 필요)"}`);
+    lines.push(`- 판매 가격 또는 가격대: (가격 표시는 캡처로 보존하고 사람이 확인 — 정품 대비 비정상 저가 여부 검토)`);
+    lines.push(`- 판매 방식: ${matches.some((m) => m.category === "private_contact" || m.category === "secret_contact_combo") ? "공개 판매글 + 비공개 채널(카톡/DM 등) 유도 신호 포함 (사람 확인 필요)" : "공개 판매글 (사람 확인 필요)"}`);
+    lines.push(`- 위조상품 의심 표현 유형: ${[...new Set(matches.map((m) => m.category).filter(Boolean))].slice(0, 8).join(", ") || "(분류 없음 — 사람 확인 필요)"}`);
     lines.push(`- 판매자 표시 정보 (공개 영역만): ${sellerInfo}`);
     lines.push(`- 신고처 후보: ${agency}`);
     lines.push(`- 신고 후보 우선순위 점수: ${priorityScore != null ? `${priorityScore}/100 (${priorityLabel})` : "(미계산)"}`);

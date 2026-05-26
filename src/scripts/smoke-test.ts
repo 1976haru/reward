@@ -2169,6 +2169,51 @@ try {
     mdAgencies.every((a) => a.manualSubmissionOnly === true && a.autoSubmitAvailable === false));
 }
 
+// 위조상품 신고서 초안 템플릿 + 신고처 Registry (체크리스트 46)
+const cfRptCaseId2 = "rpt_cf2_smoke_" + Math.random().toString(36).slice(2, 8);
+try {
+  const out = await rpt.generateDraft({
+    caseId: cfRptCaseId2,
+    moduleId: "counterfeit_goods",
+    title: "샤넬 미러급 가방 판매글",
+    url: "https://example.test/cf",
+    productName: "가방",
+    status: "REVIEW",
+    agencyCandidate: "특허청 / 지식재산침해 원스톱 신고상담센터",
+    priorityScore: 80,
+    priorityLabel: "검토 우선",
+    capturedAt: new Date().toISOString(),
+    ruleMatches: [
+      { ruleId: "CF_H013", keyword: "샤넬급", riskLevel: "HIGH", weight: 25, category: "brand_lookalike", reason: "유명 브랜드 모방 등급 표현", matchType: "keyword", sentence: "샤넬급 미러급", excerpt: "샤넬급", sourceSection: "claim" } as any
+    ],
+    evidence: { hasHtml: true, hasText: true, capturedAt: new Date().toISOString(), files: [] },
+    sellerCandidates: []
+  });
+  check("[CL46] 위조상품 신고서 제목", /위조상품 온라인 판매 의심 신고 후보/.test(out.markdown));
+  check("[CL46] 위조상품 신고서 '위조 여부를 확정하지 않습니다' 안내", out.markdown.includes("위조 여부를 확정하지 않습니다"));
+  check("[CL46] 위조상품 신고서 권리자/관계기관 판단 필요 안내", /권리자\s*감정과\s*관계기관\s*판단/.test(out.markdown));
+  check("[CL46] 위조상품 신고서 가격/판매방식/의심 표현 유형 요약", out.markdown.includes("판매 가격 또는 가격대") && out.markdown.includes("판매 방식") && out.markdown.includes("위조상품 의심 표현 유형"));
+  check("[CL46] 위조상품 신고서 신고처 특허청/지식재산침해 포함", out.markdown.includes("특허청") && out.markdown.includes("지식재산침해"));
+  check("[CL46] 위조상품 신고서 '자동 신고서가 아닙니다' 안내", out.markdown.includes("자동 신고서가 아닙니다"));
+  // 본문은 "위조 확정이 아니라"처럼 부정 문맥으로만 쓰며, 단정형(확정입니다/확정함/가짜 확정)은 없어야 한다.
+  check("[CL46] 위조상품 신고서 단정형 위조 확정 표현 없음",
+    !/위조\s*확정\s*(입니다|함|됨|이다)/.test(out.markdown) && !/가짜\s*확정/.test(out.markdown) && !/범죄\s*확정/.test(out.markdown));
+} finally {
+  const { rm: rmFn5 } = await import("node:fs/promises");
+  try { await rmFn5(rpt.getReportDir(cfRptCaseId2), { recursive: true, force: true }); } catch { /* ignore */ }
+}
+{
+  const { reportingRegistryService } = await import("../services/reporting/ReportingRegistry.js");
+  const cfAgencies = reportingRegistryService.listByModule("counterfeit_goods");
+  check("[CL46] counterfeit 신고처 3곳 이상", cfAgencies.length >= 3);
+  check("[CL46] counterfeit 신고처 특허청/지식재산침해/국민신문고 포함",
+    cfAgencies.some((a) => a.agencyName.includes("특허청")) &&
+    cfAgencies.some((a) => a.agencyName.includes("지식재산침해")) &&
+    cfAgencies.some((a) => a.agencyName.includes("국민신문고")));
+  check("[CL46] counterfeit 신고처 manualSubmissionOnly/autoSubmitAvailable 고정",
+    cfAgencies.every((a) => a.manualSubmissionOnly === true && a.autoSubmitAvailable === false));
+}
+
 // 25) Subsidy Fraud Prototype — module registration, sample analysis, signals, scoring, report
 check("subsidy module id", subsidyFraudDefinition.id === "subsidy_fraud");
 check("subsidy module slug", subsidyFraudDefinition.slug === "subsidy-fraud");

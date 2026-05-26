@@ -34,6 +34,7 @@
     "test:general-food-sample": "tsx scripts/run-general-food-sample-test.ts",
     "test:cosmetic-sample": "tsx scripts/run-cosmetic-sample-test.ts",
     "test:medical-device-sample": "tsx scripts/run-medical-device-sample-test.ts",
+    "test:counterfeit-sample": "tsx scripts/run-counterfeit-sample-test.ts",
     "test:approval": "tsx tests/approvalGate.test.ts",
     "test:language": "tsx tests/languagePolicy.test.ts",
     "test:privacy": "tsx tests/privacyGuard.test.ts",
