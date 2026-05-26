@@ -47,7 +47,7 @@ export class OrchestratorAgent {
 
     // 2) RuleAgent 섹션 인지 탐지 — claim/review 우선
     // 모듈별 키워드 룰을 사용한다. RuleAgent 가 지원하는 모듈만 전달하고, 그 외는 false_ad 로 안전 폴백.
-    const RULE_SUPPORTED = new Set(["false_ad", "general_food_false_ad", "counterfeit_goods"]);
+    const RULE_SUPPORTED = new Set(["false_ad", "general_food_false_ad", "cosmetic_false_ad", "counterfeit_goods"]);
     const ruleModuleId = RULE_SUPPORTED.has(request.moduleId) ? request.moduleId : "false_ad";
     const detection: RuleDetectionResult = this.rules.detectDetailed(
       extraction

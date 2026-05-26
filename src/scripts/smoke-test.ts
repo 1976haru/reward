@@ -2021,6 +2021,54 @@ try {
     gfAgencies.every((a) => a.manualSubmissionOnly === true && a.autoSubmitAvailable === false));
 }
 
+// 화장품 신고서 초안 템플릿 (체크리스트 38)
+const cmRptCaseId = "rpt_cm_smoke_" + Math.random().toString(36).slice(2, 8);
+try {
+  const out = await rpt.generateDraft({
+    caseId: cmRptCaseId,
+    moduleId: "cosmetic_false_ad",
+    title: "리페어크림 광고",
+    url: "https://example.test/c",
+    productName: "리페어크림",
+    status: "REVIEW",
+    agencyCandidate: "식품의약품안전처 (후보)",
+    priorityScore: 72,
+    priorityLabel: "검토 우선",
+    capturedAt: new Date().toISOString(),
+    ruleMatches: [
+      { ruleId: "CH001", keyword: "아토피 치료", riskLevel: "HIGH", weight: 25, category: "skin_disease_treatment", reason: "피부질환 치료 표현 검토 필요", matchType: "keyword", sentence: "아토피 치료", excerpt: "아토피 치료", sourceSection: "claim" } as any
+    ],
+    evidence: { hasHtml: true, hasText: true, capturedAt: new Date().toISOString(), files: [] },
+    sellerCandidates: []
+  });
+  check("[CL38] 화장품 신고서 제목", /화장품 온라인 허위·과대광고 신고 후보/.test(out.markdown));
+  check("[CL38] 화장품 신고서 ≠ 건강기능식품/일반식품 제목",
+    !/건강기능식품 온라인 허위·과대광고 신고 후보 검토 요청서/.test(out.markdown) &&
+    !/일반식품 온라인 허위·과대광고 신고 후보/.test(out.markdown));
+  check("[CL38] 화장품 신고서 기능성 화장품 해당 여부 항목", out.markdown.includes("기능성 화장품 해당 여부"));
+  check("[CL38] 화장품 신고서 신고처 식약처/국민신문고 포함", out.markdown.includes("식품의약품안전처") && out.markdown.includes("국민신문고"));
+  check("[CL38] 화장품 신고서 '법 위반 확정이 아닙니다' 안내", out.markdown.includes("법 위반 확정이 아닙니다"));
+  check("[CL38] 화장품 신고서 '자동 신고서가 아닙니다' 안내", out.markdown.includes("자동 신고서가 아닙니다"));
+  const cmClaim = out.markdown.split("## 10. 피해야 할 표현")[0];
+  check("[CL38] 화장품 신고서 주장부에 불법 확정 없음", !/불법\s*확정/.test(cmClaim));
+} finally {
+  const { rm: rmFn3 } = await import("node:fs/promises");
+  try { await rmFn3(rpt.getReportDir(cmRptCaseId), { recursive: true, force: true }); } catch { /* ignore */ }
+}
+
+// 화장품 공식 신고처 Registry (체크리스트 38)
+{
+  const { reportingRegistryService } = await import("../services/reporting/ReportingRegistry.js");
+  const cmAgencies = reportingRegistryService.listByModule("cosmetic_false_ad");
+  check("[CL38] cosmetic 신고처 3곳 이상", cmAgencies.length >= 3);
+  check("[CL38] cosmetic 신고처 식약처/국민신문고/지자체·행정기관 포함",
+    cmAgencies.some((a) => a.agencyName.includes("식품의약품안전처")) &&
+    cmAgencies.some((a) => a.agencyName.includes("국민신문고")) &&
+    cmAgencies.some((a) => a.agencyName.includes("지자체") || a.agencyName.includes("행정기관")));
+  check("[CL38] cosmetic 신고처 manualSubmissionOnly/autoSubmitAvailable 고정",
+    cmAgencies.every((a) => a.manualSubmissionOnly === true && a.autoSubmitAvailable === false));
+}
+
 // 25) Subsidy Fraud Prototype — module registration, sample analysis, signals, scoring, report
 check("subsidy module id", subsidyFraudDefinition.id === "subsidy_fraud");
 check("subsidy module slug", subsidyFraudDefinition.slug === "subsidy-fraud");
