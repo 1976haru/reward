@@ -120,3 +120,61 @@ ls data/collector/runs
 - 개인정보 원문 저장 금지 (저장 전 마스킹).
 - API 응답만으로 부정수급을 단정하지 않는다 — 수집 결과는 사람 검토용 사실관계 점검의 원문 근거로만 연결된다.
 - 진행 중인 감사·소송·민감 사안, 비공개 데이터는 수집 대상에서 제외한다.
+
+## 9. 실제 실행 절차 (초보자용 단계별)
+
+처음 실행하는 사람을 위한 순서입니다. **공공데이터포털 등 공식 API만** 사용하며, 검색엔진 HTML 스크래핑·로그인 우회·CAPTCHA 우회·비공개자료 수집은 하지 않습니다.
+
+1. **API 키 발급·입력**
+   - 공공데이터포털(<https://www.data.go.kr>)에서 원하는 데이터셋을 활용신청하고 인증키를 발급받습니다.
+   - `.env` 파일을 열어 `DATA_GO_KR_SERVICE_KEY=` (또는 `PUBLIC_DATA_SERVICE_KEY=`) 뒤에 발급받은 키를 붙여넣습니다. (`.env` 없으면 `Copy-Item .env.example .env`)
+   - ⚠️ 키 원문을 코드·문서·로그·git 에 넣지 마세요. `.env` 는 커밋되지 않습니다.
+2. **endpoint 입력**
+   - `.env` 의 `COLLECTOR_API_BASE_URL=` 에 **실제 호출 가능한 API endpoint** 를 넣습니다.
+   - ⚠️ data.go.kr 데이터셋 **상세 페이지 URL** 이 아니라, 활용신청 후 발급된 **호출용 endpoint** 여야 합니다. (예: `https://api.odcloud.kr/api/...` 형태)
+   - 필요하면 `COLLECTOR_PAGE_PARAM` / `COLLECTOR_SIZE_PARAM` / `COLLECTOR_API_PARAMS` 로 파라미터명을 맞춥니다.
+3. **실제 수집 실행**
+   ```bash
+   npm run collect:public-api
+   ```
+4. **종료 메시지 의미**
+   | 메시지 | 의미 | 종료코드 |
+   |---|---|---|
+   | `COLLECTOR_API_KEY_REQUIRED` | 인증키 미설정 — `.env` 에 키 입력 필요 | 2 |
+   | `COLLECTOR_ENDPOINT_REQUIRED` | 호출용 endpoint 미설정 — `COLLECTOR_API_BASE_URL` 입력 필요 | 2 |
+   | `COLLECTOR_REAL_RUN_OK` | 1,000건 이상 수집 성공 | 0 |
+   | `COLLECTOR_REAL_RUN_INCOMPLETE` | 1,000건 미만 수집 (실패 아님 — 사유 출력) | 1 |
+   - 미완료(`INCOMPLETE`)는 실패가 아닙니다. API 한도·총량 부족·응답 구조·파라미터 불일치가 원인일 수 있으니 `error-log.json` 과 응답 구조를 확인합니다.
+5. **수집 결과 저장 위치**
+   - `data/collector/runs/{runId}/records.jsonl` (수집 레코드, 마스킹 후)
+   - `data/collector/runs/{runId}/collection-log.json` (수집 로그, `totalRecords` 포함)
+   - `data/collector/runs/{runId}/error-log.json` (오류 로그, `errorsCount`)
+
+## 10. GitHub 에 올리면 안 되는 파일
+
+- `.env` (API 키 포함) — `.gitignore` 로 차단됨
+- `data/collector/**` (실데이터 수집 결과: records.jsonl / collection-log.json / error-log.json) — `.gitignore` 로 차단됨 (`.gitkeep`/`sample/` 만 추적)
+- `data/baseline/**`, `data/evidence/**`, `data/reports/**`, `data/cases/**`, `data/outcomes/**` 등 산출물 전반
+- GitHub 에는 **코드·문서·테스트만** 올립니다. 커밋 전 `git status --ignored` 로 산출물이 ignored 상태인지 확인하세요.
+
+## 11. 다음 단계: baseline build 연결
+
+수집된 `records.jsonl` 은 다음 단계의 표준 기준선(baseline) 빌드 입력으로 사용합니다. (이번 단계에서 baseline 전체 실행은 필수가 아닙니다.)
+
+```bash
+npm run build:baseline -- --input data/collector/runs/{runId}/records.jsonl --sourceType api --sourceName public-data-api
+```
+
+### mapping 필요 항목 (수집 필드가 표준 보조금 레코드와 다를 때)
+
+공공데이터 API 응답 필드는 데이터셋마다 다릅니다. 표준 보조금 레코드(사업명/보조사업자/교부기관/교부금액/집행내역/정산·결과보고/원본 공시 URL 등)와 바로 맞지 않으면 다음을 문서화하고 baseline build 단계에서 매핑합니다.
+
+- 사업명 ← 응답의 어떤 필드인지
+- 보조사업자/수급기관 ← 어떤 필드인지
+- 교부기관 ← 어떤 필드인지
+- 교부/집행 금액 ← 어떤 필드인지(숫자/문자 형식 확인)
+- 기간·연도 ← 어떤 필드인지
+- 원본 공시/상세 URL ← 어떤 필드인지(없으면 수집 endpoint·식별자로 보완)
+- 필드 누락·형식 차이(쉼표 포함 금액, 날짜 포맷 등)는 별도 표로 기록
+
+> 본 단계는 "수집 준비·실행 검증"까지이며, 업로드 파서·정규화·위험점수·신고서 초안·실제 신고 흐름은 다음 단계에서 진행합니다.
