@@ -15,7 +15,9 @@ import {
   RewardPossibilitySourceType,
   RewardScoreBreakdown,
   RewardScoreComponent,
-  RewardScoreContribution
+  RewardScoreContribution,
+  SUBSIDY_RULE_ID_TO_REWARD_SOURCE,
+  REWARD_SEVERITY_TO_SCORE
 } from "../types/rewardPossibilityScore.js";
 
 type UnknownCandidate = Partial<RewardPossibilityInputCandidate> & Record<string, unknown>;
@@ -118,6 +120,9 @@ function idsFromCandidate(c: UnknownCandidate): string[] {
 
 function inferSourceType(c: UnknownCandidate): RewardPossibilitySourceType {
   if (c.sourceType) return c.sourceType as RewardPossibilitySourceType;
+  // 체크리스트 60 룰 5종 결과(ruleId) 매핑 — rule-results.json 직접 입력 지원.
+  const ruleId = typeof c.ruleId === "string" ? c.ruleId : undefined;
+  if (ruleId && SUBSIDY_RULE_ID_TO_REWARD_SOURCE[ruleId]) return SUBSIDY_RULE_ID_TO_REWARD_SOURCE[ruleId];
   if (c.riskGrade || c.finalRiskScore !== undefined || c.scoreBreakdown) return "risk_score";
   if (Array.isArray(c.networkSignals) || c.networkKey) return "contractor_network";
   if (Array.isArray(c.spendingSignals) || c.spendingBreakdownSummary) return "spending_anomaly";
@@ -178,7 +183,10 @@ export function normalizeRewardInputCandidate(input: unknown): RewardPossibility
     safeText(c.id) ??
     `reward_candidate_${Math.random().toString(36).slice(2, 10)}`;
   const recordIds = idsFromCandidate(c);
-  const riskScore = asNumber(c.riskScore ?? c.finalRiskScore ?? c.rewardPossibilityScore);
+  // 체크리스트 60 룰 결과는 severity 만 가질 수 있다 → 보조 점수로 환산.
+  const severity = typeof c.severity === "string" ? c.severity.toLowerCase() : undefined;
+  const severityScore = severity ? REWARD_SEVERITY_TO_SCORE[severity] : undefined;
+  const riskScore = asNumber(c.riskScore ?? c.finalRiskScore ?? c.rewardPossibilityScore ?? severityScore);
   const normalized: RewardPossibilityInputCandidate = {
     candidateId,
     sourceType: inferSourceType(c),
@@ -281,6 +289,11 @@ export function mapCandidateToRewardComponents(candidate: RewardPossibilityInput
   } else if (candidate.sourceType === "contractor_network") {
     addContribution(out, candidate, "loss_prevention", "contractorNetworkPattern", 0.7);
     addContribution(out, candidate, "evidence_clarity", evidencePresent ? "evidenceUrlPresent" : "contractorNetworkReviewSignal", evidencePresent ? 0.65 : 0.35);
+  } else if (candidate.sourceType === "similar_project") {
+    // 체크리스트 60 룰 E(사업명 유사 반복) — 반복 신청 환수/손실방지 검토 후보.
+    addContribution(out, candidate, "loss_prevention", "similarProjectRepeatPattern", 0.6);
+    addContribution(out, candidate, "recovery_possibility", "similarProjectReviewSignal", 0.4);
+    addContribution(out, candidate, "legal_fit", "officialCriteriaReviewNeeded", 0.3);
   } else if (candidate.sourceType === "risk_score") {
     const highRisk = candidate.riskGrade === "A" || (candidate.riskScore ?? 0) >= 80;
     const mediumRisk = candidate.riskGrade === "B" || (candidate.riskScore ?? 0) >= 60;
@@ -395,9 +408,11 @@ export function calculateRewardScoreForSubject(
   const perCandidate = candidates.map((candidate) => breakdownFromContributions(mapCandidateToRewardComponents(candidate)));
   const merged = mergeRewardScoreBreakdowns(perCandidate, options);
   const level = getRewardPossibilityLevel(merged.rewardPossibilityScore);
+  const normalizedSubject = safeKey(subjectKey) ?? "subject:unknown";
   const resultBase: RewardPossibilityScoreResult = {
     rewardScoreId: `${options.runId ?? "run"}_${safeKey(subjectKey) ?? "subject"}`,
-    subjectKey: safeKey(subjectKey) ?? "subject:unknown",
+    candidateId: normalizedSubject,
+    subjectKey: normalizedSubject,
     sourceCandidateIds: Array.from(new Set(candidates.map((c) => c.candidateId))).sort(),
     rewardPossibilityScore: merged.rewardPossibilityScore,
     rewardPossibilityLevel: level,
@@ -405,8 +420,15 @@ export function calculateRewardScoreForSubject(
     contributingSignals: allContributions.filter((c) => merged[COMPONENT_TO_FIELD[c.component]] > 0),
     evidenceSummary: evidenceSummaryFor(candidates),
     reason: "",
+    nextChecks: [
+      "공식 신고 기준(환수·처분·신고자 요건 등) 적용 여부를 기관에 확인",
+      "신고 전 사실관계·증빙 추가 확인(다음 단계의 신고 전 사실점검)",
+      "근거자료(공시 URL·결과물·정산)가 충분한지 사람 검토"
+    ],
     disclaimers: DEFAULT_DISCLAIMERS.map(sanitizeRewardText),
+    rewardGuaranteed: false,
     reviewRequired: true,
+    notLegalConclusion: true,
     createdAt: new Date().toISOString(),
     isFixtureBased: Boolean(options.isFixtureBased || candidates.some((c) => c.isFixtureBased))
   };
@@ -479,19 +501,41 @@ export function renderRewardPossibilityScoreReportMarkdown(report: RewardPossibi
   return sanitizeRewardText(lines.join("\n"));
 }
 
+/** 체크리스트 62 metadata.json 본문. */
+export function buildRewardScoreMetadata(report: RewardPossibilityScoreReport): Record<string, unknown> {
+  return {
+    runId: report.runId,
+    createdAt: report.createdAt,
+    totalInputCandidates: report.totalInputCandidates,
+    totalScoredSubjects: report.totalScoredSubjects,
+    levelSummary: report.levelSummary,
+    isFixtureBased: report.isFixtureBased,
+    sourceNote: report.sourceNote,
+    topN: report.topScores.length,
+    rewardGuaranteed: false,
+    notice: REWARD_POSSIBILITY_SCORE_NOTICE
+  };
+}
+
 export async function writeRewardPossibilityScoreReport(
   outputDir: string,
   report: RewardPossibilityScoreReport
-): Promise<{ reportJsonFile: string; reportMdFile: string }> {
+): Promise<{ reportJsonFile: string; reportMdFile: string; summaryMdFile: string; metadataFile: string }> {
   const runDir = path.join(outputDir, "runs", report.runId);
   await ensureDir(runDir);
   const reportJsonFile = path.join(runDir, "reward-possibility-score-report.json");
   const reportMdFile = path.join(runDir, "reward-possibility-score-report.md");
+  const summaryMdFile = path.join(runDir, "reward-score-summary.md");
+  const metadataFile = path.join(runDir, "metadata.json");
   report.reportJsonFile = reportJsonFile;
   report.reportMdFile = reportMdFile;
   await writeFile(reportJsonFile, JSON.stringify(report, null, 2), "utf8");
-  await writeFile(reportMdFile, renderRewardPossibilityScoreReportMarkdown(report), "utf8");
-  return { reportJsonFile, reportMdFile };
+  const markdown = renderRewardPossibilityScoreReportMarkdown(report);
+  await writeFile(reportMdFile, markdown, "utf8");
+  // 체크리스트 62: reward-score-summary.md 및 metadata.json 추가 산출.
+  await writeFile(summaryMdFile, markdown, "utf8");
+  await writeFile(metadataFile, JSON.stringify(buildRewardScoreMetadata(report), null, 2), "utf8");
+  return { reportJsonFile, reportMdFile, summaryMdFile, metadataFile };
 }
 
 export { REWARD_POSSIBILITY_SCORE_NOTICE };

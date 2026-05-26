@@ -59,6 +59,9 @@ data/reward/score/runs/
 data/reward/score/tmp/
 data/reward/score/*
 !data/reward/score/.gitkeep
+# 보상가능성 점수 API 산출물(체크리스트 62)은 커밋하지 않음
+data/reward-score/
+data/risk/score/runs/
 # LLM 설명형 분석 산출물은 커밋하지 않음
 data/analysis/llm-explanation/runs/
 data/analysis/llm-explanation/tmp/

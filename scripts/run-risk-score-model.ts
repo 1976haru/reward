@@ -25,6 +25,7 @@ function candidatesFromReportJson(value: unknown): unknown[] {
   if (!value || typeof value !== "object") return [];
   const obj = value as Record<string, unknown>;
   if (Array.isArray(value)) return value;
+  if (Array.isArray(obj.ruleResults)) return obj.ruleResults; // 체크리스트 60 rule-results.json
   if (Array.isArray(obj.topCandidates)) return obj.topCandidates;
   if (Array.isArray(obj.topScores)) return obj.topScores;
   if (Array.isArray(obj.candidates)) return obj.candidates;
@@ -64,7 +65,7 @@ async function main(): Promise<void> {
   }
 
   const report = generateRiskScoreReport(inputs, { isFixtureBased, sourceNote });
-  const { reportJsonFile, reportMdFile } = await writeRiskScoreReport(outputDir, report);
+  const { reportJsonFile, reportMdFile, summaryMdFile, metadataFile } = await writeRiskScoreReport(outputDir, report);
 
   console.log("");
   console.log("RISK_SCORE_RUN_OK");
@@ -72,8 +73,10 @@ async function main(): Promise<void> {
   console.log(`totalScoredSubjects: ${report.totalScoredSubjects}`);
   console.log(`gradeSummary: A=${report.gradeSummary.A}, B=${report.gradeSummary.B}, C=${report.gradeSummary.C}`);
   console.log(`outputDir: ${path.join(outputDir, "runs", report.runId)}`);
-  console.log(`report.json: ${reportJsonFile}`);
-  console.log(`report.md: ${reportMdFile}`);
+  console.log(`risk-score-report.json: ${reportJsonFile}`);
+  console.log(`risk-score-report.md: ${reportMdFile}`);
+  console.log(`risk-score-summary.md: ${summaryMdFile}`);
+  console.log(`metadata.json: ${metadataFile}`);
   if (report.isFixtureBased) console.log("fixture 기반 검증입니다. 실제 탐지 완료로 표현하지 않습니다.");
 }
 

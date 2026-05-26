@@ -194,6 +194,73 @@ test("25. High도 지급 확정으로 표현하지 않는다", () => {
   assert.ok(high.reason.includes("검토 우선순위 High"));
 });
 
+// ---------- 체크리스트 62: 보조금 룰 5종 결과 입력 + rewardGuaranteed ----------
+
+const subsidyRuleResults = [
+  {
+    ruleId: "missing_output_settlement",
+    severity: "high",
+    candidateId: "missing_output_settlement:a",
+    involvedRecordIds: ["rec-1"],
+    evidenceRefs: ["공시URL:https://example.org/1"],
+    reason: "정산/결과물 미확인 환수 반납 검토",
+    reviewRequired: true,
+    notLegalConclusion: true
+  },
+  {
+    ruleId: "similar_project_repeat",
+    severity: "high",
+    candidateId: "similar_project_repeat:b",
+    involvedRecordIds: ["rec-2", "rec-3"],
+    evidenceRefs: ["evidenceUrlPresent"],
+    reason: "사업명 유사 반복",
+    reviewRequired: true,
+    notLegalConclusion: true
+  }
+];
+
+let subsidyReward: ReturnType<typeof generateRewardPossibilityScoreReport>;
+
+test("[CL62] 보조금 룰 5종 결과로 보상가능성 점수를 산출한다", () => {
+  subsidyReward = generateRewardPossibilityScoreReport(subsidyRuleResults, { sourceNote: "subsidy-rule-results" });
+  assert.ok(subsidyReward.totalScoredSubjects >= 1);
+  for (const r of subsidyReward.topScores) {
+    assert.ok(r.rewardPossibilityScore >= 0 && r.rewardPossibilityScore <= 100);
+    assert.ok(["High", "Medium", "Low"].includes(r.rewardPossibilityLevel));
+  }
+});
+
+test("[CL62] 결과에 candidateId / rewardGuaranteed=false / notLegalConclusion / nextChecks 가 포함된다", () => {
+  for (const r of subsidyReward.topScores) {
+    assert.ok(typeof r.candidateId === "string" && r.candidateId.length > 0, "candidateId");
+    assert.equal(r.rewardGuaranteed, false);
+    assert.equal(r.notLegalConclusion, true);
+    assert.equal(r.reviewRequired, true);
+    assert.ok(Array.isArray(r.nextChecks) && r.nextChecks.length >= 1, "nextChecks");
+  }
+});
+
+test("[CL62] similar_project_repeat 가 sourceType similar_project 로 매핑된다", () => {
+  const all = subsidyReward.topScores.flatMap((r) => r.contributingSignals);
+  assert.ok(all.some((s) => s.sourceType === "similar_project"));
+});
+
+test("[CL62] reward-score-summary.md 와 metadata.json 이 생성되고 rewardGuaranteed=false 다", async () => {
+  const out = path.join(os.tmpdir(), `cl62-reward-${Date.now()}`);
+  cleanupDirs.push(out);
+  const r = generateRewardPossibilityScoreReport(subsidyRuleResults, { isFixtureBased: true });
+  await writeRewardPossibilityScoreReport(out, r);
+  const summary = await readFile(path.join(out, "runs", r.runId, "reward-score-summary.md"), "utf8");
+  assert.ok(summary.includes("보상/포상 가능성 검토"));
+  const meta = JSON.parse(await readFile(path.join(out, "runs", r.runId, "metadata.json"), "utf8"));
+  assert.equal(meta.runId, r.runId);
+  assert.equal(meta.rewardGuaranteed, false);
+});
+
+test("[CL62] 포상금 보장 표현이 없다", () => {
+  blobWithoutForbidden(subsidyReward);
+});
+
 async function main(): Promise<void> {
   let passed = 0;
   let failed = 0;

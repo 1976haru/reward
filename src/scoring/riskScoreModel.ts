@@ -13,6 +13,8 @@ import {
   RiskScoreModelOptions,
   RiskScoreReport,
   RiskScoreResult,
+  SUBSIDY_RULE_ID_TO_RISK_TYPE,
+  SUBSIDY_SEVERITY_TO_SCORE,
   UnifiedRiskInputCandidate,
   UnifiedRiskRuleType
 } from "../types/riskScoreModel.js";
@@ -112,6 +114,9 @@ function idsFromCandidate(c: UnknownCandidate): string[] {
 
 function inferRuleType(c: UnknownCandidate): UnifiedRiskRuleType {
   if (c.ruleType) return c.ruleType as UnifiedRiskRuleType;
+  // 체크리스트 60 룰 5종 결과(ruleId) 매핑 — rule-results.json 직접 입력 지원.
+  const ruleId = typeof c.ruleId === "string" ? c.ruleId : undefined;
+  if (ruleId && SUBSIDY_RULE_ID_TO_RISK_TYPE[ruleId]) return SUBSIDY_RULE_ID_TO_RISK_TYPE[ruleId];
   if (Array.isArray(c.networkSignals) || c.networkKey) return "contractor_network";
   if (Array.isArray(c.spendingSignals) || c.spendingBreakdownSummary) return "spending_anomaly";
   if (Array.isArray(c.missingSignals)) return "output_settlement";
@@ -155,11 +160,15 @@ export function normalizeInputCandidate(input: unknown): UnifiedRiskInputCandida
   const candidateId = safeText(c.candidateId) ?? safeText(c.id) ?? `candidate_${Math.random().toString(36).slice(2, 10)}`;
   const recordIds = idsFromCandidate(c);
   const ruleType = inferRuleType(c);
+  // 체크리스트 60 룰 결과는 0~100 riskScore 대신 severity(low/medium/high)를 가진다 → 보조 점수로 환산.
+  const severity = typeof c.severity === "string" ? c.severity.toLowerCase() : undefined;
+  const rawScore = c.riskScore ?? c.finalRiskScore;
+  const scoreFromSeverity = severity ? SUBSIDY_SEVERITY_TO_SCORE[severity] : undefined;
   const normalized: UnifiedRiskInputCandidate = {
     candidateId,
     ruleType,
-    riskScore: clampRiskScore100(Number(c.riskScore ?? c.finalRiskScore ?? 0)),
-    riskLevel: safeText(c.riskLevel),
+    riskScore: clampRiskScore100(Number(rawScore ?? scoreFromSeverity ?? 0)),
+    riskLevel: safeText(c.riskLevel ?? severity),
     recordIds,
     subjectKey: safeKey(c.subjectKey ?? c.groupKey ?? c.addressGroupKey ?? c.networkKey),
     signals: extractSignals(c),
@@ -236,6 +245,11 @@ export function mapRuleToScoreComponents(candidate: UnifiedRiskInputCandidate): 
     if (hasSignal(candidate, [/sameOrAdjacentFiscalYear|year|연도/i])) add("growth", "contract_year_pattern", 0.6);
     if (hasSignal(candidate, [/addressKeyRelated|address|주소/i])) add("address", "contractor_address_related", 0.5);
     if (hasSignal(candidate, [/evidenceUrlPresent|source|evidence/i])) add("evidence", "contractor_evidence_present", 0.7);
+  } else if (candidate.ruleType === "similar_project") {
+    // 체크리스트 60 룰 E(사업명 유사 반복) — 반복성에 반영. 사업명 유사도 신호는 contributingSignals에 남긴다.
+    add("repetition", "similar_project_name");
+    if (hasSignal(candidate, [/AMOUNT|amount|금액/i])) add("amount", "similar_project_amount", 0.6);
+    if (hasSignal(candidate, [/EVIDENCE|evidence|url|URL|공시|결과물/i])) add("evidence", "similar_project_evidence", 0.6);
   } else if (candidate.ruleType === "data_quality") {
     add("evidence", "data_quality_evidence_context", 0.6);
     add("settlement", "data_quality_review_context", 0.4);
@@ -311,6 +325,33 @@ export function createRiskScoreReason(result: Pick<RiskScoreResult, "riskGrade" 
     : "통합 점수 신호가 제한적이어서 낮은 우선순위 후보로 분류되었습니다.";
 }
 
+/** 데이터 품질·근거 부족 등 중립 주의문(체크리스트 61 cautionNotes). */
+export function buildCautionNotes(
+  candidates: UnifiedRiskInputCandidate[],
+  isFixtureBased: boolean
+): string[] {
+  const notes: string[] = [];
+  const ruleTypes = new Set(candidates.map((c) => c.ruleType));
+  if (ruleTypes.has("similar_project")) {
+    notes.push("사업명 유사도는 동일 사업 확정이 아니며, 표준 명칭·정형 공모로 비슷할 수 있어 사람 확인이 필요합니다.");
+  }
+  if (ruleTypes.has("address_cluster")) {
+    notes.push("동일 주소는 공유오피스·복지관·회관 등 정상 공유일 수 있어 동일 호실 여부는 사람 확인이 필요합니다.");
+  }
+  if (ruleTypes.has("spending_anomaly")) {
+    notes.push("금액 규모가 크다는 사실만으로 문제라고 보기 어렵고, 대규모 사업·이월·추경 가능성을 확인해야 합니다.");
+  }
+  const evidenceCount = candidates.reduce((n, c) => n + c.recordIds.length, 0);
+  if (evidenceCount < 2) {
+    notes.push("연결된 근거 레코드가 적어 데이터 품질·근거 보강이 필요합니다(추가 확인 필요).");
+  }
+  if (isFixtureBased) {
+    notes.push("fixture 기반 결과로 실제 탐지 완료가 아닙니다 — 데이터 품질 검토가 필요합니다.");
+  }
+  notes.push("본 점수는 우선 검토 후보 정렬용 참고 점수이며 부정수급/위법 확정이 아닙니다.");
+  return notes;
+}
+
 export function calculateFinalRiskScoreForSubject(
   subjectKey: string,
   candidates: UnifiedRiskInputCandidate[],
@@ -321,9 +362,12 @@ export function calculateFinalRiskScoreForSubject(
   const merged = mergeScoreBreakdowns(perCandidate, options);
   const keptContributions = allContributions.filter((c) => merged[COMPONENT_TO_FIELD[c.component]] > 0);
   const riskGrade = getRiskGrade(merged.finalRiskScore);
+  const normalizedSubject = safeKey(subjectKey) ?? "subject:unknown";
+  const isFixtureBased = Boolean(options.isFixtureBased || candidates.some((c) => c.isFixtureBased));
   const base: RiskScoreResult = {
     scoreId: `${options.runId ?? "run"}_${safeKey(subjectKey) ?? "subject"}`,
-    subjectKey: safeKey(subjectKey) ?? "subject:unknown",
+    candidateId: normalizedSubject,
+    subjectKey: normalizedSubject,
     sourceCandidateIds: Array.from(new Set(candidates.map((c) => c.candidateId))).sort(),
     finalRiskScore: merged.finalRiskScore,
     riskGrade,
@@ -331,9 +375,11 @@ export function calculateFinalRiskScoreForSubject(
     contributingSignals: keptContributions,
     evidenceSummary: evidenceSummaryFor(candidates),
     reason: "",
+    cautionNotes: buildCautionNotes(candidates, isFixtureBased),
     reviewRequired: true,
+    notLegalConclusion: true,
     createdAt: new Date().toISOString(),
-    isFixtureBased: Boolean(options.isFixtureBased || candidates.some((c) => c.isFixtureBased))
+    isFixtureBased
   };
   return { ...base, reason: createRiskScoreReason(base) };
 }
@@ -401,19 +447,40 @@ export function renderRiskScoreReportMarkdown(report: RiskScoreReport): string {
   return lines.join("\n");
 }
 
+/** 체크리스트 61 metadata.json 본문. */
+export function buildRiskScoreMetadata(report: RiskScoreReport): Record<string, unknown> {
+  return {
+    runId: report.runId,
+    createdAt: report.createdAt,
+    totalInputCandidates: report.totalInputCandidates,
+    totalScoredSubjects: report.totalScoredSubjects,
+    gradeSummary: report.gradeSummary,
+    isFixtureBased: report.isFixtureBased,
+    sourceNote: report.sourceNote,
+    topN: report.topScores.length,
+    notice: RISK_SCORE_MODEL_NOTICE
+  };
+}
+
 export async function writeRiskScoreReport(
   outputDir: string,
   report: RiskScoreReport
-): Promise<{ reportJsonFile: string; reportMdFile: string }> {
+): Promise<{ reportJsonFile: string; reportMdFile: string; summaryMdFile: string; metadataFile: string }> {
   const runDir = path.join(outputDir, "runs", report.runId);
   await ensureDir(runDir);
   const reportJsonFile = path.join(runDir, "risk-score-report.json");
   const reportMdFile = path.join(runDir, "risk-score-report.md");
+  const summaryMdFile = path.join(runDir, "risk-score-summary.md");
+  const metadataFile = path.join(runDir, "metadata.json");
   report.reportJsonFile = reportJsonFile;
   report.reportMdFile = reportMdFile;
   await writeFile(reportJsonFile, JSON.stringify(report, null, 2), "utf8");
-  await writeFile(reportMdFile, renderRiskScoreReportMarkdown(report), "utf8");
-  return { reportJsonFile, reportMdFile };
+  const markdown = renderRiskScoreReportMarkdown(report);
+  await writeFile(reportMdFile, markdown, "utf8");
+  // 체크리스트 61: risk-score-summary.md 및 metadata.json 추가 산출.
+  await writeFile(summaryMdFile, markdown, "utf8");
+  await writeFile(metadataFile, JSON.stringify(buildRiskScoreMetadata(report), null, 2), "utf8");
+  return { reportJsonFile, reportMdFile, summaryMdFile, metadataFile };
 }
 
 export { RISK_SCORE_MODEL_NOTICE };

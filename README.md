@@ -760,8 +760,11 @@ npm run check:subsidy-risk-rules           # 문서/코드 존재 + 정책 정�
 npm run test:risk-score
 npm run risk:score -- --fixture 1000
 npm run risk:score -- --input data/risk/repeat/runs/xxx/repeat-risk-report.json --input data/risk/address-cluster/runs/xxx/address-cluster-risk-report.json
+npm run risk:score -- --input data/risk/runs/xxx/rule-results.json   # 체크리스트 60 룰 5종 결과 입력
 npm run check:risk-score
 ```
+
+> 체크리스트 61: 룰 5종 결과(`rule-results.json`)를 입력으로 받아 `candidateId`·`cautionNotes`·`notLegalConclusion`을 포함한 결과를 `data/risk/score/runs/{runId}/`에 `risk-score-report.json`·`risk-score-summary.md`·`metadata.json`으로 저장합니다. 선택 API: `POST /api/subsidy/risk/score/run`, `GET /api/subsidy/risk/score/latest`(응답에 "부정수급으로 단정하지 않음 / 포상금 지급을 보장하지 않음 / 사람 검토 필요" 안내 포함).
 
 ## 보상가능성 점수 모델 (Reward Possibility Score Model)
 
@@ -778,8 +781,11 @@ npm run check:risk-score
 npm run test:reward-score
 npm run reward:score -- --fixture 1000
 npm run reward:score -- --input data/risk/score/runs/xxx/risk-score-report.json
+npm run reward:score -- --input data/risk/runs/xxx/rule-results.json   # 체크리스트 60 룰 5종 결과 입력
 npm run check:reward-score
 ```
+
+> 체크리스트 62: 결과에 `candidateId`·`rewardPossibilityScore`·`rewardPossibilityLevel`·`rewardGuaranteed=false`·`notLegalConclusion`·`nextChecks`를 포함합니다(포상금 지급을 보장하지 않음). 선택 API: `POST /api/subsidy/reward-score/run`, `GET /api/subsidy/reward-score/latest`.
 
 ## LLM 설명형 분석 모듈 (Deterministic Fallback)
 

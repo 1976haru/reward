@@ -97,3 +97,57 @@ reason 문구는 다음처럼 중립적으로 작성한다.
 - 증거 패키지 생성기와 연결
 - 사실관계 점검표와 연결
 - 신고서 초안 생성 전 승인 게이트 연결
+
+## 11. 보조금 룰 5종 결과 입력 (체크리스트 61)
+
+체크리스트 60의 **보조금 룰 5종 결과**(`rule-results.json`)를 그대로 입력으로 받아 0~100 위험점수를 산출한다.
+
+### 11.1 점수 항목 설명
+- **반복성**: 반복수급 룰(`repeat_recipient`) → repetitionScore.
+- **금액 규모**: 예산집행 이상치 룰(`budget_anomaly`) → amountScore.
+- **동일주소/동일기관 신호**: 동일주소 룰(`same_address`) → addressScore.
+- **사업명 유사도**: 사업명 유사 반복 룰(`similar_project_repeat`) → repetitionScore에 반영하고 `similar_project_name` 신호를 contributingSignals에 남긴다.
+- **결과물/정산 근거 부족**: 결과물·정산 누락 룰(`missing_output_settlement`) → outputScore + settlementScore.
+- **예산집행 이상 신호**: budget_anomaly → amountScore + settlement 검토.
+- **근거자료 존재 여부**: evidenceRefs 유무 → evidenceScore.
+- **데이터 품질 경고**: fixture 여부·근거 부족 등은 `cautionNotes`에 중립 문구로 남긴다.
+
+룰 결과의 `severity`(low/medium/high)는 0~100 보조 점수(45/65/85)로 환산해 입력한다.
+
+### 11.2 점수가 의미하는 것 / 의미하지 않는 것
+- 의미하는 것: 여러 룰 신호를 합산한 **우선 검토 후보 정렬용 참고 점수**다.
+- 의미하지 않는 것: 부정수급/위법 확정이 아니며, 점수가 높다고 위반이 확정되는 것이 아니다.
+
+### 11.3 위험점수와 보상가능성 점수의 차이
+- **위험점수(본 문서)**: "의심 신호가 얼마나 모였는가"를 본다 → 어떤 후보부터 검토할지 우선순위.
+- **보상가능성 점수([REWARD_POSSIBILITY_SCORE_MODEL.md](REWARD_POSSIBILITY_SCORE_MODEL.md))**: "환수·손실방지·증거 명확성" 관점의 별도 점수이며 **포상금 지급 보장이 아니다.**
+- 둘은 별개 축이며, 위험점수가 높아도 보상가능성이 낮을 수 있고 그 반대도 가능하다.
+
+### 11.4 A등급/High가 확정 판단이 아닌 이유
+A등급도 **법 위반 확정이 아니라 사람 검토 우선순위**일 뿐이다. 공유시설·다년도 사업·공시 시점 차이 등 합리적 사유가 있을 수 있어, 반드시 사람이 사실관계를 확인해야 한다.
+
+### 11.5 입력 파일 형식
+- 체크리스트 60 `data/risk/runs/{runId}/rule-results.json`(`{ ruleResults: [...] }`), 또는 개별 룰 리포트 JSON.
+- 각 항목 필드: `ruleId`, `severity`, `involvedRecordIds`, `evidenceRefs`, `reason` 등.
+
+### 11.6 실행 명령
+```bash
+npm run risk:score -- --fixture 1000                                  # fixture 검증
+npm run risk:score -- --input data/risk/runs/<runId>/rule-results.json # 룰 5종 결과 입력
+npm run test:risk-score
+npm run check:risk-score
+```
+
+### 11.7 출력 파일 위치 (gitignore)
+`data/risk/score/runs/{runId}/`
+- `risk-score-report.json` — 전체 결과(candidateId / finalRiskScore / riskGrade / scoreBreakdown / contributingSignals / evidenceSummary / reason / cautionNotes / reviewRequired / notLegalConclusion 포함)
+- `risk-score-summary.md` — 사람이 읽는 요약(TOP 50)
+- `metadata.json` — runId·등급 요약·안내문
+
+### 11.8 다음 단계: LLM 설명형 분석 연결
+본 위험점수 결과(`risk-score-report.json`)와 보상가능성 점수를 입력으로 **LLM 설명형 분석 → 근거검증 strict → 신고 전 사실점검 → 신고서 초안**을 다음 단계에서 진행한다(이번 범위 밖). 자동 신고·자동 제출 기능은 사용하지 않는다.
+
+### 11.9 API
+- `POST /api/subsidy/risk/score/run` — 합성 데모(룰 5종)로 위험점수 실행, TOP N 반환.
+- `GET /api/subsidy/risk/score/latest` — 최근 실행 결과.
+- 응답에는 "부정수급으로 단정하지 않음 / 포상금 지급 보장하지 않음 / 사람 검토 필요" 안내 문구가 포함된다. 외부 호출·자동 신고를 하지 않는다.

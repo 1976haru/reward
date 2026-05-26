@@ -21,10 +21,30 @@ export const RISK_RULE_TYPES = [
   "output_settlement",
   "spending_anomaly",
   "contractor_network",
+  "similar_project", // 체크리스트 60 룰 E(사업명 유사 반복) 연계
   "data_quality",
   "manual"
 ] as const;
 export type UnifiedRiskRuleType = (typeof RISK_RULE_TYPES)[number];
+
+/**
+ * 체크리스트 60 보조금 룰 5종 결과(SubsidyRiskRuleResult.ruleId) → 통합 위험점수 룰타입 매핑.
+ * 통합 점수 모델이 룰 5종 결과(rule-results.json)를 입력으로 받을 수 있게 한다.
+ */
+export const SUBSIDY_RULE_ID_TO_RISK_TYPE: Record<string, UnifiedRiskRuleType> = {
+  repeat_recipient: "repeat_subsidy",
+  same_address: "address_cluster",
+  missing_output_settlement: "output_settlement",
+  budget_anomaly: "spending_anomaly",
+  similar_project_repeat: "similar_project"
+};
+
+/** 룰 결과 severity(low/medium/high) → 통합 점수 입력용 0~100 보조 점수. */
+export const SUBSIDY_SEVERITY_TO_SCORE: Record<string, number> = {
+  low: 45,
+  medium: 65,
+  high: 85
+};
 
 export const RISK_SCORE_COMPONENT_WEIGHTS = {
   repetition: 20,
@@ -76,6 +96,8 @@ export interface RiskScoreContribution {
 
 export interface RiskScoreResult {
   scoreId: string;
+  /** 체크리스트 61: 후보 식별자(subjectKey 기반). 우선 검토 후보 식별용. */
+  candidateId: string;
   subjectKey: string;
   sourceCandidateIds: string[];
   finalRiskScore: number;
@@ -84,7 +106,11 @@ export interface RiskScoreResult {
   contributingSignals: RiskScoreContribution[];
   evidenceSummary: string[];
   reason: string;
+  /** 오탐 가능성/데이터 품질 경고 등 중립 주의문(체크리스트 61). */
+  cautionNotes: string[];
   reviewRequired: boolean;
+  /** 항상 true — 위법/부정수급 확정이 아니다(체크리스트 61). */
+  notLegalConclusion: true;
   createdAt: string;
   isFixtureBased?: boolean;
   // 체크리스트 25: 근거 검증용 citation (computed_model + record_id/evidence_id 등).

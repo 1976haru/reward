@@ -193,6 +193,110 @@ test("A등급도 확정 판단으로 표현하지 않는다", () => {
   for (const banned of BANNED_ASSERTIVE) assert.ok(!blob.includes(banned), banned);
 });
 
+// ---------- 체크리스트 61: 보조금 룰 5종 결과(rule-results.json) 입력 ----------
+
+const subsidyRuleResults = [
+  {
+    ruleId: "repeat_recipient",
+    ruleName: "반복수급 검토 후보",
+    severity: "high",
+    candidateId: "repeat_recipient:abc",
+    involvedRecordIds: ["rec-1", "rec-2", "rec-3"],
+    evidenceRefs: ["공시URL:https://example.org/1"],
+    reason: "동일 수급기관 후보가 3건 반복 등장 — 금액 30000000",
+    reviewRequired: true,
+    notLegalConclusion: true
+  },
+  {
+    ruleId: "same_address",
+    ruleName: "동일주소 다단체 검토 후보",
+    severity: "medium",
+    candidateId: "same_address:def",
+    involvedRecordIds: ["rec-1", "rec-2"],
+    evidenceRefs: ["공시URL:https://example.org/2"],
+    reason: "동일 주소에 단체 3곳",
+    reviewRequired: true,
+    notLegalConclusion: true
+  },
+  {
+    ruleId: "missing_output_settlement",
+    ruleName: "결과물·정산 증빙 누락 검토 후보",
+    severity: "medium",
+    candidateId: "missing_output_settlement:ghi",
+    involvedRecordIds: ["rec-9"],
+    evidenceRefs: ["출처파일:fixture.csv#rec-9"],
+    reason: "정산/결과물 미확인",
+    reviewRequired: true,
+    notLegalConclusion: true
+  },
+  {
+    ruleId: "budget_anomaly",
+    ruleName: "예산집행 이상치 검토 후보",
+    severity: "high",
+    candidateId: "budget_anomaly:jkl",
+    involvedRecordIds: ["rec-9"],
+    evidenceRefs: ["공시URL:https://example.org/3"],
+    reason: "교부금액 절대 임계값 초과, 금액 800000000",
+    reviewRequired: true,
+    notLegalConclusion: true
+  },
+  {
+    ruleId: "similar_project_repeat",
+    ruleName: "사업명 유사 반복 검토 후보",
+    severity: "high",
+    candidateId: "similar_project_repeat:mno",
+    involvedRecordIds: ["rec-20", "rec-21"],
+    evidenceRefs: ["공시URL:https://example.org/4"],
+    reason: "핵심 사업명 유사도 0.95 — 결과물 비교 필요",
+    reviewRequired: true,
+    notLegalConclusion: true
+  }
+];
+
+let subsidyReport: ReturnType<typeof generateRiskScoreReport>;
+
+test("[CL61] 보조금 룰 5종 결과를 입력으로 위험점수를 산출한다", () => {
+  subsidyReport = generateRiskScoreReport(subsidyRuleResults, { sourceNote: "subsidy-rule-results" });
+  assert.ok(subsidyReport.totalScoredSubjects >= 1);
+  for (const r of subsidyReport.topScores) {
+    assert.ok(r.finalRiskScore >= 0 && r.finalRiskScore <= 100);
+    assert.ok(["A", "B", "C"].includes(r.riskGrade));
+  }
+});
+
+test("[CL61] 결과에 candidateId / cautionNotes / notLegalConclusion 이 포함된다", () => {
+  for (const r of subsidyReport.topScores) {
+    assert.ok(typeof r.candidateId === "string" && r.candidateId.length > 0, "candidateId");
+    assert.ok(Array.isArray(r.cautionNotes) && r.cautionNotes.length >= 1, "cautionNotes");
+    assert.equal(r.notLegalConclusion, true);
+    assert.equal(r.reviewRequired, true);
+  }
+});
+
+test("[CL61] similar_project_repeat(룰 E)가 repetition 점수에 반영된다", () => {
+  const all = subsidyReport.topScores.flatMap((r) => r.contributingSignals);
+  assert.ok(all.some((s) => s.ruleType === "similar_project"), "similar_project 룰타입 매핑");
+  assert.ok(all.some((s) => s.signal === "similar_project_name"));
+});
+
+test("[CL61] risk-score-summary.md 와 metadata.json 이 생성된다", async () => {
+  const out = path.join(os.tmpdir(), `cl61-risk-${Date.now()}`);
+  cleanupDirs.push(out);
+  const r = generateRiskScoreReport(subsidyRuleResults, { isFixtureBased: true });
+  const w = await writeRiskScoreReport(out, r);
+  const summary = await readFile(path.join(out, "runs", r.runId, "risk-score-summary.md"), "utf8");
+  assert.ok(summary.includes("100점 위험점수 모델 결과"));
+  const meta = JSON.parse(await readFile(path.join(out, "runs", r.runId, "metadata.json"), "utf8"));
+  assert.equal(meta.runId, r.runId);
+  assert.ok(typeof w.summaryMdFile === "string" && typeof w.metadataFile === "string");
+});
+
+test("[CL61] 점수가 우선 검토 참고 점수로 표시되고 단정 표현이 없다", () => {
+  const blob = JSON.stringify(subsidyReport);
+  for (const banned of BANNED_ASSERTIVE) assert.ok(!blob.includes(banned), banned);
+  assert.ok(subsidyReport.notes.join(" ").includes("보조 점수"));
+});
+
 async function main(): Promise<void> {
   let passed = 0;
   let failed = 0;

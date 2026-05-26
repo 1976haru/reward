@@ -18,9 +18,26 @@ export const REWARD_SOURCE_TYPES = [
   "output_settlement",
   "spending_anomaly",
   "contractor_network",
+  "similar_project", // 체크리스트 60 룰 E(사업명 유사 반복) 연계
   "manual"
 ] as const;
 export type RewardPossibilitySourceType = (typeof REWARD_SOURCE_TYPES)[number];
+
+/** 체크리스트 60 보조금 룰 5종 결과(ruleId) → 보상가능성 sourceType 매핑. */
+export const SUBSIDY_RULE_ID_TO_REWARD_SOURCE: Record<string, RewardPossibilitySourceType> = {
+  repeat_recipient: "repeat_subsidy",
+  same_address: "address_cluster",
+  missing_output_settlement: "output_settlement",
+  budget_anomaly: "spending_anomaly",
+  similar_project_repeat: "similar_project"
+};
+
+/** 룰 결과 severity(low/medium/high) → 보조 점수(0~100). */
+export const REWARD_SEVERITY_TO_SCORE: Record<string, number> = {
+  low: 45,
+  medium: 65,
+  high: 85
+};
 
 export const REWARD_SCORE_COMPONENT_WEIGHTS = {
   recovery_possibility: 35,
@@ -90,6 +107,8 @@ export interface RewardScoreContribution {
 
 export interface RewardPossibilityScoreResult {
   rewardScoreId: string;
+  /** 체크리스트 62: 후보 식별자(subjectKey 기반). */
+  candidateId: string;
   subjectKey: string;
   sourceCandidateIds: string[];
   rewardPossibilityScore: number;
@@ -98,8 +117,14 @@ export interface RewardPossibilityScoreResult {
   contributingSignals: RewardScoreContribution[];
   evidenceSummary: string[];
   reason: string;
+  /** 사람이 신고 전 추가 확인할 항목(체크리스트 62). */
+  nextChecks: string[];
   disclaimers: string[];
+  /** 항상 false — 포상금 지급 보장이 아니다(체크리스트 62). */
+  rewardGuaranteed: false;
   reviewRequired: boolean;
+  /** 항상 true — 위법/부정수급 확정이 아니다. */
+  notLegalConclusion: true;
   createdAt: string;
   isFixtureBased?: boolean;
   // 체크리스트 25: 근거 검증용 citation (computed_model + record_id/evidence_id 등).

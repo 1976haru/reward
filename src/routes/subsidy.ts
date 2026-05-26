@@ -11,6 +11,16 @@ import {
 import { buildSubsidyRiskDemoRecords } from "../rules/subsidyRiskDemoData.js";
 import type { SubsidyRiskInputRecord } from "../types/subsidyRisk.js";
 import {
+  generateRiskScoreReport,
+  writeRiskScoreReport,
+  RISK_SCORE_MODEL_NOTICE
+} from "../scoring/riskScoreModel.js";
+import {
+  generateRewardPossibilityScoreReport,
+  writeRewardPossibilityScoreReport,
+  REWARD_POSSIBILITY_SCORE_NOTICE
+} from "../scoring/rewardPossibilityScore.js";
+import {
   analyzeSubsidySample,
   buildSubsidyReportMarkdown,
   getSubsidyCandidate,
@@ -344,6 +354,177 @@ subsidyRouter.get("/risk/runs/latest", async (_req, res) => {
       topCandidates: top50.topCandidates,
       humanReviewNotice: "본 결과는 사람 검토가 필요한 후보입니다. 부정수급/위법 확정이 아니며 자동 신고는 없습니다.",
       safetyNotice: metadata.safetyNotice ?? SUBSIDY_RISK_RULES_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// ---------- 100점 위험점수 / 보상가능성 점수 (체크리스트 61~62) ----------
+
+const RISK_SCORE_OUTPUT_DIR = process.env.RISK_SCORE_OUTPUT_DIR ?? "data/risk/score";
+const REWARD_SCORE_OUTPUT_DIR = process.env.REWARD_SCORE_OUTPUT_DIR ?? "data/reward-score";
+
+// 모든 점수 API 응답에 공통으로 들어가는 안내 문구.
+const SCORE_DISCLAIMER = {
+  notFraudConclusion: "부정수급으로 단정하지 않음(확정 아님)",
+  rewardNotGuaranteed: "포상금 지급을 보장하지 않음",
+  humanReviewRequired: "사람 검토 필요"
+};
+
+const ScoreRunSchema = z.object({
+  inputMode: z.enum(["fixture"]).optional(), // 현재는 fixture(합성 데모)만 지원 — 외부 호출 없음
+  topN: z.number().int().min(1).max(200).optional()
+});
+
+/** 합성 데모 레코드 → 룰 5종 결과(SubsidyRiskRuleResult[])를 점수 모델 입력으로 만든다. */
+function demoRuleResults() {
+  return runSubsidyRiskRules(buildSubsidyRiskDemoRecords(), {
+    inputMode: "api-demo-synthetic",
+    isRealData: false
+  }).ruleResults;
+}
+
+async function findLatestRunDir(baseDir: string): Promise<string | undefined> {
+  const runsRoot = path.join(process.cwd(), baseDir, "runs");
+  try {
+    const entries = (await readdir(runsRoot, { withFileTypes: true }))
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+      .sort();
+    if (entries.length === 0) return undefined;
+    return path.join(runsRoot, entries[entries.length - 1]);
+  } catch {
+    return undefined;
+  }
+}
+
+// POST /api/subsidy/risk/score/run — 룰 5종 결과(합성 데모) → 100점 위험점수 TOP N
+subsidyRouter.post("/risk/score/run", async (req, res) => {
+  try {
+    const body = ScoreRunSchema.parse(req.body ?? {});
+    const topN = body.topN ?? 50;
+    const report = generateRiskScoreReport(demoRuleResults(), {
+      isFixtureBased: true,
+      sourceNote: "api-demo-subsidy-rules",
+      limit: topN
+    });
+    await writeRiskScoreReport(RISK_SCORE_OUTPUT_DIR, report);
+    res.json({
+      ok: true,
+      runId: report.runId,
+      inputMode: "fixture",
+      totalInputCandidates: report.totalInputCandidates,
+      totalScoredSubjects: report.totalScoredSubjects,
+      gradeSummary: report.gradeSummary,
+      topN,
+      topScores: report.topScores,
+      reviewRequired: true,
+      notLegalConclusion: true,
+      disclaimer: SCORE_DISCLAIMER,
+      humanReviewNotice: "부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람 검토가 필요합니다 — 우선 검토 후보 정렬용 참고 점수입니다.",
+      safetyNotice: RISK_SCORE_MODEL_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
+    }
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// GET /api/subsidy/risk/score/latest — 최근 위험점수 실행 결과
+subsidyRouter.get("/risk/score/latest", async (_req, res) => {
+  try {
+    const runDir = await findLatestRunDir(RISK_SCORE_OUTPUT_DIR);
+    if (!runDir) {
+      return res.status(404).json(
+        errorBody("NO_RUN_FOUND", "위험점수 실행 기록이 없습니다. 먼저 POST /api/subsidy/risk/score/run 또는 `npm run risk:score -- --fixture 1000` 을 실행하세요.")
+      );
+    }
+    const report = JSON.parse(await readFile(path.join(runDir, "risk-score-report.json"), "utf8"));
+    res.json({
+      ok: true,
+      runId: report.runId,
+      createdAt: report.createdAt,
+      gradeSummary: report.gradeSummary,
+      topScores: report.topScores,
+      reviewRequired: true,
+      notLegalConclusion: true,
+      disclaimer: SCORE_DISCLAIMER,
+      humanReviewNotice: "부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람 검토가 필요합니다.",
+      safetyNotice: RISK_SCORE_MODEL_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// POST /api/subsidy/reward-score/run — 룰 5종 결과(합성 데모) → 보상가능성 점수 TOP N
+subsidyRouter.post("/reward-score/run", async (req, res) => {
+  try {
+    const body = ScoreRunSchema.parse(req.body ?? {});
+    const topN = body.topN ?? 50;
+    const report = generateRewardPossibilityScoreReport(demoRuleResults(), {
+      isFixtureBased: true,
+      sourceNote: "api-demo-subsidy-rules",
+      limit: topN
+    });
+    await writeRewardPossibilityScoreReport(REWARD_SCORE_OUTPUT_DIR, report);
+    res.json({
+      ok: true,
+      runId: report.runId,
+      inputMode: "fixture",
+      totalInputCandidates: report.totalInputCandidates,
+      totalScoredSubjects: report.totalScoredSubjects,
+      levelSummary: report.levelSummary,
+      topN,
+      topScores: report.topScores,
+      rewardGuaranteed: false,
+      reviewRequired: true,
+      notLegalConclusion: true,
+      disclaimer: SCORE_DISCLAIMER,
+      humanReviewNotice: "부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람 검토가 필요합니다 — 보상/포상 가능성 검토 우선순위 참고 점수입니다.",
+      safetyNotice: REWARD_POSSIBILITY_SCORE_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
+    }
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// GET /api/subsidy/reward-score/latest — 최근 보상가능성 점수 실행 결과
+subsidyRouter.get("/reward-score/latest", async (_req, res) => {
+  try {
+    const runDir = await findLatestRunDir(REWARD_SCORE_OUTPUT_DIR);
+    if (!runDir) {
+      return res.status(404).json(
+        errorBody("NO_RUN_FOUND", "보상가능성 점수 실행 기록이 없습니다. 먼저 POST /api/subsidy/reward-score/run 또는 `npm run reward:score -- --fixture 1000` 을 실행하세요.")
+      );
+    }
+    const report = JSON.parse(await readFile(path.join(runDir, "reward-possibility-score-report.json"), "utf8"));
+    res.json({
+      ok: true,
+      runId: report.runId,
+      createdAt: report.createdAt,
+      levelSummary: report.levelSummary,
+      topScores: report.topScores,
+      rewardGuaranteed: false,
+      reviewRequired: true,
+      notLegalConclusion: true,
+      disclaimer: SCORE_DISCLAIMER,
+      humanReviewNotice: "부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람 검토가 필요합니다.",
+      safetyNotice: REWARD_POSSIBILITY_SCORE_NOTICE,
       autoReport: false,
       humanReviewRequired: true
     });

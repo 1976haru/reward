@@ -25,6 +25,7 @@ function candidatesFromReportJson(value: unknown): unknown[] {
   if (!value || typeof value !== "object") return [];
   const obj = value as Record<string, unknown>;
   if (Array.isArray(value)) return value;
+  if (Array.isArray(obj.ruleResults)) return obj.ruleResults; // 체크리스트 60 rule-results.json
   if (Array.isArray(obj.topScores)) return obj.topScores;
   if (Array.isArray(obj.topCandidates)) return obj.topCandidates;
   if (Array.isArray(obj.candidates)) return obj.candidates;
@@ -64,7 +65,8 @@ async function main(): Promise<void> {
   }
 
   const report = generateRewardPossibilityScoreReport(inputs, { isFixtureBased, sourceNote });
-  const { reportJsonFile, reportMdFile } = await writeRewardPossibilityScoreReport(outputDir, report);
+  const { reportJsonFile, reportMdFile, summaryMdFile, metadataFile } =
+    await writeRewardPossibilityScoreReport(outputDir, report);
 
   console.log("");
   console.log("REWARD_SCORE_RUN_OK");
@@ -73,9 +75,12 @@ async function main(): Promise<void> {
   console.log(
     `levelSummary: High=${report.levelSummary.High}, Medium=${report.levelSummary.Medium}, Low=${report.levelSummary.Low}`
   );
+  console.log("rewardGuaranteed: false");
   console.log(`outputDir: ${path.join(outputDir, "runs", report.runId)}`);
-  console.log(`report.json: ${reportJsonFile}`);
-  console.log(`report.md: ${reportMdFile}`);
+  console.log(`reward-possibility-score-report.json: ${reportJsonFile}`);
+  console.log(`reward-possibility-score-report.md: ${reportMdFile}`);
+  console.log(`reward-score-summary.md: ${summaryMdFile}`);
+  console.log(`metadata.json: ${metadataFile}`);
   if (report.isFixtureBased) {
     console.log("fixture 기반 검증입니다. 실제 보상/포상 가능성 검토 완료로 표현하지 않습니다.");
   }

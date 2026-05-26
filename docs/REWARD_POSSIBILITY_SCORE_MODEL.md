@@ -138,3 +138,54 @@ reason 문구는 다음처럼 중립적으로 작성한다.
 - 사실관계 점검표와 연결
 - 승인 게이트와 연결
 - 대시보드에서 High/Medium/Low 표시
+
+## 13. 보조금 룰 5종 결과 입력 (체크리스트 62)
+
+위험점수와 **별도로**, 체크리스트 60의 보조금 룰 5종 결과(`rule-results.json`) 또는 위험점수 결과(`risk-score-report.json`)를 입력으로 받아 보상가능성(보상/포상 검토 우선순위) 점수를 산출한다.
+
+### 13.1 점수 항목 설명
+- **환수 가능성**(recovery_possibility): 결과물·정산 누락, 예산집행 이상, 반복수급 등 환수·반납으로 이어질 수 있는 신호.
+- **공공기관 손실방지 가능성**(loss_prevention): 동일주소 다단체, 반복수급, 사업명 유사 반복 등 손실 확대 방지 관점 신호.
+- **증거 명확성**(evidence_clarity): 공시 URL·결과물·첨부 등 근거자료의 명확성.
+- **공식 신고 기준 확인 필요 여부**(legal_fit): 공식 기준·기관 심사 확인이 필요한 정도.
+- **신고 전 추가확인 필요 항목**: 결과의 `nextChecks` 배열로 제공.
+- **데이터 품질**: fixture 여부·근거 부족은 점수·disclaimers에 반영한다.
+
+룰 결과의 `severity`(low/medium/high)는 0~100 보조 점수(45/65/85)로 환산해 입력한다.
+
+### 13.2 점수가 의미하는 것 / 의미하지 않는 것
+- 의미하는 것: 보상/포상 가능성 **검토 우선순위 참고 점수**(High/Medium/Low).
+- 의미하지 않는 것: **포상금 지급 보장이 아니다**(`rewardGuaranteed=false`). 지급 여부는 법령·기관 심사·신고자 요건 등에 따라 달라진다.
+
+### 13.3 위험점수와 보상가능성 점수의 차이
+- 위험점수: 의심 신호가 얼마나 모였는가(검토 우선순위).
+- 보상가능성 점수: 환수·손실방지·증거 관점의 별도 축이며 지급 보장이 아니다.
+- 두 점수는 별개이며, High여도 지급이 확정되지 않는다.
+
+### 13.4 High가 확정 판단이 아닌 이유
+High도 **지급 확정이 아니라 검토 우선순위**일 뿐이다. 공식 기준과 기관 심사 절차 확인이 반드시 필요하다.
+
+### 13.5 입력 파일 형식
+- `data/risk/runs/{runId}/rule-results.json`(룰 5종), 또는 `data/risk/score/runs/{runId}/risk-score-report.json`(위험점수 결과).
+
+### 13.6 실행 명령
+```bash
+npm run reward:score -- --fixture 1000                                       # fixture 검증
+npm run reward:score -- --input data/risk/score/runs/<runId>/risk-score-report.json
+npm run test:reward-score
+npm run check:reward-score
+```
+
+### 13.7 출력 파일 위치 (gitignore)
+`data/reward/score/runs/{runId}/`(CLI) 또는 `data/reward-score/runs/{runId}/`(API)
+- `reward-possibility-score-report.json` — candidateId / rewardPossibilityScore / rewardPossibilityLevel / scoreBreakdown / contributingSignals / evidenceSummary / reason / nextChecks / disclaimers / rewardGuaranteed=false / reviewRequired / notLegalConclusion 포함
+- `reward-score-summary.md` — 사람이 읽는 요약
+- `metadata.json` — runId·레벨 요약·rewardGuaranteed=false·안내문
+
+### 13.8 다음 단계: LLM 설명형 분석 연결
+위험점수·보상가능성 점수 결과를 입력으로 **LLM 설명형 분석 → 근거검증 strict → 신고 전 사실점검 → 신고서 초안**을 다음 단계에서 진행한다(이번 범위 밖). 자동 신고·자동 제출 기능은 사용하지 않는다.
+
+### 13.9 API
+- `POST /api/subsidy/reward-score/run` — 합성 데모(룰 5종)로 보상가능성 점수 실행, TOP N 반환.
+- `GET /api/subsidy/reward-score/latest` — 최근 실행 결과.
+- 응답에는 `rewardGuaranteed=false`와 "부정수급으로 단정하지 않음 / 포상금 지급 보장하지 않음 / 사람 검토 필요" 안내 문구가 포함된다. 외부 호출·자동 신고를 하지 않는다.
