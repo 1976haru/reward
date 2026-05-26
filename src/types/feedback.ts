@@ -31,9 +31,11 @@ export const FEEDBACK_REASON_CATEGORIES = [
   "NO_PROHIBITED_CLAIM",
   "GENERAL_HEALTH_EXPRESSION",
   "CONTEXT_ALLOWED",
+  "NEEDS_CONTEXT",
   "EVIDENCE_INSUFFICIENT",
   "URL_INACCESSIBLE",
   "DUPLICATE_CANDIDATE",
+  "DUPLICATE_CASE",
   "LOW_SELL_SIGNAL",
   "RULE_FALSE_POSITIVE",
   "LLM_OVERSTATED",
@@ -82,6 +84,12 @@ export const FEEDBACK_REASON_CATEGORY_INFO: Record<FeedbackReasonCategory, Feedb
     description: "문맥상 인용/부정/반박 등 허용 가능한 사용입니다.",
     recommendedAction: "문맥 기반 예외 처리를 RuleAgent에 추가 검토하세요."
   },
+  NEEDS_CONTEXT: {
+    code: "NEEDS_CONTEXT",
+    label: "추가 문맥 필요",
+    description: "판단을 위해 주변 문맥/추가 정보가 더 필요합니다.",
+    recommendedAction: "문맥 수집 범위(주변 문장/페이지 섹션)를 넓히는 방안을 사람이 검토하세요."
+  },
   EVIDENCE_INSUFFICIENT: {
     code: "EVIDENCE_INSUFFICIENT",
     label: "증거 부족",
@@ -99,6 +107,12 @@ export const FEEDBACK_REASON_CATEGORY_INFO: Record<FeedbackReasonCategory, Feedb
     label: "중복 후보",
     description: "이미 처리된 후보와 사실상 동일합니다.",
     recommendedAction: "Dedupe Engine 임계값을 검토하세요."
+  },
+  DUPLICATE_CASE: {
+    code: "DUPLICATE_CASE",
+    label: "중복 Case",
+    description: "이미 등록·처리된 Case 와 사실상 동일한 신고 대상입니다.",
+    recommendedAction: "Case 중복 판정/병합 기준을 사람이 검토하세요."
   },
   LOW_SELL_SIGNAL: {
     code: "LOW_SELL_SIGNAL",

@@ -1183,9 +1183,19 @@ check("batch kept < total", batch.summary.kept < batch.summary.total);
 
 // 21) Feedback DB — types, repository, PII masking, stats, improvements
 check("FEEDBACK_DECISIONS has 7 codes", FEEDBACK_DECISIONS.length === 7);
-check("FEEDBACK_REASON_CATEGORIES has 15 codes", FEEDBACK_REASON_CATEGORIES.length === 15);
+check("FEEDBACK_REASON_CATEGORIES has 17 codes", FEEDBACK_REASON_CATEGORIES.length === 17);
 check("FEEDBACK_DECISIONS includes FALSE_POSITIVE", (FEEDBACK_DECISIONS as readonly string[]).includes("FALSE_POSITIVE"));
 check("FEEDBACK_REASON_CATEGORIES includes RULE_FALSE_POSITIVE", (FEEDBACK_REASON_CATEGORIES as readonly string[]).includes("RULE_FALSE_POSITIVE"));
+
+// 체크리스트 28 — 요구 결정 코드/사유 카테고리 모두 존재
+{
+  const reqDecisions = ["APPROVE", "HOLD", "REJECT", "NEEDS_MORE_EVIDENCE", "FALSE_POSITIVE", "NOT_RELEVANT", "DUPLICATE"];
+  check("[CL28] 필수 decision 코드 모두 존재",
+    reqDecisions.every((d) => (FEEDBACK_DECISIONS as readonly string[]).includes(d)));
+  const reqReasons = ["NO_PROHIBITED_CLAIM", "RULE_FALSE_POSITIVE", "LLM_OVERSTATED", "SCORE_TOO_HIGH", "EVIDENCE_INSUFFICIENT", "NEEDS_CONTEXT", "DUPLICATE_CASE"];
+  check("[CL28] 필수 reason 카테고리 모두 존재",
+    reqReasons.every((c) => (FEEDBACK_REASON_CATEGORIES as readonly string[]).includes(c)));
+}
 
 // PII 마스킹
 const pii1 = maskPiiForFeedback("contact foo@bar.com or 010-1234-5678 please");
@@ -1366,6 +1376,17 @@ check("eval set VIOLATION_CANDIDATE == 100", violations.length === 100, `v=${vio
 check("eval set NORMAL == 100", normals.length === 100, `n=${normals.length}`);
 const idSet = new Set<string>(evalSet.samples.map((s: { id: string }) => s.id));
 check("eval set sample ids unique", idSet.size === 200, `unique=${idSet.size}`);
+
+// 체크리스트 27 — 필수 평가 유형 커버리지 (질병 치료/예방, 의약품 대체, 과장 효능, 정상 광고, 애매한 마케팅)
+{
+  const cats = new Set<string>(evalSet.samples.map((s: { category: string }) => s.category));
+  check("[CL27] 질병 치료 단정 유형 포함", cats.has("DISEASE_TREATMENT"));
+  check("[CL27] 질병 예방 단정 유형 포함", cats.has("DISEASE_PREVENTION"));
+  check("[CL27] 의약품 대체 유형 포함", cats.has("DRUG_SUBSTITUTION"));
+  check("[CL27] 과장 효능 유형 포함", cats.has("EXAGGERATED_EFFECT"));
+  check("[CL27] 정상 광고 유형 포함", cats.has("GENERAL_HEALTH"));
+  check("[CL27] 애매한 마케팅/후기 유형 포함", cats.has("GENERIC_REVIEW") || cats.has("TESTIMONIAL_OVERSTATEMENT"));
+}
 
 // PII 검사 — 합성 데이터에 PII 패턴이 들어가지 않았는지
 const piiCheck = checkEvalSetForPii(evalSet);
