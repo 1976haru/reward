@@ -116,6 +116,8 @@ import { detectSensitive } from "../services/privacy/SensitiveDataDetector.js";
 import { maskText, maskEmail, maskPhone, maskRrn, maskApiKey, maskBearer, maskJwt } from "../services/privacy/MaskingService.js";
 import { getRetentionPolicies, applyRetention } from "../services/privacy/RetentionPolicy.js";
 import { SENSITIVE_DATA_TYPES, MASK_TOKENS } from "../types/privacy.js";
+import { validateReportCitations } from "../analysis/citationValidator.js";
+import type { ReportClaim } from "../types/citationValidation.js";
 import { JsonOutcomeRepository, OutcomeValidationError } from "../repositories/OutcomeRepository.js";
 import { OUTCOME_STATUSES, OUTCOME_DECISIONS, REWARD_OUTCOMES } from "../types/outcome.js";
 
@@ -2384,6 +2386,45 @@ check("maskText disabled returns unchanged", noChange.changed === false && noCha
 // 일반 텍스트는 변경 없음
 const clean = maskText("그냥 평범한 텍스트입니다.");
 check("maskText leaves clean text unchanged", clean.changed === false);
+
+// 체크리스트 30 — 마스킹 토큰 전 종류 커버리지 + IP/계좌/주소
+check("[CL30] MASK_TOKENS covers account/address/auth/cookie/ip",
+  MASK_TOKENS.ACCOUNT_NUMBER === "[masked-account]" && MASK_TOKENS.ADDRESS_LIKE === "[masked-address]" &&
+  MASK_TOKENS.AUTH_HEADER === "[masked-auth]" && MASK_TOKENS.COOKIE === "[masked-cookie]" && MASK_TOKENS.IP_ADDRESS === "[masked-ip]");
+{
+  // 더미 문자열만 사용 (실제 키 아님). Bearer 토큰/IP 탐지·마스킹.
+  const mixed = maskText("인증값 Bearer ABCDEFGHIJKLMNOPQRSTUVWXYZ012345, 서버 192.168.0.23 접속");
+  check("[CL30] Bearer 토큰 마스킹([masked-auth])", mixed.masked.includes("[masked-auth]"));
+  check("[CL30] 원문 더미 토큰이 마스킹 결과에 없음", !mixed.masked.includes("ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"));
+}
+
+// 체크리스트 29 — 근거 검증 (deterministic, 외부 호출 없음)
+{
+  const claims: ReportClaim[] = [
+    { claimId: "c1", text: "원문에 '당뇨 완치' 표현 존재", kind: "core", section: "claim",
+      citations: [{ type: "source_url", sourceUrl: "https://example.com/p" }] },
+    { claimId: "c2", text: "근거 없는 핵심 주장", kind: "core", section: "claim", citations: [] },
+    { claimId: "c3", text: "로그인 필요 URL 근거", kind: "core", section: "claim",
+      citations: [{ type: "source_url", sourceUrl: "https://site.com/login/secret", requiresLogin: true }] }
+  ];
+  const warn = validateReportCitations(claims, { mode: "warning" });
+  check("[CL29] totalClaims=3", warn.totalClaims === 3);
+  check("[CL29] supported(citedClaims) 1건", warn.citedClaims === 1);
+  check("[CL29] unsupported(missingClaims) 존재", warn.missingClaims >= 1);
+  check("[CL29] 로그인 필요 URL은 근거 불인정(blockedPrivateUrl)", warn.blockedPrivateUrlCount >= 1);
+
+  const strict = validateReportCitations(claims, { mode: "strict" });
+  check("[CL29] strict 모드에서 근거 없는 핵심 주장 → fail", strict.status === "fail");
+  // 모든 핵심 주장에 강한 근거가 있으면 strict 통과
+  const good: ReportClaim[] = [
+    { claimId: "g1", text: "원문 URL 근거 있음", kind: "core", section: "claim",
+      citations: [{ type: "source_url", sourceUrl: "https://example.com/a" }] },
+    { claimId: "g2", text: "증거 ID 근거 있음", kind: "core", section: "evidence",
+      citations: [{ type: "evidence_id", evidenceId: "EVID-1" }] }
+  ];
+  const strictPass = validateReportCitations(good, { mode: "strict" });
+  check("[CL29] 강한 근거만 있으면 strict pass", strictPass.status === "pass");
+}
 
 // RetentionPolicy
 const policies = getRetentionPolicies();

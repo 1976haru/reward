@@ -31,6 +31,7 @@ import { guideRouter } from "./routes/guide.js";
 import { settingsRouter } from "./routes/settings.js";
 import { rewardProgramsRouter } from "./routes/rewardPrograms.js";
 import { agenciesRouter } from "./routes/agencies.js";
+import { citationsRouter } from "./routes/citations.js";
 import { falseAdGuideRouter } from "./routes/falseAdGuide.js";
 import { counterfeitGuideRouter } from "./routes/counterfeitGuide.js";
 import { bidCollusionGuideRouter } from "./routes/bidCollusionGuide.js";
@@ -206,6 +207,9 @@ app.use("/api/reward-programs", rewardProgramsRouter);
 // 공식 신고처 URL Registry (체크리스트 24) — 단순 외부 링크 안내표 (조회 전용).
 // 자동 제출/자동 로그인/자동 양식입력 없음. URL 은 공식 사이트에서 정기 확인 필요.
 app.use("/api/agencies", agenciesRouter);
+
+// 근거 검증 (체크리스트 29) — 핵심 주장에 공개자료 근거 연결 여부 검증. 환각·오류 방지 보조.
+app.use("/api/citations", citationsRouter);
 
 // 보조금 부정수급 의심 후보 프로토타입 (체크리스트 25) — sample 기반 분석만 지원.
 app.use("/api/subsidy", subsidyRouter);
