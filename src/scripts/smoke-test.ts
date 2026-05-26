@@ -2242,6 +2242,55 @@ try {
     cfAgencies.every((a) => a.manualSubmissionOnly === true && a.autoSubmitAvailable === false));
 }
 
+// 원산지 표시 위반 신고서 초안 템플릿 + 신고처 Registry (체크리스트 50)
+const olRptCaseId = "rpt_ol_smoke_" + Math.random().toString(36).slice(2, 8);
+try {
+  const out = await rpt.generateDraft({
+    caseId: olRptCaseId,
+    moduleId: "origin_labeling",
+    title: "국내산 고춧가루 판매글",
+    url: "https://example.test/ol",
+    productName: "고춧가루",
+    status: "REVIEW",
+    agencyCandidate: "국립농산물품질관리원 (후보)",
+    priorityScore: 60,
+    priorityLabel: "검토 우선",
+    capturedAt: new Date().toISOString(),
+    ruleMatches: [
+      { ruleId: "OL_H001", keyword: "원산지 미표시", riskLevel: "HIGH", weight: 25, category: "origin_missing", reason: "원산지 표시 누락 의심", matchType: "keyword", sentence: "원산지 미표시", excerpt: "원산지 미표시", sourceSection: "claim" } as any
+    ],
+    evidence: { hasHtml: true, hasText: true, capturedAt: new Date().toISOString(), files: [] },
+    sellerCandidates: []
+  });
+  check("[CL50] 원산지 신고서 제목", /원산지 표시 위반 의심 신고 후보/.test(out.markdown));
+  check("[CL50] 원산지 신고서 ≠ 타 모듈 제목",
+    !/건강기능식품 온라인 허위·과대광고 신고 후보 검토 요청서/.test(out.markdown) &&
+    !/위조상품 온라인 판매 의심 신고 후보/.test(out.markdown));
+  check("[CL50] 원산지 신고서 '원산지 표시 위반 확정이 아닙니다' 안내", out.markdown.includes("원산지 표시 위반 확정이 아닙니다"));
+  check("[CL50] 원산지 신고서 관계기관 판단 필요 안내", out.markdown.includes("관계기관 판단"));
+  check("[CL50] 원산지 신고서 표시된 원산지/불일치/혼합원료 요약", out.markdown.includes("표시된 원산지 정보") && out.markdown.includes("원산지 미표시 또는 불일치 의심 항목") && out.markdown.includes("국내산/수입산/혼합원료"));
+  check("[CL50] 원산지 신고서 신고처 국립농산물품질관리원/국민신문고 포함", out.markdown.includes("국립농산물품질관리원") && out.markdown.includes("국민신문고"));
+  check("[CL50] 원산지 신고서 '자동 신고서가 아닙니다' 안내", out.markdown.includes("자동 신고서가 아닙니다"));
+  // "피해야 할 표현"(§10) 안내 섹션은 금지어를 일부러 나열하므로 그 앞부분(주장부)만 검사한다.
+  const olClaim = out.markdown.split("## 10. 피해야 할 표현")[0];
+  check("[CL50] 원산지 신고서 주장부에 단정형 위반/허위 원산지 확정 없음",
+    !/위반\s*확정\s*(입니다|함|됨|이다)/.test(olClaim) && !/허위\s*원산지\s*확정/.test(olClaim) && !/범죄\s*확정/.test(olClaim));
+} finally {
+  const { rm: rmFn6 } = await import("node:fs/promises");
+  try { await rmFn6(rpt.getReportDir(olRptCaseId), { recursive: true, force: true }); } catch { /* ignore */ }
+}
+{
+  const { reportingRegistryService } = await import("../services/reporting/ReportingRegistry.js");
+  const olAgencies = reportingRegistryService.listByModule("origin_labeling");
+  check("[CL50] origin_labeling 신고처 3곳 이상", olAgencies.length >= 3);
+  check("[CL50] origin_labeling 신고처 국립농산물품질관리원/국민신문고/지자체·행정기관 포함",
+    olAgencies.some((a) => a.agencyName.includes("국립농산물품질관리원")) &&
+    olAgencies.some((a) => a.agencyName.includes("국민신문고")) &&
+    olAgencies.some((a) => a.agencyName.includes("지자체") || a.agencyName.includes("행정기관")));
+  check("[CL50] origin_labeling 신고처 manualSubmissionOnly/autoSubmitAvailable 고정",
+    olAgencies.every((a) => a.manualSubmissionOnly === true && a.autoSubmitAvailable === false));
+}
+
 // 25) Subsidy Fraud Prototype — module registration, sample analysis, signals, scoring, report
 check("subsidy module id", subsidyFraudDefinition.id === "subsidy_fraud");
 check("subsidy module slug", subsidyFraudDefinition.slug === "subsidy-fraud");

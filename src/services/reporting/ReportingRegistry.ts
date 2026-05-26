@@ -268,12 +268,50 @@ const COUNTERFEIT_AGENCIES: ReportingAgency[] = [
   })
 ];
 
+/**
+ * 원산지 표시 위반 의심(origin_labeling) 공식 신고처 후보 (체크리스트 50).
+ * 최소 포함: 국립농산물품질관리원 원산지 표시 신고 안내, 국민신문고, 관할 지자체·관련 행정기관.
+ */
+const ORIGIN_LABELING_AGENCIES: ReportingAgency[] = [
+  entry({
+    agencyId: "naqs_origin",
+    agencyName: "국립농산물품질관리원",
+    moduleId: "origin_labeling",
+    category: "origin_labeling",
+    officialUrl: "https://www.naqs.go.kr",
+    description: "농수산물·가공식품 원산지 표시 위반 신고 안내. 사용자가 직접 공식 창구로 제출하며, 위반 여부는 관계기관 판단이 필요합니다.",
+    requiredEvidence: ["원본 URL", "상품명/옵션/상세페이지 원산지 표시 캡처", "수집일시", "표시 불일치·누락 화면 위치"],
+    cautions: COMMON_CAUTIONS
+  }),
+  entry({
+    agencyId: "epeople_origin",
+    agencyName: "국민신문고",
+    moduleId: "origin_labeling",
+    category: "origin_labeling",
+    officialUrl: "https://www.epeople.go.kr",
+    description: "민원·공익신고 통합 창구. 사용자가 직접 접속해 양식을 작성·제출합니다.",
+    requiredEvidence: ["원본 URL", "의심 표시 캡처", "수집일시", "신고 취지 요약(중립 표현)"],
+    cautions: COMMON_CAUTIONS
+  }),
+  entry({
+    agencyId: "local_authority_origin",
+    agencyName: "관할 지자체 · 관련 행정기관",
+    moduleId: "origin_labeling",
+    category: "origin_labeling",
+    officialUrl: "https://www.gov.kr",
+    description: "정부24에서 관할 시·군·구청 또는 관련 행정기관을 찾아 직접 신고합니다. 지자체·기관별 접수 경로가 다릅니다.",
+    requiredEvidence: ["원본 URL", "캡처/PDF", "관할 지역 확인", "수집일시"],
+    cautions: COMMON_CAUTIONS
+  })
+];
+
 const REGISTRY_BY_MODULE: Record<string, ReportingAgency[]> = {
   false_ad: FALSE_AD_AGENCIES,
   general_food_false_ad: GENERAL_FOOD_AGENCIES,
   cosmetic_false_ad: COSMETIC_AGENCIES,
   medical_device_false_ad: MEDICAL_DEVICE_AGENCIES,
-  counterfeit_goods: COUNTERFEIT_AGENCIES
+  counterfeit_goods: COUNTERFEIT_AGENCIES,
+  origin_labeling: ORIGIN_LABELING_AGENCIES
 };
 
 export class ReportingRegistryService {

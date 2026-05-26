@@ -149,6 +149,10 @@ export class ReportService {
     if (input.moduleId === "medical_device_false_ad") {
       return this.buildMedicalDeviceMarkdown(input, warnings);
     }
+    // 원산지 표시 위반 의심 (확장) — 표시 불일치·누락 관점의 전용 템플릿
+    if (input.moduleId === "origin_labeling") {
+      return this.buildOriginLabelingMarkdown(input, warnings);
+    }
     const title = sanitizeReportText(input.title ?? input.productName ?? input.caseId, warnings);
     const url = sanitizeReportText(input.url ?? "", warnings);
     const productName = sanitizeReportText(input.productName ?? "", warnings) || "(미식별)";
@@ -801,6 +805,133 @@ export class ReportService {
     lines.push(`## 11. 안내`);
     lines.push("");
     lines.push(`- 법 위반 확정 아님`);
+    lines.push(`- 포상금 지급 보장 아님`);
+    lines.push(`- 실제 신고는 사용자가 공식 창구에서 직접 제출`);
+    lines.push("");
+    lines.push(`---`);
+    lines.push(`자동 신고는 수행하지 않습니다. 본 초안은 사람 검토·수정 후 사용자가 직접 공식 신고 창구에 제출하는 자료입니다.`);
+    return lines.join("\n");
+  }
+
+  // ---------- 원산지 표시 위반 의심 신고서 초안 (체크리스트 50) ----------
+  // 기존 템플릿을 복사하지 않고, 원산지 표시 불일치·누락 의심 맥락에 맞게 조정한다.
+  private buildOriginLabelingMarkdown(input: ReportDraftInput, warnings: string[]): string {
+    const title = sanitizeReportText(input.title ?? input.productName ?? input.caseId, warnings);
+    const url = sanitizeReportText(input.url ?? "", warnings) || "(미기록)";
+    const productName = sanitizeReportText(input.productName ?? "", warnings) || "(미식별)";
+    const agency = sanitizeReportText(input.agencyCandidate ?? "국립농산물품질관리원 (후보)", warnings);
+    const priorityScore = typeof input.priorityScore === "number" ? input.priorityScore : null;
+    const priorityLabel = sanitizeReportText(input.priorityLabel ?? "", warnings) || "(미계산)";
+    const captured = sanitizeReportText(input.capturedAt ?? input.evidence?.capturedAt ?? "", warnings) || "(미기록)";
+
+    const matches = (input.ruleMatches ?? []).slice(0, 30);
+    const matchRows = matches.length
+      ? matches.map((m, i) =>
+          `| ${i + 1} | ${escapeMd(sanitizeReportText(m.sentence ?? m.keyword, warnings))} | ${escapeMd(m.riskLevel)} | ${escapeMd(m.sourceSection ?? m.category ?? "main")} | ${escapeMd(sanitizeReportText(m.reason, warnings))} |`
+        ).join("\n")
+      : "| - | - | - | - | 매치된 룰이 없습니다. |";
+    const originExpressions = matches
+      .map((m) => escapeMd(sanitizeReportText(m.sentence ?? m.keyword, warnings)))
+      .slice(0, 10).join(" / ") || "(매치된 룰 없음)";
+
+    const evidenceFiles = input.evidence?.files ?? [];
+    const evidenceRows = evidenceFiles.length
+      ? evidenceFiles.map((f, i) => `| ${i + 1} | ${escapeMd(f.name)} | ${escapeMd(f.mimeType)} (${f.size}B) | \`${escapeMd((f.sha256 ?? "").slice(0, 16))}…\` |`).join("\n")
+      : "| - | - | 증거 패키지가 아직 생성되지 않았습니다. 신고 전 캡처/PDF 저장을 권장합니다. | - |";
+
+    const llm = input.llmAnalysis ?? null;
+    const aiSummary = sanitizeReportText(llm?.summary ?? "(AI 분석 요약이 제공되지 않았습니다)", warnings);
+    const aiLikelihood = llm ? `${llm.violationLikelihood} / ${llm.overallRisk}` : "(미수행)";
+    const scoring = input.scoringResult ?? null;
+    const scoringComps = scoring
+      ? scoring.components.map((c) => `- ${c.label}: ${c.score}/${c.maxPoints}`).join("\n")
+      : "- (점수 미계산)";
+
+    const lines: string[] = [];
+    lines.push(`# 원산지 표시 위반 의심 신고 후보 검토 요청서 초안`);
+    lines.push("");
+    lines.push(`> 본 문서는 **자동 신고서가 아닙니다.** 사람이 검토·수정 후 공식 신고 창구에 직접 제출하는 보조 자료입니다.`);
+    lines.push(`> 본 결과는 **원산지 표시 위반 확정이 아닙니다.** 공개 판매글에서 원산지 표시 불일치·누락 의심 신호를 검토 후보로 정리한 것이며, 관계기관 판단이 별도로 필요합니다. 포상금 지급을 보장하지 않습니다. 특정 판매자를 위반 업체로 단정하지 않습니다.`);
+    lines.push("");
+    lines.push(`## 1. 제목`);
+    lines.push("");
+    lines.push(`원산지 표시 관련 검토 요청 — ${title}`);
+    lines.push("");
+    lines.push(`## 2. 신고 후보 요약`);
+    lines.push("");
+    lines.push(`- 신고 후보 유형: 원산지 표시 위반 의심`);
+    lines.push(`- 표시된 원산지 정보: (게시글에 표시된 원산지 — 사람이 확인·기록)`);
+    lines.push(`- 원산지 미표시 또는 불일치 의심 항목: ${originExpressions}`);
+    lines.push(`- 국내산/수입산/혼합원료 관련 표현: ${[...new Set(matches.map((m) => m.category).filter(Boolean))].slice(0, 8).join(", ") || "(분류 없음 — 사람 확인 필요)"}`);
+    lines.push(`- 상품명/옵션/상세페이지/이미지 표시 불일치 여부: (사람 확인 필요 — 각 화면 캡처 비교)`);
+    lines.push(`- 신고처 후보: ${agency}`);
+    lines.push(`- 원본 URL: ${url}`);
+    lines.push(`- 수집일시: ${captured}`);
+    lines.push(`- 상품명 또는 판매글 제목: ${productName}`);
+    lines.push(`- 판매자 표시 정보(공개 영역만): ${(input.sellerCandidates ?? []).map((s) => sanitizeReportText(s, warnings)).join(" / ") || "(공개 표시 정보 확인 필요)"}`);
+    lines.push(`- 신고 후보 우선순위 점수: ${priorityScore != null ? `${priorityScore}/100 (${priorityLabel})` : "(미계산)"}`);
+    lines.push(`- 상태: ${sanitizeReportText(input.status ?? "DRAFT", warnings)}`);
+    lines.push(`- 주의: 본 문서는 자동 신고서가 아니라 사람이 검토·수정 후 제출할 수 있는 초안입니다.`);
+    lines.push("");
+    lines.push(`## 3. 의심 문구 (검토 후보)`);
+    lines.push("");
+    lines.push(`아래 문구는 원산지 키워드 룰과 AI 문맥 검토로 분류된 검토 후보 표현입니다. 원산지 표시 위반 확정이 아니라 관계기관 검토 요청 대상입니다. 정상 원산지 표시(예: "원산지: 국내산"이 명확히 기재)와 구분이 필요합니다.`);
+    lines.push("");
+    lines.push(`| No | 문구 | 위험도 | 위치/분류 | 검토 필요 사유 |`);
+    lines.push(`|----|------|--------|-----------|----------------|`);
+    lines.push(matchRows);
+    lines.push("");
+    lines.push(`## 4. AI 문맥 검토 요약`);
+    lines.push("");
+    lines.push(`- AI 분석 요약: ${aiSummary}`);
+    lines.push(`- 위반 가능성 검토 의견(후보): ${aiLikelihood}`);
+    lines.push(`AI 분석은 법률 자문이나 행정기관 판단을 대체하지 않습니다.`);
+    lines.push("");
+    lines.push(`## 5. 룰 탐지 결과 / 위험점수 (참고)`);
+    lines.push("");
+    lines.push(scoringComps);
+    lines.push("");
+    lines.push(`> 본 점수는 사람이 먼저 검토할 후보의 우선순위 참고용이며, 위반 확정이나 포상금 지급 가능성을 의미하지 않습니다.`);
+    lines.push("");
+    lines.push(`## 6. 증거 자료 목록`);
+    lines.push("");
+    lines.push(`| No | 파일명 | 유형 | 해시(앞 16자) |`);
+    lines.push(`|----|--------|------|----------------|`);
+    lines.push(evidenceRows);
+    lines.push("");
+    lines.push(`## 7. 신고 전 사람 검토 체크리스트`);
+    lines.push("");
+    lines.push(`- [ ] 원본 URL이 공개 페이지인지 확인`);
+    lines.push(`- [ ] 캡처와 PDF가 정상 열리는지 확인`);
+    lines.push(`- [ ] 상품명/옵션/상세페이지/이미지의 원산지 표시를 모두 캡처했는지 확인`);
+    lines.push(`- [ ] 표시된 원산지와 실제 표시 불일치·누락 정황을 사람이 확인`);
+    lines.push(`- [ ] 혼합 원료의 원산지·비율 표시 여부 확인`);
+    lines.push(`- [ ] 개인정보가 불필요하게 포함되지 않았는지 확인`);
+    lines.push(`- [ ] 신고처 공식 안내를 확인`);
+    lines.push(`- [ ] 포상금 지급을 단정·약속하는 표현이 없는지 확인`);
+    lines.push(`- [ ] 최종 제출 문구를 사람이 직접 검토`);
+    lines.push("");
+    lines.push(`## 8. 공식 신고처 후보`);
+    lines.push("");
+    lines.push(`- 국립농산물품질관리원 (원산지 표시 위반 신고)`);
+    lines.push(`- 국민신문고`);
+    lines.push(`- 관할 지자체 · 관련 행정기관`);
+    lines.push("");
+    lines.push(`구체적 신고처와 포상금 지급 여부는 공식 기준과 조사 결과에 따라 달라질 수 있습니다. 공식 URL은 변경될 수 있으니 신고 전 공식 사이트에서 확인하세요.`);
+    lines.push("");
+    lines.push(`## 9. 중립 신고 문구 예시`);
+    lines.push("");
+    lines.push(`다음 온라인 판매글에서 원산지 표시가 불일치하거나 누락된 것으로 의심되는 정황이 확인되어 관계기관의 검토를 요청드립니다. 본 신고는 원산지 표시 위반을 단정하는 것이 아니라 판매글과 증거자료를 근거로 확인을 요청하는 취지입니다.`);
+    lines.push("");
+    lines.push(`## 10. 피해야 할 표현`);
+    lines.push("");
+    lines.push(`- 위반 확정 / 허위 원산지 확정 단정 표현 / 범죄·사기 단정 표현 / 무조건 처벌 요구`);
+    lines.push(`- 포상금 지급 요구·지급 단정 / 판매자 개인 식별 정보(휴대전화/이메일/주소 등)`);
+    lines.push("");
+    lines.push(`## 11. 안내`);
+    lines.push("");
+    lines.push(`- 원산지 표시 위반 확정 아님`);
+    lines.push(`- 관계기관 판단 필요`);
     lines.push(`- 포상금 지급 보장 아님`);
     lines.push(`- 실제 신고는 사용자가 공식 창구에서 직접 제출`);
     lines.push("");

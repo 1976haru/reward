@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "1.0.0",
+  "moduleId": "origin_labeling",
+  "moduleName": "원산지 표시 위반 의심",
+  "category": "food_labeling",
+  "jurisdiction": "KR",
+  "status": "ready",
+  "lastReviewedAt": "2026-05-27",
+  "reviewRequiredBeforeUse": true,
+  "disclaimer": "이 설정은 원산지 표시 위반 의심 신고처 후보와 공식 근거 정리를 위한 자료입니다. 법 위반 판단, 신고 접수, 포상금 지급을 보장하지 않습니다. 실제 위반 여부·신고 가능 여부·포상금 지급 여부는 관계기관(국립농산물품질관리원 등) 기준·조사 결과·처분 결과에 따라 달라집니다. 외부 신고 전 사람이 공식 자료를 재확인해야 합니다. 특정 판매자를 위반 업체로 단정하지 않습니다.",
+  "rewardPolicySummary": {
+    "rewardGuaranteed": false,
+    "estimatedRewardDisplayAllowed": false,
+    "recommendedUiText": "신고 후 처리 결과와 공식 기준에 따라 달라지며, 포상금 수령을 보장하지 않습니다.",
+    "doNotUsePhrases": ["포상금 보장", "신고 성공 보장", "위반 확정", "허위 원산지 확정"],
+    "notes": ["원산지 표시 위반 판단은 관계기관 확인이 필요합니다.", "지급 여부·금액은 공식 기관 기준 확인이 필요합니다."]
+  },
+  "conceptDefinitions": [
+    { "term": "원산지 표시 위반 신고포상금", "definition": "원산지 표시 위반이 처리 결과로 이어질 때 법령·고시에 따라 지급될 수 있는 포상금.", "applicabilityNote": "본 프로그램은 지급을 보장하지 않으며 공식 기준 확인이 필요합니다." },
+    { "term": "표시 불일치/누락", "definition": "상품명·옵션·상세페이지·이미지 간 원산지 표시가 다르거나, 원산지 표시가 없는 경우.", "applicabilityNote": "불일치·누락은 검토 후보일 뿐 위반 확정이 아닙니다." },
+    { "term": "프로그램의 역할", "definition": "공익레이더는 공개자료 기반 의심 후보 탐지·증거 정리·신고서 초안 보조까지만 수행합니다.", "applicabilityNote": "자동 신고/자동 제출/포상금 자동신청은 수행하지 않습니다." }
+  ],
+  "primaryAgencies": [
+    {
+      "agencyId": "naqs_origin",
+      "agencyName": "국립농산물품질관리원",
+      "role": "농수산물·가공식품 원산지 표시 위반 신고 안내 기관 (후보)",
+      "reportingChannels": [
+        { "channelName": "원산지 표시 위반 신고 안내", "url": "https://www.naqs.go.kr", "notes": "사용자가 직접 공식 양식·창구로 제출. 자동 제출/자동 로그인 없음. 부정유통 신고전화 1588-8112 안내는 공식 페이지에서 확인." }
+      ],
+      "evidenceRequirements": ["원본 URL", "상품명/옵션/상세페이지 원산지 표시 캡처", "수집일시", "표시 불일치·누락 화면 위치"],
+      "rewardNotes": ["지급 여부·기준은 공식 안내 확인 필요. 단정 금지."]
+    },
+    {
+      "agencyId": "epeople_origin",
+      "agencyName": "국민신문고",
+      "role": "민원·공익신고 통합 창구 (후보)",
+      "reportingChannels": [
+        { "channelName": "국민신문고", "url": "https://www.epeople.go.kr", "notes": "사용자가 직접 접속해 양식 작성·제출. 자동화 도구 사용 금지." }
+      ],
+      "evidenceRequirements": ["원본 URL", "의심 표시 캡처", "수집일시", "신고 취지 요약(중립 표현)"],
+      "rewardNotes": ["접수·처리 결과는 공식 기관 판단에 따릅니다."]
+    },
+    {
+      "agencyId": "local_authority_origin",
+      "agencyName": "관할 지자체 · 관련 행정기관",
+      "role": "관할 지역 원산지 표시 신고 접수 부서 (후보)",
+      "reportingChannels": [
+        { "channelName": "정부24 (관할 부서 찾기)", "url": "https://www.gov.kr", "notes": "지자체·기관별 부서 명칭·접수 경로가 다름. 사용자가 직접 확인해 제출." }
+      ],
+      "evidenceRequirements": ["원본 URL", "캡처/PDF", "관할 지역 확인", "수집일시"],
+      "rewardNotes": ["관할·기준은 지자체별로 다를 수 있습니다."]
+    }
+  ],
+  "legalBasis": [
+    { "title": "농수산물의 원산지 표시 등에 관한 법률 (공식 원문 확인 필요)", "source": "국가법령정보센터", "url": "https://www.law.go.kr", "relevantKeywords": ["원산지 표시", "거짓 표시", "혼동 표시", "표시 누락"], "usage": "검토 기준 참고", "caution": "법령·고시는 개정될 수 있으므로 신고 전 최신본을 사람이 직접 재확인해야 합니다." }
+  ],
+  "evidenceStandard": {
+    "minimumEvidence": ["원본 URL", "수집일시", "표시된 원산지 정보 캡처"],
+    "recommendedEvidence": ["상품명/옵션/상세페이지/이미지 각각의 원산지 표시 캡처", "PDF 저장본"],
+    "avoidCollecting": ["구매자 개인정보", "판매자 주민·계좌 등 민감정보", "로그인 후에만 보이는 비공개 정보"]
+  },
+  "reportReadinessChecklist": [
+    "공개 URL 여부 확인",
+    "원본 URL 저장 여부",
+    "수집일시 기록 여부",
+    "상품명/옵션/상세페이지/이미지 원산지 표시 캡처 여부",
+    "표시 불일치·누락 정황을 사람이 확인했는지",
+    "포상금 보장 표현 제거 여부",
+    "사람 검토 여부"
+  ],
+  "reportDraftGuidance": {
+    "summaryFields": ["신고 후보 유형", "원본 URL", "수집일시", "상품명", "표시된 원산지 정보", "미표시/불일치 의심 항목", "우선순위 점수"],
+    "evidenceFields": ["의심 문구 표", "위험등급", "의심 사유", "원문 문맥 일부", "증거 파일 목록"],
+    "cautionText": "본 초안은 자동 신고서가 아니라 사람이 검토·수정 후 공식 창구에 직접 제출하는 자료입니다. 원산지 표시 위반 확정이 아닙니다.",
+    "recommendedTone": ["의심 후보", "검토 필요", "사람 확인 필요", "관계기관 확인 요청"],
+    "prohibitedTone": ["위반 확정", "허위 원산지 확정", "범죄·사기 단정", "포상금 보장", "신고 성공 보장"]
+  },
+  "riskWarnings": [
+    "오탐 가능성이 있으므로 사람 검토가 필요합니다.",
+    "정상 원산지 표시(예: '원산지: 국내산')와 구분이 필요합니다.",
+    "공식 기준은 변경될 수 있습니다.",
+    "중복 신고는 포상에서 제외될 수 있습니다.",
+    "신고기관 관할이 일치하지 않을 수 있습니다.",
+    "허위·악의적 신고는 금지됩니다.",
+    "명예훼손성 표현에 주의해야 합니다.",
+    "특정 판매자를 위반 업체로 단정하지 않습니다."
+  ],
+  "futureModuleReferences": [
+    { "moduleId": "subsidy_fraud", "moduleName": "보조금 부정수급 의심", "primaryAgencyHint": "국민권익위원회 (후보)", "officialSourceHint": "https://www.clean.go.kr", "note": "후순위 고급 프로토타입 모듈로 본 모듈에서 다루지 않습니다." }
+  ],
+  "maintenancePolicy": {
+    "officialSourcesOnly": true,
+    "reviewCycle": "before_each_release",
+    "lastReviewedAt": "2026-05-27",
+    "staleAfterDays": 90,
+    "requiredReviewer": "Human reviewer",
+    "note": "공식 URL과 법령은 사람이 직접 조사한 자료만 등록하며, 변경 시 lastReviewedAt 을 갱신합니다."
+  }
+}
