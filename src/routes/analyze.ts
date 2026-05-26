@@ -92,15 +92,52 @@ analyzeRouter.post("/llm", async (req, res) => {
       ruleDetectionResult: input.ruleDetectionResult,
       evidenceSummary: input.evidenceSummary
     });
+
+    // 분석 경로 메타 — 실제 API 호출 여부를 응답에 명시한다 (체크리스트 16).
+    const analysisMode = result.analysisMode ?? (analyzerAgent.isMockMode() ? "mock" : "real");
+    const usedExternalApi = result.usedExternalApi ?? false;
+
+    // 중립 표현 기반 요약 필드 — "의심 후보 / 검토 필요" 관점으로만 노출한다.
+    const suspectedClaims = result.findings.map((f) => ({
+      claim: f.issue,
+      evidence: f.evidence,
+      reason: f.reason,
+      riskLevel: f.riskLevel, // 의심 후보 위험도(중립). 법 위반 확정 아님.
+      sourceSection: f.sourceSection,
+      status: "검토 필요"
+    }));
+
+    const contextReview = {
+      overallRisk: result.overallRisk,
+      violationLikelihood: result.violationLikelihood, // "위반 가능성(후보)" — 확정 아님
+      confidence: result.confidence,
+      recommendedAgency: result.recommendedAgency,
+      agencyCandidates: result.agencyCandidates,
+      humanReviewChecklist: result.humanReviewChecklist
+    };
+
+    // 한계/주의사항 — 누락 증거 + 안전 경고를 모아 사람 검토 판단을 돕는다.
+    const limitations = [...new Set<string>([...result.missingEvidence, ...result.safetyWarnings])];
+
     res.json({
       ok: true,
       moduleId: input.moduleId,
+      analysisMode,
+      usedExternalApi,
+      analysisSummary: result.summary,
+      summary: result.summary,
+      suspectedClaims,
+      contextReview,
+      limitations,
+      notLegalConclusion: true,
+      rewardGuaranteed: false,
+      humanReviewRequired: true,
       result,
-      mode: analyzerAgent.isMockMode() ? "mock" : "llm",
+      // 하위 호환: 기존 클라이언트가 참조하던 mode 필드 유지
+      mode: analysisMode === "mock" ? "mock" : "llm",
       safetyNotice:
-        "AI 분석 결과는 법 위반 확정이 아니며, 신고 전 사람이 공식 기준과 증거를 검토해야 합니다.",
-      autoReport: false,
-      humanReviewRequired: true
+        "AI 분석 결과는 법 위반 확정이 아니며, 신고 전 사람이 공식 기준과 증거를 검토해야 합니다. 포상금 지급은 보장되지 않습니다.",
+      autoReport: false
     });
   } catch (error) {
     if (error instanceof ZodError) {

@@ -1486,9 +1486,20 @@ function renderLlmAnalysisPanel(llm) {
     `).join("")
     : '<p class="muted">제시된 finding이 없습니다.</p>';
 
+  const analysisMode = llm.analysisMode || "mock";
+  const modeLabel = analysisMode === "real" ? "Real (실제 API)"
+    : analysisMode === "fallback" ? "Fallback (실제 호출 실패 → mock)"
+    : "Mock (API 미호출)";
+  const modeCls = analysisMode === "real" ? "ok" : analysisMode === "fallback" ? "warn" : "muted";
+  const usedApiLabel = llm.usedExternalApi === true ? "외부 API 사용함" : "외부 API 미사용";
+
   return `
     <div class="result-section">
       <h4>AI 문맥 판단 (Analyzer Agent)</h4>
+      <p class="muted" style="margin:4px 0;">
+        <span class="badge ${modeCls}">분석 모드 ${escapeHtml(modeLabel)}</span>
+        <span class="badge muted">${escapeHtml(usedApiLabel)}</span>
+      </p>
       <p class="muted" style="margin:4px 0;">
         <span class="badge ${cls}">위험도 ${escapeHtml(llm.overallRisk || "")}</span>
         <span class="badge ${riskBadgeClass(llm.violationLikelihood)}">위반 가능성 ${escapeHtml(llm.violationLikelihood || "")}</span>

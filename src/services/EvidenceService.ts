@@ -69,6 +69,8 @@ export interface EvidenceManifest {
     error?: string;
   };
   files: EvidenceFileEntry[];
+  // 증거 패키지 완성도 점수(0~100). 법 위반 점수가 아니라 보존 자료 충실도 표시 용도.
+  evidenceCompletenessScore: number;
   safety: {
     automaticReportSubmission: false;
     publicSourceOnly: true;
@@ -149,6 +151,7 @@ export class EvidenceService {
     const files: EvidenceFileEntry[] = await Promise.all(
       allowed.map(async (n) => this.describeFile(caseId, n))
     );
+    const hasName = (name: string) => files.some((f) => f.name === name);
     return {
       schemaVersion: "1.0.0",
       caseId,
@@ -158,6 +161,14 @@ export class EvidenceService {
       capturedAt: new Date().toISOString(),
       captureStatus: { html: "ok", text: "ok", screenshot: "ok", pdf: "ok" },
       files,
+      evidenceCompletenessScore: this.computeCompletenessScore({
+        hasHtml: hasName(EVIDENCE_FILES.html),
+        hasText: hasName(EVIDENCE_FILES.text),
+        hasScreenshot: hasName(EVIDENCE_FILES.screenshot),
+        hasPdf: hasName(EVIDENCE_FILES.pdf),
+        hasMetadata: hasName(EVIDENCE_FILES.metadata),
+        hasManifest: false
+      }),
       safety: {
         automaticReportSubmission: false,
         publicSourceOnly: true,
@@ -299,6 +310,14 @@ export class EvidenceService {
     }
 
     // 4) manifest.json
+    const evidenceCompletenessScore = this.computeCompletenessScore({
+      hasHtml: captureStatus.html === "ok",
+      hasText: captureStatus.text === "ok",
+      hasScreenshot: captureStatus.screenshot === "ok",
+      hasPdf: captureStatus.pdf === "ok",
+      hasMetadata: entries.some((e) => e.name === EVIDENCE_FILES.metadata),
+      hasManifest: true // 이 함수가 manifest를 기록하므로 항상 존재
+    });
     const manifest: EvidenceManifest = {
       schemaVersion: "1.0.0",
       caseId,
@@ -308,6 +327,7 @@ export class EvidenceService {
       capturedAt: startedAt,
       captureStatus,
       files: entries,
+      evidenceCompletenessScore,
       safety: {
         automaticReportSubmission: false,
         publicSourceOnly: true,

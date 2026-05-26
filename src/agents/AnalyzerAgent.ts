@@ -17,6 +17,14 @@ export type ViolationLikelihood = "LOW" | "MEDIUM" | "HIGH" | "UNCERTAIN";
 export type FindingRiskLevel = "LOW" | "MEDIUM" | "HIGH" | "UNCERTAIN";
 export type SourceSection = "claim" | "review" | "ingredient" | "usage" | "warning" | "seller" | "main";
 
+/**
+ * 분석이 실제로 어떤 경로로 수행되었는지 나타낸다.
+ * - "mock": OpenAI API를 호출하지 않고 deterministic mock/규칙 기반 결과.
+ * - "real": 실제 OpenAI API 호출 결과를 검증·정규화한 결과.
+ * - "fallback": 실제 호출을 시도했으나 실패하여 mock 결과로 안전 폴백한 경우.
+ */
+export type AnalysisMode = "mock" | "real" | "fallback";
+
 export interface AnalysisFinding {
   issue: string;
   evidence: string;
@@ -42,6 +50,10 @@ export interface AnalysisResult {
   prohibitedPhrases: string[];
   humanReviewChecklist: string[];
   safetyWarnings: string[];
+  // 분석 경로 메타 — 응답/UI에서 Mock/Real/Fallback 표시에 사용.
+  // validateAnalysisResult는 채우지 않으며 analyzeWithContext가 최종 설정한다.
+  analysisMode?: AnalysisMode;
+  usedExternalApi?: boolean;
 }
 
 export interface AnalyzeContextInput {
@@ -337,7 +349,9 @@ function mockAnalyze(input: AnalyzeContextInput): AnalysisResult {
       "동일 위반 행위 중복 신고 가능성을 확인했는가?",
       "공식 기준(법령·고시) 최신본을 사람이 직접 재확인했는가?"
     ],
-    safetyWarnings: [...REQUIRED_SAFETY_WARNINGS]
+    safetyWarnings: [...REQUIRED_SAFETY_WARNINGS],
+    analysisMode: "mock",
+    usedExternalApi: false
   };
 }
 
@@ -444,7 +458,13 @@ export class AnalyzerAgent {
    * LLM 호출 실패 시 mock으로 안전 폴백한다.
    */
   async analyzeWithContext(input: AnalyzeContextInput): Promise<AnalysisResult> {
-    if (!this.client) return mockAnalyze(input);
+    // MOCK_AI=true 이거나 OPENAI_API_KEY 미설정 → 외부 API 호출 없이 mock.
+    if (!this.client) {
+      const result = mockAnalyze(input);
+      result.analysisMode = "mock";
+      result.usedExternalApi = false;
+      return result;
+    }
     try {
       const completion = await this.client.chat.completions.create({
         model: config.openaiModel,
@@ -459,11 +479,28 @@ export class AnalyzerAgent {
       let parsed: unknown;
       try { parsed = JSON.parse(raw); }
       catch {
-        return validateAnalysisResult({ summary: "LLM 응답을 JSON으로 파싱하지 못해 mock 결과를 반환합니다." }, input.moduleId);
+        // 응답을 받았으나 JSON 파싱 실패 → 외부 API는 호출됐으나 결과를 신뢰할 수 없어 fallback.
+        const parseFallback = validateAnalysisResult(
+          { summary: "LLM 응답을 JSON으로 파싱하지 못해 mock 결과를 반환합니다." },
+          input.moduleId
+        );
+        parseFallback.analysisMode = "fallback";
+        parseFallback.usedExternalApi = false;
+        parseFallback.safetyWarnings = [
+          ...parseFallback.safetyWarnings,
+          "LLM 응답 파싱 실패로 mock/fallback 결과를 사용합니다."
+        ];
+        return parseFallback;
       }
-      return validateAnalysisResult(parsed, input.moduleId);
+      const validated = validateAnalysisResult(parsed, input.moduleId);
+      validated.analysisMode = "real";
+      validated.usedExternalApi = true;
+      return validated;
     } catch (error) {
+      // 실제 호출 실패 → 서버가 죽지 않고 mock 결과로 안전 폴백.
       const fallback = mockAnalyze(input);
+      fallback.analysisMode = "fallback";
+      fallback.usedExternalApi = false;
       fallback.safetyWarnings = [
         ...fallback.safetyWarnings,
         `LLM 호출 실패로 mock 결과를 사용합니다: ${(error as Error).message}`

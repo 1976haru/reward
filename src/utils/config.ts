@@ -30,8 +30,10 @@ export const config = {
     : 0.1,
   evidence: {
     captureTimeoutMs: Number(process.env.EVIDENCE_CAPTURE_TIMEOUT_MS ?? 15000),
-    enableScreenshot: parseBool(process.env.EVIDENCE_ENABLE_SCREENSHOT, true),
-    enablePdf: parseBool(process.env.EVIDENCE_ENABLE_PDF, true)
+    // 안전 기본값: false. 스크린샷/PDF는 .env에서 명시적으로 true로 설정하고
+    // Playwright가 설치된 경우에만 생성한다 (체크리스트 17). 미설정 시 HTML/TXT/metadata/manifest 중심.
+    enableScreenshot: parseBool(process.env.EVIDENCE_ENABLE_SCREENSHOT, false),
+    enablePdf: parseBool(process.env.EVIDENCE_ENABLE_PDF, false)
   },
   discovery: {
     mock: parseBool(process.env.MOCK_DISCOVERY, true),

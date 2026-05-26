@@ -323,6 +323,7 @@ try {
     capturedAt: new Date().toISOString(),
     captureStatus: { html: "ok" as const, text: "ok" as const, screenshot: "skipped" as const, pdf: "skipped" as const },
     files: [htmlEntry, textEntry],
+    evidenceCompletenessScore: 40,
     safety: {
       automaticReportSubmission: false as const,
       publicSourceOnly: true as const,
@@ -667,6 +668,13 @@ const r1 = await az.analyzeWithContext(highRiskInput);
 const r2 = await az.analyzeWithContext(highRiskInput);
 check("동일 입력 mock 결과 enum 동일", r1.overallRisk === r2.overallRisk && r1.violationLikelihood === r2.violationLikelihood);
 
+// Mock/Real/Fallback 분리 (체크리스트 16)
+check("mock 모드 analysisMode === 'mock'", llmHigh.analysisMode === "mock", `mode=${llmHigh.analysisMode}`);
+check("mock 모드 usedExternalApi === false", llmHigh.usedExternalApi === false);
+check("mock 모드에서 외부 API 미호출 (isMockMode)", az.isMockMode());
+// 기본값(MOCK_AI 미설정)은 mock 이어야 한다 — 실제 OpenAI 호출 금지
+check("기본 분석 경로는 외부 API 미사용", llmHigh.usedExternalApi !== true);
+
 // 14) Scoring Agent — 14 tests
 const sa = new ScoringAgentNew();
 
@@ -784,6 +792,7 @@ try {
     capturedAt: new Date().toISOString(),
     captureStatus: { html: "ok", text: "ok", screenshot: "skipped", pdf: "skipped" },
     files: [htmlEntry, textEntry, metaEntry],
+    evidenceCompletenessScore: 50,
     safety: {
       automaticReportSubmission: false,
       publicSourceOnly: true,
@@ -800,6 +809,12 @@ try {
   let nonJsonCaught = false;
   try { await pkgService.saveJsonFile(pkgCaseId, "page.html" as any, { x: 1 }); } catch { nonJsonCaught = true; }
   check("saveJsonFile rejects non-json filename", nonJsonCaught);
+
+  // manifest에 evidenceCompletenessScore 기록 확인 (체크리스트 17)
+  const writtenManifest = await pkgService.readManifest(pkgCaseId);
+  check("manifest has evidenceCompletenessScore", typeof writtenManifest.evidenceCompletenessScore === "number");
+  check("manifest files have sha256", writtenManifest.files.every((f) => typeof f.sha256 === "string" && f.sha256.length === 64));
+  check("manifest files have size", writtenManifest.files.every((f) => typeof f.size === "number"));
 
   const summary = await pkgService.summarizePackage(pkgCaseId);
   check("summarizePackage exists=true", summary.exists);
