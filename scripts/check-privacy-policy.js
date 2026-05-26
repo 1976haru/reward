@@ -160,6 +160,8 @@ export const FILE_WHITELIST = new Set([
   // 예산 집행 이상 패턴 룰 — 마스킹 검증용 합성 PII fixture/테스트
   "tests/fixtures/createSpendingAnomalyRiskFixtures.ts",
   "tests/spendingAnomalyRiskRule.test.ts",
+  // 보조금 룰 5종 통합 — 마스킹 검증용 합성 PII 테스트 (체크리스트 60)
+  "tests/subsidyRiskRules.test.ts",
   // 모듈 분석 프롬프트 / 평가셋 (의도적 픽스처)
   "src/modules/false-ad/analysis_prompt.md",
   "src/modules/false-ad/agency_config.json",

@@ -2,6 +2,14 @@ import { Router } from "express";
 import { ZodError, z } from "zod";
 import { readJson } from "../utils/fs.js";
 import path from "node:path";
+import { readdir, readFile } from "node:fs/promises";
+import {
+  runSubsidyRiskRules,
+  writeSubsidyRiskRun,
+  SUBSIDY_RISK_RULES_NOTICE
+} from "../rules/subsidyRiskRules.js";
+import { buildSubsidyRiskDemoRecords } from "../rules/subsidyRiskDemoData.js";
+import type { SubsidyRiskInputRecord } from "../types/subsidyRisk.js";
 import {
   analyzeSubsidySample,
   buildSubsidyReportMarkdown,
@@ -211,6 +219,133 @@ subsidyRouter.get("/candidates/:recordId/report", (req, res) => {
       candidate,
       report: { markdown, format: "markdown" },
       safetyNotice: SUBSIDY_FRAUD_SAFETY_NOTICE
+    });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// ---------- 보조금 룰 5종 통합 실행 (체크리스트 60) ----------
+
+const RISK_RULES_OUTPUT_DIR = process.env.RISK_RULES_OUTPUT_DIR ?? "data/risk";
+
+const RiskInputRecordSchema = z.object({
+  recordId: z.string().min(1).max(128),
+  fiscalYear: z.number().int().optional(),
+  projectName: z.string().max(300).optional(),
+  projectNameCompactKey: z.string().max(300).optional(),
+  recipientName: z.string().max(200).optional(),
+  normalizedRecipientName: z.string().max(200).optional(),
+  addressRegionKey: z.string().max(200).optional(),
+  normalizedAddressKey: z.string().max(200).optional(),
+  subsidyAmount: z.number().optional(),
+  executionAmount: z.number().optional(),
+  settlementAmount: z.number().optional(),
+  hasResultReport: z.boolean().optional(),
+  resultEvidenceUrl: z.string().max(500).optional(),
+  publicListingUrl: z.string().max(500).optional(),
+  sourceFileName: z.string().max(200).optional(),
+  localGovName: z.string().max(120).optional()
+});
+const RiskRulesRunSchema = z.object({
+  // records 미지정 시 합성 데모 레코드(fixture)로 실행한다. 외부 API/실데이터 호출 없음.
+  records: z.array(RiskInputRecordSchema).max(5000).optional()
+});
+
+function topCandidateSummary(result: ReturnType<typeof runSubsidyRiskRules>) {
+  return result.topCandidates.slice(0, result.topN).map((c, i) => ({
+    rank: i + 1,
+    candidateKey: c.candidateKey,
+    ruleHits: c.ruleHits,
+    ruleHitCount: c.ruleHitCount,
+    highSeverityCount: c.highSeverityCount,
+    ruleBasedScore: c.ruleBasedScore,
+    reasonSummary: c.reasonSummary,
+    involvedRecordCount: c.involvedRecordIds.length,
+    reviewRequired: c.reviewRequired,
+    notLegalConclusion: c.notLegalConclusion
+  }));
+}
+
+// POST /api/subsidy/risk/rules/run — 보조금 룰 5종 실행 + TOP 50 후보 요약 반환
+// records 미지정 시 합성 데모로 실행. 외부 API/실데이터 호출·자동 신고 없음. 결과는 사람 검토 필요 후보.
+subsidyRouter.post("/risk/rules/run", async (req, res) => {
+  try {
+    const body = RiskRulesRunSchema.parse(req.body ?? {});
+    const usingDemo = !body.records || body.records.length === 0;
+    const records: SubsidyRiskInputRecord[] = usingDemo
+      ? buildSubsidyRiskDemoRecords()
+      : (body.records as SubsidyRiskInputRecord[]);
+    const inputMode = usingDemo ? "api-demo-synthetic" : `api-input:${records.length}`;
+
+    const result = runSubsidyRiskRules(records, { inputMode, isRealData: false });
+    const written = await writeSubsidyRiskRun(RISK_RULES_OUTPUT_DIR, result);
+
+    res.json({
+      ok: true,
+      runId: result.runId,
+      ranAt: result.ranAt,
+      inputMode: result.inputMode,
+      isRealData: result.isRealData,
+      totalRecords: result.totalRecords,
+      totalRuleResults: result.totalRuleResults,
+      ruleCounts: result.ruleCounts,
+      topN: result.topN,
+      topCandidates: topCandidateSummary(result),
+      outputDir: written.runDir,
+      humanReviewNotice: "본 결과는 사람 검토가 필요한 후보입니다. 부정수급/위법 확정이 아니며 자동 신고는 없습니다.",
+      safetyNotice: SUBSIDY_RISK_RULES_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
+    }
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// GET /api/subsidy/risk/runs/latest — 가장 최근 실행의 TOP 50 후보 요약 반환
+subsidyRouter.get("/risk/runs/latest", async (_req, res) => {
+  try {
+    const runsRoot = path.join(process.cwd(), RISK_RULES_OUTPUT_DIR, "runs");
+    let entries: string[] = [];
+    try {
+      entries = (await readdir(runsRoot, { withFileTypes: true }))
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name)
+        .sort();
+    } catch {
+      entries = [];
+    }
+    if (entries.length === 0) {
+      return res.status(404).json(
+        errorBody(
+          "NO_RUN_FOUND",
+          "실행 기록이 없습니다. 먼저 `npm run risk:rules` 또는 POST /api/subsidy/risk/rules/run 으로 실행하세요."
+        )
+      );
+    }
+    const latest = entries[entries.length - 1];
+    const runDir = path.join(runsRoot, latest);
+    const metadata = JSON.parse(await readFile(path.join(runDir, "metadata.json"), "utf8"));
+    const top50 = JSON.parse(await readFile(path.join(runDir, "top50-candidates.json"), "utf8"));
+    res.json({
+      ok: true,
+      runId: metadata.runId,
+      ranAt: metadata.ranAt,
+      inputMode: metadata.inputMode,
+      isRealData: metadata.isRealData,
+      totalRecords: metadata.totalRecords,
+      totalRuleResults: metadata.totalRuleResults,
+      ruleCounts: metadata.ruleCounts,
+      topN: top50.topN,
+      topCandidates: top50.topCandidates,
+      humanReviewNotice: "본 결과는 사람 검토가 필요한 후보입니다. 부정수급/위법 확정이 아니며 자동 신고는 없습니다.",
+      safetyNotice: metadata.safetyNotice ?? SUBSIDY_RISK_RULES_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
     });
   } catch (error) {
     res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));

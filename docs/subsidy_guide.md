@@ -179,3 +179,10 @@ GET /api/modules/subsidy-fraud/guide
 ```
 
 `Cache-Control: no-store` (공통 `/api` 미들웨어 적용).
+
+## Related: 보조금 룰 5종 통합 실행 (체크리스트 60)
+
+정규화된 보조금 레코드에 의심 신호 룰 5종(반복수급 · 동일주소 다단체 · 결과물·정산 증빙 누락 · 예산집행 이상치 · 사업명 유사 반복)을 실행하고 **검토 후보 TOP 50**을 만드는 모듈은 [`docs/SUBSIDY_RISK_RULES_GUIDE.md`](./SUBSIDY_RISK_RULES_GUIDE.md)를 참고하세요. 결과는 모두 사람 검토가 필요한 후보이며 부정수급/위법 확정이 아닙니다. 다음 단계에서 이 룰 결과를 입력으로 100점 위험점수·보상가능성 점수·LLM 설명형 분석·신고서 초안을 진행합니다.
+
+- 실행: `npm run risk:rules -- --fixture 12` 또는 `--input <records.jsonl>`
+- 선택 API: `POST /api/subsidy/risk/rules/run`, `GET /api/subsidy/risk/runs/latest`

@@ -723,6 +723,28 @@ npm run risk:contractor-network -- --input data/g2b-linkage/runs/xxx/edges.jsonl
 npm run check:risk-contractor-network
 ```
 
+## 보조금 룰 5종 통합 실행 (Subsidy Risk Rules) · 체크리스트 60
+
+정규화된 보조금 레코드에 **보조금 의심 신호 룰 5종**(A 반복수급 · B 동일주소 다단체 · C 결과물·정산 증빙 누락 · D 예산집행 이상치 · E 사업명 유사 반복 ≥0.85)을 한 번에 실행하고, 룰 결과를 합쳐 **검토 후보 TOP 50**을 산출합니다. 결과는 모두 **사람 검토가 필요한 후보**이며 부정수급/위법 확정이 아닙니다. 정렬 점수는 룰 기반 보조 점수이며 **100점 위험점수가 아닙니다.** 자동 신고/자동 제출 기능은 없습니다.
+
+- 룰 엔진: [`src/rules/subsidyRiskRules.ts`](./src/rules/subsidyRiskRules.ts)
+- 표준 타입: [`src/types/subsidyRisk.ts`](./src/types/subsidyRisk.ts)
+- CLI: [`scripts/run-subsidy-risk-rules.ts`](./scripts/run-subsidy-risk-rules.ts)
+- 운영 가이드(5종 룰 의미/한계·입력형식·해석법): [`docs/SUBSIDY_RISK_RULES_GUIDE.md`](./docs/SUBSIDY_RISK_RULES_GUIDE.md)
+
+각 룰 결과는 `ruleId` / `ruleName` / `severity` / `candidateId` / `involvedRecordIds` / `evidenceRefs` / `reason` / `caution` / `reviewRequired:true` / `notLegalConclusion:true` / `suggestedNextCheck`를 포함합니다. 산출물은 **gitignore 처리된** `data/risk/runs/{runId}/`에 `rule-results.json` · `top50-candidates.json` · `rule-summary.md` · `metadata.json` 4종으로 저장합니다. 대표자명·전화번호·주민번호·계좌번호·상세주소 원문은 근거로 저장하지 않고 정규화 키만 사용합니다.
+
+```bash
+npm run test:subsidy-risk-rules            # 5종 룰 적중 + 구조 + TOP 50 + 산출물 + CLI 검증
+npm run risk:rules -- --fixture 12         # fixture 기반 검증(실제 탐지 완료 아님)
+npm run risk:rules -- --input data/upload-parser/runs/xxx/records.jsonl
+npm run check:subsidy-risk-rules           # 문서/코드 존재 + 정책 정적 검사
+```
+
+선택 API: `POST /api/subsidy/risk/rules/run`(records 미지정 시 합성 데모로 실행) · `GET /api/subsidy/risk/runs/latest`(최근 실행 TOP 50 요약 + "사람 검토 필요" 안내). 두 엔드포인트 모두 외부 API 호출·자동 신고가 없습니다.
+
+> 다음 단계에서 이 룰 결과(`rule-results.json`)를 입력으로 100점 위험점수·보상가능성 점수·LLM 설명형 분석·신고서 초안을 진행합니다(이번 범위 밖).
+
 ## 100점 위험점수 모델 (Risk Score Model)
 
 반복 수급, 동일 주소 다수 단체, 결과물 부족/정산 미흡, 예산 집행 이상, 계약업체 연관성 룰 결과를 통합해 **0~100 `riskScore`와 A/B/C 검토 등급**을 산출합니다. 결과는 **위험 후보 / 우선 검토 후보 / 추가 확인 필요 후보**를 정렬하기 위한 보조 점수이며 확정 판단이 아닙니다. A등급도 사람의 사실관계 확인이 필요한 우선 검토 후보입니다.
