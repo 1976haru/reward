@@ -223,11 +223,87 @@ curl -X POST http://localhost:3001/api/scout/discover \
 
 ---
 
+# 공공데이터포털(data.go.kr) API 설정 가이드 (초보자용)
+
+공공데이터포털 API는 **보조금 부정수급 의심 모듈(후순위 고급 프로토타입)**의 공개자료 수집에 사용합니다.
+이번 단계는 **키 발급·입력 준비까지**이며, **실제 1,000건 수집은 다음 단계**에서 진행합니다.
+
+> ## 먼저 알아둘 점
+>
+> - 보조금 모듈은 **후순위 고급 모듈/프로토타입**입니다. 실데이터 기준선·신고 전 사실점검이 준비된 뒤 사용합니다.
+> - **API 키는 절대 GitHub에 올리면 안 됩니다.** (`.env`는 커밋되지 않도록 설정되어 있습니다.)
+> - 키가 없으면 수집 명령(`npm run collect:public-api`)은 **명확한 오류(`COLLECTOR_API_KEY_REQUIRED`)를 내고 종료**합니다 (서버/프로젝트는 깨지지 않음).
+> - 공식 API만 사용하며, 로그인 우회·CAPTCHA 우회·비공개자료 수집·대량 크롤링은 하지 않습니다.
+
+## 1. data.go.kr 회원가입
+
+1. 웹 브라우저에서 <https://www.data.go.kr> 에 접속해 회원가입/로그인합니다.
+
+## 2. API 활용신청
+
+1. 원하는 보조금 관련 공개 데이터셋을 검색합니다(예: 보조사업 집행/교부 내역, 정보공시).
+2. 데이터셋의 **오픈 API** 상세에서 **활용신청**을 누릅니다. (활용 목적을 적고 신청)
+3. 승인 후 **마이페이지 → 오픈 API → 인증키**에서 서비스키를 확인합니다.
+
+## 3. 서비스키 발급 / 일반 인증키·디코딩 키 주의
+
+- 발급되는 키는 보통 **Encoding(인코딩) 키**와 **Decoding(디코딩) 키** 두 가지가 표시됩니다.
+- 본 수집기는 URL 조립 시 키를 그대로 부착하므로, **이중 인코딩을 피하려면 보통 Decoding 키**를 사용합니다. (호출이 401/SERVICE_KEY 오류면 다른 키로 바꿔 시도)
+- 키 문자열에 `+`, `/`, `=` 등이 포함될 수 있으니 그대로 복사해 붙여넣습니다.
+
+## 4. `.env`에 입력하기
+
+`.env` 파일을 열어 아래 값을 채웁니다. (없으면 `Copy-Item .env.example .env`)
+
+```dotenv
+# 둘 중 하나에 발급받은 서비스키를 넣습니다 (둘 다 넣으면 DATA_GO_KR_SERVICE_KEY 우선).
+DATA_GO_KR_SERVICE_KEY=여기에_서비스키
+PUBLIC_DATA_SERVICE_KEY=
+
+# 실제 호출 가능한 API endpoint (★ data.go.kr 데이터셋 상세 페이지 URL 이 아님 ★)
+# 활용신청 후 제공되는 호출용 endpoint 를 넣습니다. (예: https://api.odcloud.kr/api/...)
+COLLECTOR_API_BASE_URL=
+
+# 수집 설정 (기본값)
+COLLECTOR_OUTPUT_DIR=data/collector
+COLLECTOR_PAGE_SIZE=100
+COLLECTOR_MAX_RECORDS=1000
+COLLECTOR_RATE_LIMIT_MS=1000
+COLLECTOR_TIMEOUT_MS=15000
+COLLECTOR_MAX_RETRIES=3
+```
+
+> ⚠️ `COLLECTOR_API_BASE_URL` 에는 **데이터셋 상세/검색 페이지 URL**(`...selectDataSetList.do` 등)이 아니라, 활용신청 후 발급된 **호출용 endpoint**를 넣어야 합니다.
+
+## 5. 키/endpoint 없을 때 동작 (안전)
+
+```bash
+npm run collect:public-api
+```
+
+- 키 없음 → `COLLECTOR_API_KEY_REQUIRED` (exit 2)
+- endpoint 없음 → `COLLECTOR_ENDPOINT_REQUIRED` (exit 2)
+- 로그에는 **서비스키 원문이 표시되지 않습니다**(마스킹). 서버/테스트는 비정상 중단되지 않습니다.
+
+## 6. 안전 수칙 요약 (공공데이터)
+
+- ✅ 이번 단계는 **키 발급·입력 준비까지**입니다. 실제 1,000건 수집은 다음 단계입니다.
+- ✅ 키가 없으면 mock/test 수집기 검증만 수행합니다(`npm run test:collector`).
+- 🚫 서비스키를 코드/문서/로그/스크린샷에 넣거나 `.env`를 커밋하지 마세요.
+- 🚫 로그인 필요 자료·비공개자료·대량 크롤링·HTML 스크래핑은 하지 않습니다. 공공데이터 이용약관·호출 제한을 존중합니다.
+- ℹ️ 수집 자료는 신고 근거 확보용이며, 부정수급을 확정하지 않습니다.
+
+자세한 실제 수집 실행 절차는 [`docs/API_COLLECTOR_RUNBOOK.md`](./API_COLLECTOR_RUNBOOK.md), 공개자료 소스맵은 [`docs/subsidy_source_map.md`](./subsidy_source_map.md)를 참고하세요.
+
+---
+
 ## 관련 문서
 
 - 환경변수 전체 목록: [`.env.example`](../.env.example)
+- 공공데이터 수집 Runbook: [`docs/API_COLLECTOR_RUNBOOK.md`](./API_COLLECTOR_RUNBOOK.md)
+- 보조금 공개자료 소스맵: [`docs/subsidy_source_map.md`](./subsidy_source_map.md)
 - 안전 정책(자동 신고 금지): [`docs/approval_gate.md`](./approval_gate.md)
 - 운영 정책: [`docs/OPERATING_POLICY.md`](./OPERATING_POLICY.md)
 - 개인정보 처리: [`docs/privacy_policy.md`](./privacy_policy.md)
 
-> 공식 신고처 URL Registry, API 키 안전검사 전체 확장, 실패 fallback 고도화는 **다음 단계**에서 진행합니다. 본 문서는 OpenAI · Naver Search API 연결까지 다룹니다.
+> 본 문서는 OpenAI · Naver Search · 공공데이터포털 API 연결 준비까지 다룹니다. 실제 공공데이터 1,000건 수집은 다음 단계에서 진행합니다.

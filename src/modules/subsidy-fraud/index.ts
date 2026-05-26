@@ -31,6 +31,8 @@ export const subsidyFraudDefinition: ModuleDefinition = {
   reportTemplatePath: "src/modules/subsidy-fraud/report-template.md",
   supportedInputTypes: ["public_subsidy_record"],
   safetyNotes: [
+    "후순위 고급 모듈 / 프로토타입 — 실데이터 기준선·신고 전 사실점검 준비 후 진행 (실전 시작 잠금/준비중)",
+    "쉬운 분야(건강기능식품·일반식품·화장품·의료기기·위조상품·원산지) 다음의 후순위로 고정",
     "공공자료 기반 검토 후보 — 부정수급 확정이 아님",
     "특정 단체/개인/사업자를 부정수급자로 단정하지 않음",
     "주민등록번호/계좌번호/민감정보 수집·저장 금지",
