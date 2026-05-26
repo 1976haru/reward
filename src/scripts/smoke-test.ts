@@ -979,6 +979,47 @@ const links = getOfficialReportingLinks("false_ad");
 check("officialLinks(false_ad) has 식약처", links.some((l) => l.agencyId === "mfds"));
 check("officialLinks(false_ad) has 국민신문고", links.some((l) => l.agencyId === "epeople"));
 
+// 공식 신고처 URL Registry (체크리스트 24)
+{
+  const { reportingRegistryService } = await import("../services/reporting/ReportingRegistry.js");
+  const agencies = reportingRegistryService.listByModule("false_ad");
+  check("[CL24] Registry false_ad 최소 3개 이상", agencies.length >= 3);
+  check("[CL24] Registry 식약처 포함", agencies.some((a) => a.agencyId === "mfds"));
+  check("[CL24] Registry 국민신문고 포함", agencies.some((a) => a.agencyId === "epeople"));
+  check("[CL24] Registry 관할 지자체/보건소 포함", agencies.some((a) => a.agencyId === "local_government"));
+  check("[CL24] 모든 항목 필수 필드 보유", agencies.every((a) =>
+    a.agencyId && a.agencyName && a.moduleId && a.officialUrl && a.description &&
+    Array.isArray(a.requiredEvidence) && Array.isArray(a.cautions) &&
+    typeof a.lastReviewedAt === "string"));
+  check("[CL24] manualSubmissionOnly=true / autoSubmitAvailable=false 고정", agencies.every((a) =>
+    a.manualSubmissionOnly === true && a.autoSubmitAvailable === false));
+  check("[CL24] officialUrl 은 http/https 단순 링크", agencies.every((a) => /^https?:\/\//.test(a.officialUrl)));
+  // 신고 내용/개인정보/caseId 가 URL 에 자동으로 붙지 않는다 (쿼리스트링 없는 단순 링크).
+  check("[CL24] URL 에 caseId/쿼리 자동주입 없음", agencies.every((a) => !/caseId|report|apikey|api_key/i.test(a.officialUrl)));
+}
+
+// API 키 안전검사 — 마스킹 (체크리스트 25)
+{
+  const { maskSensitive } = await import("../services/trace/maskSensitive.js");
+  // 안전한 더미 문자열만 사용 (실제 키 형태 아님)
+  const sample = {
+    OPENAI_API_KEY: "DUMMY_OPENAI_VALUE",
+    NAVER_CLIENT_ID: "DUMMY_ID",
+    NAVER_CLIENT_SECRET: "DUMMY_SECRET",
+    authorization: "DUMMY_AUTH",
+    cookie: "DUMMY_COOKIE",
+    serviceKey: "DUMMY_SERVICE_KEY",
+    note: "safe text"
+  };
+  const masked = maskSensitive(sample);
+  const mj = JSON.stringify(masked.value);
+  check("[CL25] OPENAI_API_KEY 키 마스킹", !mj.includes("DUMMY_OPENAI_VALUE"));
+  check("[CL25] NAVER_CLIENT_SECRET 키 마스킹", !mj.includes("DUMMY_SECRET"));
+  check("[CL25] serviceKey 키 마스킹", !mj.includes("DUMMY_SERVICE_KEY"));
+  check("[CL25] authorization/cookie 키 마스킹", !mj.includes("DUMMY_AUTH") && !mj.includes("DUMMY_COOKIE"));
+  check("[CL25] 비민감 텍스트는 보존", mj.includes("safe text"));
+}
+
 // assertNoAutoSubmission은 항상 throw
 let blocked = false;
 try { assertNoAutoSubmission("test_attempt"); } catch (e) {

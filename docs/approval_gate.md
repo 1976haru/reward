@@ -100,13 +100,17 @@ UI에서는 SUBMITTED 버튼 클릭 시 `window.confirm` 다이얼로그로 사�
 
 - 모든 URL은 **정부/공공기관 공식 도메인(`*.go.kr`)** 만 사용한다. 블로그·뉴스·법무법인 홍보글·커뮤니티 링크는 금지한다.
 - 최소 포함 요건(체크리스트 20): 식약처/식품안전 공식 신고 안내, 국민신문고, 관할 지자체·보건소·식품안전관리과 안내 — 현재 5개 모두 충족.
-- 링크는 "단순 외부 링크 열기"만 허용한다. 코드 정의 위치: [`src/policy/approvalGate.ts`](../src/policy/approvalGate.ts) `FALSE_AD_LINKS`.
+- 링크는 "단순 외부 링크 열기"만 허용한다.
+- **단일 출처(Single Source of Truth):** 신고처 데이터는 중앙 Registry [`src/services/reporting/ReportingRegistry.ts`](../src/services/reporting/ReportingRegistry.ts) 에서 관리한다 (체크리스트 24). `getOfficialReportingLinks()` 는 이 Registry 를 읽어 링크 형태로 변환만 한다.
+- 조회 API: `GET /api/agencies?moduleId=false_ad`, `GET /api/agencies/:agencyId`, 그리고 `GET /api/policy/approval-gate` 응답의 `reportingAgencies`.
+- Registry 항목 필드: `agencyId / agencyName / moduleId(category) / officialUrl / description / requiredEvidence / cautions / manualSubmissionOnly:true / autoSubmitAvailable:false / lastReviewedAt(=sourceCheckedAt)`.
 
 ### 7.2 URL 관리 기준 (Maintenance)
 
-- 공식 기관이 페이지 구조를 바꾸면 URL이 변경될 수 있다. 변경 시 `src/policy/approvalGate.ts`의 `FALSE_AD_LINKS` 와 본 표를 함께 갱신한다.
+- **공식 기관이 페이지 구조를 바꾸면 URL이 변경될 수 있다. 정기적으로 공식 사이트에서 직접 확인해야 한다.** 변경 시 [`src/services/reporting/ReportingRegistry.ts`](../src/services/reporting/ReportingRegistry.ts) 의 항목과 `REPORTING_REGISTRY_LAST_REVIEWED_AT` 를 갱신한다.
 - 모듈별 신고처 메타데이터는 `src/modules/false-ad/agency_config.json` 에서도 관리한다 (스키마: [`agency_config_schema.md`](./agency_config_schema.md) §5 `primaryAgencies`, §12 `maintenancePolicy`).
 - `maintenancePolicy.officialSourcesOnly = true`, 검토 주기 `before_each_release`, `staleAfterDays` 경과 시 사람 재검토 권고. URL 변경/검토 후 `lastReviewedAt` 을 갱신한다.
+- 신고서 내용·개인정보·API 키·caseId 는 신고처 URL 에 자동으로 붙이지 않는다(단순 링크). 자동 제출·자동 로그인·자동 양식입력은 구현하지 않는다.
 
 ## 8. Static Safety Check
 

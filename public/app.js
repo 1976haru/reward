@@ -2126,7 +2126,17 @@ async function runDiscovery() {
     banner.textContent = `발굴 모드: ${data.discoveryMode || data.mode || ""} · 신규 추가 ${data.added}건${dedupeInfo}. 본문 분석과 사람 검토가 필요합니다.`;
     candidateList.prepend(banner);
   } catch (err) {
-    candidateList.innerHTML = `<div class="code">${escapeHtml(err.message)}</div>`;
+    // API 실패 시 빨간 오류로 중단하지 말고 안전 안내 카드로 표시한다 (체크리스트 26).
+    candidateList.innerHTML = `
+      <div class="input-notice" style="border-left:4px solid #f59e0b;">
+        <strong>후보 발굴을 완료하지 못했습니다 (안전 안내)</strong>
+        <ul>
+          <li>외부 API 호출에 실패했거나 키가 없을 수 있습니다. 서버는 계속 동작합니다.</li>
+          <li>Mock 모드로 다시 시도하거나, 수동 URL 분석을 사용할 수 있습니다.</li>
+          <li>후보 URL은 신고 대상 확정이 아니라 분석 후보입니다. 자동 신고는 하지 않습니다.</li>
+        </ul>
+        <p class="muted" style="font-size:12px;margin:4px 0 0;">상세: ${escapeHtml(String(err.message || "unknown"))}</p>
+      </div>`;
   } finally {
     discoverBtn.disabled = false;
   }

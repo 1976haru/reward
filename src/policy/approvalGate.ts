@@ -57,6 +57,11 @@ export const approvalGatePolicy: ApprovalGatePolicy = {
 };
 
 // ---------- 공식 신고처 링크 (단순 링크. 자동 입력·로그인 금지) ----------
+//
+// 신고처 데이터의 단일 출처(Single Source of Truth)는 중앙 ReportingRegistry 이다 (체크리스트 24).
+// 본 모듈은 Registry 를 읽어 approval-gate 응답용 링크 형태로 변환만 한다.
+
+import { reportingRegistryService } from "../services/reporting/ReportingRegistry.js";
 
 export interface OfficialReportingLink {
   agencyId: string;
@@ -66,50 +71,15 @@ export interface OfficialReportingLink {
   caution: string;
 }
 
-const FALSE_AD_LINKS: OfficialReportingLink[] = [
-  {
-    agencyId: "mfds",
-    agencyName: "식품의약품안전처",
-    label: "식품의약품안전처 온라인 불법유통 신고 안내",
-    url: "https://www.mfds.go.kr/wpge/m_660/de010410l001.do",
-    caution: "사용자가 직접 페이지를 열고 공식 양식에 따라 제출해야 합니다. 본 시스템은 자동 입력·자동 로그인·자동 제출을 수행하지 않습니다."
-  },
-  {
-    agencyId: "epeople",
-    agencyName: "국민신문고",
-    label: "국민신문고 (민원·공익신고 통합 창구)",
-    url: "https://www.epeople.go.kr",
-    caution: "사용자가 직접 접속해 양식을 작성·제출해야 합니다. 자동화 도구를 사용하지 마십시오."
-  },
-  {
-    agencyId: "acrc",
-    agencyName: "국민권익위원회",
-    label: "국민권익위원회 (공익신고 제도 안내)",
-    url: "https://www.acrc.go.kr",
-    caution: "공익신고 제도 일반 안내. 구체 접수 경로는 사이트 내 공식 안내를 확인하세요."
-  },
-  {
-    agencyId: "foodsafetykorea",
-    agencyName: "식품안전나라",
-    label: "식품안전나라 (허위·과대광고 유형 안내·신고)",
-    url: "https://www.foodsafetykorea.go.kr/portal/fooddanger/puff.do",
-    caution: "허위·과대광고 유형 확인 및 안내 페이지입니다. 직접 접수 채널 여부는 공식 안내를 확인하고 사용자가 직접 제출해야 합니다."
-  },
-  {
-    agencyId: "local_government",
-    agencyName: "관할 지자체 · 보건소 · 식품안전관리과",
-    label: "정부24 (관할 지자체·보건소 식품안전 부서 찾기)",
-    url: "https://www.gov.kr",
-    caution: "지자체별 부서 명칭과 접수 경로가 다릅니다. 관할 시·군·구청 또는 보건소/식품안전관리과 공식 안내를 사용자가 직접 확인해 제출해야 합니다."
-  }
-];
-
-const LINK_TABLE: Record<string, OfficialReportingLink[]> = {
-  false_ad: FALSE_AD_LINKS
-};
-
 export function getOfficialReportingLinks(moduleId: string): OfficialReportingLink[] {
-  return LINK_TABLE[moduleId] ?? [];
+  return reportingRegistryService.listByModule(moduleId).map((a) => ({
+    agencyId: a.agencyId,
+    agencyName: a.agencyName,
+    label: `${a.agencyName} — ${a.description}`,
+    url: a.officialUrl,
+    // 단순 링크 안내 + 첫 번째 주의문구. 자동 제출/자동 입력 없음.
+    caution: a.cautions[0] ?? "사용자가 직접 공식 페이지를 열어 제출해야 합니다. 자동 제출/자동 입력은 수행하지 않습니다."
+  }));
 }
 
 // ---------- 안전 헬퍼 ----------

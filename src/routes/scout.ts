@@ -105,24 +105,36 @@ scoutRouter.post("/discover", async (req, res) => {
     // Naver Search API 상태 — 키 원문은 절대 노출하지 않고 boolean 상태만 표시한다.
     const apiKeyConfigured = Boolean(config.scout.naverClientId && config.scout.naverClientSecret);
     const usedExternalApi = result.usedSources.includes("naver");
-    const sourceType: "naver" | "mock" = usedExternalApi ? "naver" : "mock";
+    // naver 를 요청했으나 실제로 사용하지 못하고 mock 으로 떨어졌으면 "fallback" 으로 표시 (체크리스트 26)
+    const naverRequested = !input.sourceTypes || input.sourceTypes.includes("naver");
+    const naverFellBack = naverRequested && !usedExternalApi;
+    const sourceType: "naver" | "mock" | "fallback" = usedExternalApi
+      ? "naver"
+      : naverFellBack
+        ? "fallback"
+        : "mock";
 
     const warnings: string[] = [];
+    let fallbackMessage: string | undefined;
     if (!apiKeyConfigured) {
-      warnings.push("Naver API 키 미설정으로 mock 모드로 동작합니다. (NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 를 .env 에 설정하면 공개 검색 후보 발굴이 활성화됩니다.)");
+      const msg = "Naver API 키가 없어 Mock 모드로 동작했습니다. 외부 API 를 호출하지 않았으며 서버는 계속 동작합니다. (NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 를 .env 에 설정하면 공개 검색 후보 발굴이 활성화됩니다.)";
+      warnings.push(msg);
+      fallbackMessage = msg;
+    } else if (result.sourceFallbacks.includes("naver")) {
+      const msg = "외부 API 호출에 실패했지만 서버는 계속 동작합니다. Mock 후보로 안전하게 폴백했습니다.";
+      warnings.push(msg);
+      fallbackMessage = msg;
     }
-    if (result.sourceFallbacks.includes("naver") && apiKeyConfigured) {
-      warnings.push("Naver adapter 가 일시적으로 비활성화되어 mock 후보로 폴백했습니다.");
-    }
-    warnings.push("검색 결과는 신고 대상 확정이 아니라 분석 후보입니다. 사람이 선택한 뒤 분석으로 진행됩니다.");
+    warnings.push("후보 URL 은 신고 대상 확정이 아니라 분석 후보입니다. 사람이 선택한 뒤 분석으로 진행됩니다.");
 
     res.status(201).json({
       ok: true,
       moduleId: input.moduleId,
-      // 체크리스트 23 — Naver adapter 상태(키 원문 없이 상태값만)
+      // 체크리스트 23/26 — Naver adapter 상태(키 원문 없이 상태값만) + fallback 표시
       sourceType,
       usedExternalApi,
       apiKeyConfigured,
+      fallbackMessage,
       warnings,
       candidates: result.candidates,
       // 표준 분석 후보 뷰 (candidateId/sourceType/status:needs_review/humanReviewRequired 포함)

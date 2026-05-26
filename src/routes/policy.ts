@@ -4,6 +4,7 @@ import {
   getApprovalGateNotice,
   getOfficialReportingLinks
 } from "../policy/approvalGate.js";
+import { reportingRegistryService } from "../services/reporting/ReportingRegistry.js";
 
 export const policyRouter = Router();
 
@@ -11,6 +12,8 @@ export const policyRouter = Router();
 policyRouter.get("/approval-gate", (req, res) => {
   const moduleId = typeof req.query.moduleId === "string" ? req.query.moduleId : "false_ad";
   const officialReportingLinks = getOfficialReportingLinks(moduleId);
+  // 체크리스트 24 — 중앙 Registry 의 전체 신고처 항목(agencyId/officialUrl/requiredEvidence/cautions/...)
+  const reportingAgencies = reportingRegistryService.listByModule(moduleId);
   res.json({
     ok: true,
     policy: approvalGatePolicy,
@@ -19,6 +22,9 @@ policyRouter.get("/approval-gate", (req, res) => {
     allowedActions: approvalGatePolicy.allowedActions,
     prohibitedActions: approvalGatePolicy.prohibitedActions,
     officialReportingLinks,
+    // 체크리스트 24 — 공식 신고처 Registry 안내표
+    reportingAgencies,
+    reportingRegistryLastReviewedAt: reportingRegistryService.getLastReviewedAt(),
     manualSubmissionOnly: true,
     autoSubmitAvailable: false,
     humanReviewRequired: true,

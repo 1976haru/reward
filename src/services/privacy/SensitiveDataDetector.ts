@@ -22,7 +22,7 @@ interface DetectorRule {
 }
 
 // 키 이름 기반 탐지 (객체 직렬화 텍스트에서) — "secret": "xxx" 패턴
-const KEY_NAME_RE = /"(api[_-]?key|secret|token|password|cookie|set[_-]?cookie|authorization|auth[_-]?header|session[_-]?id|access[_-]?token|refresh[_-]?token|x[_-]?api[_-]?key|client[_-]?secret|jwt)"\s*:\s*"([^"]{1,500})"/gi;
+const KEY_NAME_RE = /"(api[_-]?key|service[_-]?key|secret|token|password|cookie|set[_-]?cookie|authorization|auth[_-]?header|session[_-]?id|access[_-]?token|refresh[_-]?token|x[_-]?api[_-]?key|client[_-]?secret|jwt)"\s*:\s*"([^"]{1,500})"/gi;
 
 // API key / token 패턴 — 너무 일반적이지 않은 형태만
 const API_KEY_RE = /\b(sk-[A-Za-z0-9_\-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}|xox[apbs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_\-]{20,}|ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,})\b/g;

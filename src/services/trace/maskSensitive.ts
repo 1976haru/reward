@@ -17,7 +17,7 @@ const API_KEY_RE = /\b(sk-[A-Za-z0-9_\-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}|
 // 32+ hex (sha/uuid 류는 보존, 명확한 secret 만 대상) — 너무 공격적이지 않게 일반 long-hex 만
 // → 적용은 객체 key 가 secret/token/password 일 때로 제한해서 false positive 줄임.
 
-const SENSITIVE_KEY_RE = /(api[_-]?key|secret|token|password|cookie|authorization|auth[_-]?header|session[_-]?id|access[_-]?token|refresh[_-]?token|x[_-]?api[_-]?key|client[_-]?secret)$/i;
+const SENSITIVE_KEY_RE = /(api[_-]?key|service[_-]?key|secret|token|password|cookie|authorization|auth[_-]?header|session[_-]?id|access[_-]?token|refresh[_-]?token|x[_-]?api[_-]?key|client[_-]?secret)$/i;
 
 export function maskString(s: string): MaskResult<string> {
   if (typeof s !== "string" || s.length === 0) return { value: s, changed: false };

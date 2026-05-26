@@ -97,6 +97,14 @@ analyzeRouter.post("/llm", async (req, res) => {
     const analysisMode = result.analysisMode ?? (analyzerAgent.isMockMode() ? "mock" : "real");
     const usedExternalApi = result.usedExternalApi ?? false;
 
+    // 초보자용 한국어 안내 (체크리스트 26 — fallback 메시지)
+    const analysisModeMessage =
+      analysisMode === "mock"
+        ? "현재 Mock 모드로 동작했습니다. 실제 OpenAI API 를 호출하지 않았으며 비용이 발생하지 않습니다. (MOCK_AI=false + OPENAI_API_KEY 설정 시 실제 호출)"
+        : analysisMode === "fallback"
+          ? "외부 API 호출에 실패했지만 서버는 계속 동작합니다. 안전한 fallback 분석 결과를 반환했습니다. 결과는 법 위반 확정이 아니며 사람 검토가 필요합니다."
+          : "실제 OpenAI API 분석 결과입니다. 결과는 법 위반 확정이 아니며 신고 전 사람이 공식 기준과 증거를 검토해야 합니다.";
+
     // 중립 표현 기반 요약 필드 — "의심 후보 / 검토 필요" 관점으로만 노출한다.
     const suspectedClaims = result.findings.map((f) => ({
       claim: f.issue,
@@ -124,6 +132,7 @@ analyzeRouter.post("/llm", async (req, res) => {
       moduleId: input.moduleId,
       analysisMode,
       usedExternalApi,
+      analysisModeMessage,
       analysisSummary: result.summary,
       summary: result.summary,
       suspectedClaims,

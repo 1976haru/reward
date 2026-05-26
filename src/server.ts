@@ -30,6 +30,7 @@ import { outcomesRouter, caseOutcomesRouter } from "./routes/outcomes.js";
 import { guideRouter } from "./routes/guide.js";
 import { settingsRouter } from "./routes/settings.js";
 import { rewardProgramsRouter } from "./routes/rewardPrograms.js";
+import { agenciesRouter } from "./routes/agencies.js";
 import { falseAdGuideRouter } from "./routes/falseAdGuide.js";
 import { counterfeitGuideRouter } from "./routes/counterfeitGuide.js";
 import { bidCollusionGuideRouter } from "./routes/bidCollusionGuide.js";
@@ -201,6 +202,10 @@ app.use("/api/settings", settingsRouter);
 // Reward Registry (실전 재점검 05) — 신고포상금·보상금 제도 안내 (조회 전용).
 // 외부 신고기관 자동 제출 없음. 포상금 수령을 보장하지 않으며 금액·한도는 공식 기준 확인 필요.
 app.use("/api/reward-programs", rewardProgramsRouter);
+
+// 공식 신고처 URL Registry (체크리스트 24) — 단순 외부 링크 안내표 (조회 전용).
+// 자동 제출/자동 로그인/자동 양식입력 없음. URL 은 공식 사이트에서 정기 확인 필요.
+app.use("/api/agencies", agenciesRouter);
 
 // 보조금 부정수급 의심 후보 프로토타입 (체크리스트 25) — sample 기반 분석만 지원.
 app.use("/api/subsidy", subsidyRouter);
