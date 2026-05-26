@@ -273,9 +273,12 @@ export function convertRowToStandardRecord(
     .join(" ");
 
   const record: StandardSubsidyRecordFromUpload = {
+    recordId: makeUploadRecordId(context.sourceFileType, context.sourceFileName, context.sourceRowNumber),
+    parsedAt: new Date().toISOString(),
     sourceFileName: context.sourceFileName,
     sourceFileType: context.sourceFileType,
     sourceRowNumber: context.sourceRowNumber,
+    pageNumber: context.sourceFileType === "pdf" ? context.sourceRowNumber : undefined,
     sourceText: truncate(rowText, 500),
     documentType:
       context.documentTypeHint ?? inferDocumentType(context.sourceFileName, rowText),
@@ -813,6 +816,22 @@ export async function collectUploadFilePaths(inputPath: string): Promise<string[
 function truncate(s: string, n: number): string {
   if (typeof s !== "string") return "";
   return s.length > n ? s.slice(0, n) + "…" : s;
+}
+
+/** 레코드 고유 식별자 생성: 파일타입_안전파일명_행번호_랜덤. 개인정보 미포함. */
+function makeUploadRecordId(
+  fileType: UploadSourceFileType,
+  fileName: string,
+  rowNumber?: number
+): string {
+  const safeBase = path
+    .basename(fileName ?? "file")
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-zA-Z0-9가-힣._-]+/g, "_")
+    .slice(0, 40);
+  const row = rowNumber != null ? rowNumber : 0;
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `${fileType}_${safeBase}_${row}_${rand}`;
 }
 
 function generalizeError(e: unknown): string {

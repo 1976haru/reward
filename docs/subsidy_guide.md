@@ -15,6 +15,8 @@
 
 > 📦 **공공데이터 API 실제 수집(1,000건) 실행 방법**은 [`docs/API_COLLECTOR_RUNBOOK.md`](./API_COLLECTOR_RUNBOOK.md) 의 "9. 실제 실행 절차"·"11. baseline build 연결"을 참고하세요. 인증키/endpoint 입력, 수집 결과 저장 위치, GitHub 커밋 금지 파일, 다음 단계 연결 방법이 정리되어 있습니다. 보조금 모듈은 현재 후순위 고급 프로토타입이며 자동 신고를 수행하지 않습니다.
 
+> 📄 **지자체·공공기관이 공개한 PDF/XLSX/CSV 파일 업로드 변환 방법**은 [`docs/UPLOAD_PARSER_RUNBOOK.md`](./UPLOAD_PARSER_RUNBOOK.md) 의 "10. 실제 사용 절차"·"12. baseline build 연결"을 참고하세요. 지원 형식(.csv/.xlsx/텍스트 PDF), OCR 제외, 결과 파일 위치, 개인정보 마스킹, GitHub 커밋 금지 파일이 정리되어 있습니다. 사람이 직접 내려받아 업로드한 파일만 변환하며, 자동 수집·자동 신고는 하지 않습니다.
+
 ## 2. Reporting Channels
 
 | id | 기관 | 공식 URL |

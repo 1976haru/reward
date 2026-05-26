@@ -45,10 +45,15 @@ export const UPLOAD_SUPPORTED_EXTENSIONS = [".csv", ".xlsx", ".pdf"] as const;
  *   불명확하면 parseWarnings 에 기록한다.
  */
 export interface StandardSubsidyRecordFromUpload {
+  // --- 식별/처리 시각 ---
+  recordId?: string; // 권장 — 레코드 고유 식별자 (파일타입_파일명_행번호_랜덤)
+  parsedAt?: string; // 권장 — 변환(파싱) 시각 ISO 8601
+
   // --- 출처 (필수/권장) ---
   sourceFileName: string; // 필수
   sourceFileType: UploadSourceFileType; // 필수
   sourceRowNumber?: number; // 권장 — CSV/XLSX 행 번호 또는 PDF 페이지/줄 번호
+  pageNumber?: number; // 선택 — PDF 페이지 번호 (sourceRowNumber 보조)
   sourceText?: string; // 선택 — 마스킹 후 원문 일부
 
   // --- 사업/기관 ---

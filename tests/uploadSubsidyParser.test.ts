@@ -102,6 +102,18 @@ test("convertRowToStandardRecord 는 projectName 없으면 partial 처리한다"
   assert.equal(rec.recipientName, "어떤단체");
 });
 
+test("[CL56] convertRowToStandardRecord 는 recordId 와 parsedAt 을 채운다", () => {
+  const rec = convertRowToStandardRecord(
+    { 사업명: "테스트 사업", 보조금액: "1,000,000원", 보조사업자: "어떤단체" },
+    { sourceFileName: "subsidy.csv", sourceFileType: "csv", sourceRowNumber: 3 }
+  );
+  assert.ok(typeof rec.recordId === "string" && rec.recordId.length > 0, "recordId 존재");
+  assert.ok(rec.recordId!.startsWith("csv_"), "recordId 는 파일타입 prefix 포함");
+  assert.ok(typeof rec.parsedAt === "string" && /^\d{4}-\d{2}-\d{2}T/.test(rec.parsedAt!), "parsedAt ISO 시각");
+  assert.equal(rec.sourceRowNumber, 3);
+  assert.equal(rec.subsidyAmount, 1_000_000);
+});
+
 test("sanitizeUploadRecord 가 sourceText 의 개인정보 패턴을 마스킹한다", () => {
   const rec: StandardSubsidyRecordFromUpload = {
     sourceFileName: "x.csv",

@@ -110,3 +110,47 @@ npm run parse:uploads -- <파일또는폴더>   # 실제 업로드 파일 변환
 - 실제 개인정보가 포함된 파일을 테스트에 사용하지 않는다. 테스트 fixture는 모두 가짜 데이터다.
 - 원본 파일은 기본적으로 저장하지 않는다.
 - **단정 표현을 사용하지 않는다.** 변환 결과는 의심 신호 분석의 입력 후보일 뿐, **위법 여부 또는 부정수급을 확정하지 않으며, 보상금 지급을 보장하지 않는다.**
+
+## 10. 실제 사용 절차 (초보자용 단계별)
+
+처음 사용하는 사람을 위한 순서입니다. **본 모듈은 웹 크롤러가 아니라 사람이 직접 내려받아 업로드한 파일을 변환**합니다. 로그인 필요 자료·비공개 자료·대량 크롤링은 하지 않습니다.
+
+1. **파일 준비**
+   - 지자체·공공기관이 **공개**한 보조금 관련 자료(공고/선정/정산/감사/환수/결산 등)를 직접 내려받습니다.
+   - 지원 형식: **`.csv` / `.xlsx` / 텍스트 기반 `.pdf`** 만. 그 외 확장자는 자동으로 건너뜁니다(오류 로그 기록).
+   - **스캔 이미지 PDF는 OCR이 필요**하여 이번 범위에서 제외됩니다 → "텍스트 추출 실패 / OCR 필요 / 수동 확인 필요"로 error-log 에 기록됩니다.
+2. **변환 실행**
+   ```bash
+   # 단일 파일
+   npm run parse:uploads -- ./내려받은파일.csv
+   # 폴더 전체 (csv/xlsx/pdf 만 처리, 그 외 확장자는 건너뜀)
+   npm run parse:uploads -- ./업로드폴더
+   ```
+   - 성공 시 콘솔에 `UPLOAD_PARSER_RUN_OK` 가 출력됩니다.
+3. **결과 파일 위치**
+   - `data/upload-parser/runs/{runId}/records.jsonl` (표준 보조금 레코드, 개인정보 마스킹 후)
+   - `data/upload-parser/runs/{runId}/parse-log.json` (실행 로그: 파일별 parsed/partial/failed, 마스킹 건수)
+   - `data/upload-parser/runs/{runId}/error-log.json` (오류 로그: 미지원 확장자·OCR 필요·필수필드 누락 등)
+4. **오류 로그 보는 방법**
+   - `error-log.json` 의 `errors[].reason` 에서 사유를 확인합니다(개인정보 원문은 일반화되어 남지 않음).
+   - `parse-log.json` 의 `files[].warnings` 에서 파일별 경고(금액 단위 불명확, 시트 다수, 인코딩 등)를 확인합니다.
+   - 변환 실패(`failed`)·부분 변환(`partial`)은 실패가 아니라 "수동 확인 필요" 신호입니다.
+5. **개인정보가 포함된 경우 주의**
+   - 이메일·전화번호·주민등록번호·계좌번호·상세주소·키/토큰은 저장 전 자동 마스킹됩니다(`[masked-email]`, `[masked-phone]`, `[masked-id]`, `[masked-account]`, `[masked-address]`, `[masked-secret]`).
+   - 대표자명·전화·주민번호·계좌·상세주소 **원문은 분석 근거에 그대로 넣지 않습니다.** 마스킹 결과만 `privacyDetectedTypes`·`parse-log` 에 기록됩니다.
+
+## 11. GitHub 에 올리면 안 되는 파일
+
+- 원본 업로드 파일(내려받은 csv/xlsx/pdf)과 `data/upload-parser/**` (records.jsonl / parse-log.json / error-log.json) — `.gitignore` 로 차단됨(`.gitkeep` 만 추적)
+- `.env`, `data/collector/**`, `data/baseline/**`, `data/evidence/**`, `data/reports/**`, `data/cases/**`, `data/outcomes/**` 등 산출물 전반
+- GitHub 에는 **코드·문서·테스트만** 올립니다. 커밋 전 `git status --ignored` 로 산출물이 ignored 상태인지 확인하세요.
+
+## 12. 다음 단계: baseline build 연결
+
+변환된 `records.jsonl` 은 다음 단계의 표준 기준선(baseline) 빌드 입력으로 사용합니다. (이번 단계에서 baseline 전체 실행은 필수가 아닙니다.)
+
+```bash
+npm run build:baseline -- --input data/upload-parser/runs/{runId}/records.jsonl --sourceType upload --sourceName local-upload
+```
+
+> 본 단계는 "업로드 파일 → 표준 보조금 레코드 변환"까지입니다. 기관명 정규화·주소 정규화·사업명 유사도·위험점수 산출·신고서 초안 생성은 다음 단계에서 진행하며, 자동 신고는 수행하지 않습니다.
