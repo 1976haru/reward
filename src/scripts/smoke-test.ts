@@ -1875,11 +1875,33 @@ check("counterfeit keywords schemaVersion", cfKw.schemaVersion === "1.0.0");
 check("counterfeit keywords moduleId", cfKw.moduleId === "counterfeit_goods");
 const cfSummary = getCounterfeitKeywordSummary(cfKw);
 check("counterfeit rules >= 50", cfKw.rules.length >= 50, `len=${cfKw.rules.length}`);
-check("counterfeit HIGH = 20", cfSummary.counts.HIGH === 20, `H=${cfSummary.counts.HIGH}`);
-check("counterfeit MEDIUM = 20", cfSummary.counts.MEDIUM === 20, `M=${cfSummary.counts.MEDIUM}`);
-check("counterfeit LOW = 10", cfSummary.counts.LOW === 10, `L=${cfSummary.counts.LOW}`);
+check("counterfeit HIGH >= 20", cfSummary.counts.HIGH >= 20, `H=${cfSummary.counts.HIGH}`);
+check("counterfeit MEDIUM >= 20", cfSummary.counts.MEDIUM >= 20, `M=${cfSummary.counts.MEDIUM}`);
+check("counterfeit LOW >= 10", cfSummary.counts.LOW >= 10, `L=${cfSummary.counts.LOW}`);
 check("counterfeit combo >= 4", cfSummary.counts.combo >= 4, `C=${cfSummary.counts.combo}`);
 check("counterfeit brandTerms >= 5", cfKw.brandTerms.length >= 5);
+
+// 위조상품 스코프·룰셋 점검·보강 (체크리스트 44~45)
+check("[CL44] counterfeit_goods 등록·active 아님(후속 확장)", moduleRegistry.get("counterfeit_goods")?.status !== "active");
+check("[CL45] 룰셋 30개 이상", cfKw.rules.length >= 30, `len=${cfKw.rules.length}`);
+check("[CL45] AAA급/rep급 등급 표현 추가됨",
+  cfKw.rules.some((r) => r.keyword === "AAA급") && cfKw.rules.some((r) => r.keyword === "rep급"));
+check("[CL45] 해외공장/공장직송 표현 추가됨",
+  cfKw.rules.some((r) => r.keyword === "해외공장") && cfKw.rules.some((r) => r.keyword === "공장직송"));
+check("[CL45] 택/시리얼 구성품 표현 추가됨",
+  cfKw.rules.some((r) => r.keyword === "택 포함") && cfKw.rules.some((r) => r.keyword === "시리얼 각인"));
+check("[CL45] 비정상저가·병행수입+로고·해외공장+브랜드 combo 추가됨",
+  cfKw.rules.some((r) => r.id === "CF_C005") && cfKw.rules.some((r) => r.id === "CF_C006") && cfKw.rules.some((r) => r.id === "CF_C007"));
+check("[CL45] disclaimer 위조 확정 아님·판매자 단정 금지 명시", /확정하지 않/.test(cfKw.disclaimer) && /단정하지 않/.test(cfKw.disclaimer));
+{
+  // 위조상품 의심 표현 탐지
+  const cfHit = ra.detectDetailed({ text: "정품급 가방 초저가 급처, 해외공장 직송 샤넬" }, "counterfeit_goods");
+  check("[CL45] 위조상품 의심 표현 탐지", cfHit.matches.length >= 1 && cfHit.riskScore > 0);
+  check("[CL45] 탐지 결과는 위조 확정 아님(중립 문구)", /확정하지 않습니다|확정하지 않|검토/.test(cfHit.safetyNotice));
+  // 정상 병행수입/중고 판매 문구는 과탐지되지 않음
+  const cfNormal = ra.detectDetailed({ text: "정품 정식 매장에서 구매한 중고 가방을 깨끗하게 사용 후 판매합니다." }, "counterfeit_goods");
+  check("[CL45] 정상 중고 판매 문구 과탐지 없음", cfNormal.matches.length === 0 && cfNormal.riskScore === 0, `score=${cfNormal.riskScore}`);
+}
 
 // disclaimer must contain "확정하지" or similar
 check("counterfeit disclaimer mentions 확정하지", /확정하지/.test(cfKw.disclaimer));

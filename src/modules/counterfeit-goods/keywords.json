@@ -2,8 +2,8 @@
   "schemaVersion": "1.0.0",
   "moduleId": "counterfeit_goods",
   "category": "intellectual_property",
-  "lastReviewedAt": "2026-05-18",
-  "disclaimer": "이 룰셋은 온라인 위조상품 의심 후보 탐지를 위한 보조 자료이며, 위조 여부나 상표권 침해 여부를 확정하지 않는다. 매칭은 검토가 필요한 후보 표현을 의미하며, 최종 판단은 권리자/관계기관/사람의 검토에 따른다.",
+  "lastReviewedAt": "2026-05-26",
+  "disclaimer": "이 룰셋은 온라인 위조상품 의심 후보 탐지를 위한 보조 자료이며, 위조 여부나 상표권 침해 여부를 확정하지 않는다. 매칭은 검토가 필요한 후보 표현을 의미하며, 최종 판단은 권리자/관계기관/사람의 검토에 따른다. 특정 판매자를 위조범으로 단정하지 않는다.",
   "riskWeights": {
     "HIGH": 25,
     "MEDIUM": 12,
@@ -22,7 +22,8 @@
   "counterfeitTerms": [
     "레플리카", "미러급", "SA급", "S급", "정품급",
     "1:1", "공장판", "병행 아닌 동일", "자체제작 로고", "각인 구현",
-    "로고 구현", "풀박스 구현", "정품 동일 퀄리티"
+    "로고 구현", "풀박스 구현", "정품 동일 퀄리티", "AAA급", "rep급",
+    "해외공장", "공장직송"
   ],
   "secretContactTerms": [
     "카톡문의", "텔레문의", "1:1 문의", "DM문의", "오픈채팅 문의",
@@ -30,7 +31,7 @@
   ],
   "packagingTerms": [
     "풀박스", "영수증 포함", "보증서 포함", "쇼핑백 포함",
-    "구성품 완비", "더스트백 포함", "케어카드 포함"
+    "구성품 완비", "더스트백 포함", "케어카드 포함", "택 포함", "시리얼 각인"
   ],
   "rules": [
     { "id": "CF_H001", "keyword": "레플리카", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "정품 아님을 암시하는 표현", "examples": ["레플리카 가방", "레플리카 시계"], "matchType": "keyword" },
@@ -53,6 +54,8 @@
     { "id": "CF_H018", "keyword": "단속 피해서", "riskLevel": "HIGH", "weight": 25, "category": "evasion_signal", "reason": "단속 회피 의도가 명시된 판매 표현", "examples": ["단속 피해서 비공개로"], "matchType": "keyword" },
     { "id": "CF_H019", "keyword": "비밀배송", "riskLevel": "HIGH", "weight": 25, "category": "evasion_signal", "reason": "추적 회피용 배송 표현", "examples": ["비밀배송 가능"], "matchType": "keyword" },
     { "id": "CF_H020", "keyword": "정품 문의 금지", "riskLevel": "HIGH", "weight": 25, "category": "evasion_signal", "reason": "정품 검증을 차단하는 판매자 표시", "examples": ["정품 문의 금지"], "matchType": "keyword" },
+    { "id": "CF_H021", "keyword": "AAA급", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "위조상품 등급 표시로 통용되는 표현", "examples": ["AAA급 가방"], "matchType": "keyword" },
+    { "id": "CF_H022", "keyword": "rep급", "riskLevel": "HIGH", "weight": 25, "category": "counterfeit_expression", "reason": "레플리카(rep)임을 암시하는 등급 표현", "examples": ["rep급 운동화"], "matchType": "keyword" },
 
     { "id": "CF_M001", "keyword": "명품 레플", "riskLevel": "MEDIUM", "weight": 12, "category": "counterfeit_expression", "reason": "명품 위조 표현 축약형", "examples": ["명품 레플 가방"], "matchType": "keyword" },
     { "id": "CF_M002", "keyword": "브랜드 레플리카", "riskLevel": "MEDIUM", "weight": 12, "category": "counterfeit_expression", "reason": "브랜드 위조 표현", "examples": ["브랜드 레플리카 시계"], "matchType": "keyword" },
@@ -74,6 +77,11 @@
     { "id": "CF_M018", "keyword": "루이비통", "riskLevel": "MEDIUM", "weight": 12, "category": "brand_mention", "reason": "유명 브랜드 단순 언급 — 위조 표현과 결합 시 위험 신호 증가", "examples": ["루이비통 패턴"], "matchType": "keyword" },
     { "id": "CF_M019", "keyword": "롤렉스", "riskLevel": "MEDIUM", "weight": 12, "category": "brand_mention", "reason": "유명 브랜드 단순 언급 — 위조 표현과 결합 시 위험 신호 증가", "examples": ["롤렉스 스타일"], "matchType": "keyword" },
     { "id": "CF_M020", "keyword": "나이키 정품", "riskLevel": "MEDIUM", "weight": 12, "category": "brand_mention", "reason": "유명 브랜드 정품 표시 — 위조 등급과 결합 시 위험 신호 증가", "examples": ["나이키 정품"], "matchType": "keyword" },
+    { "id": "CF_M021", "keyword": "병행수입 정품 보장", "riskLevel": "MEDIUM", "weight": 12, "category": "parallel_import_disguise", "reason": "병행수입을 내세워 정품을 보장한다고 표시하는 위장 가능성 — 가격/구성과 함께 검토 필요", "examples": ["병행수입 정품 보장 초저가"], "matchType": "keyword" },
+    { "id": "CF_M022", "keyword": "해외공장", "riskLevel": "MEDIUM", "weight": 12, "category": "factory_signal", "reason": "정식 유통이 아닌 해외공장 생산을 시사하는 표현 (브랜드명과 결합 시 위험 증가)", "examples": ["해외공장 직접 생산"], "matchType": "keyword" },
+    { "id": "CF_M023", "keyword": "공장직송", "riskLevel": "MEDIUM", "weight": 12, "category": "factory_signal", "reason": "정식 유통 경로가 아닌 공장 직송 표현", "examples": ["공장직송 가격"], "matchType": "keyword" },
+    { "id": "CF_M024", "keyword": "택 포함", "riskLevel": "MEDIUM", "weight": 12, "category": "packaging_signal", "reason": "정품 택(tag) 모방 구성품 가능성", "examples": ["정품 택 포함"], "matchType": "keyword" },
+    { "id": "CF_M025", "keyword": "시리얼 각인", "riskLevel": "MEDIUM", "weight": 12, "category": "packaging_signal", "reason": "정품 시리얼/일련번호 모방 가능성", "examples": ["시리얼 각인 동일"], "matchType": "keyword" },
 
     { "id": "CF_L001", "keyword": "구성품 완비", "riskLevel": "LOW", "weight": 5, "category": "packaging_signal", "reason": "정품 구성 모방 가능성 (단독으로는 약함)", "examples": ["구성품 완비"], "matchType": "keyword" },
     { "id": "CF_L002", "keyword": "1:1 제작", "riskLevel": "LOW", "weight": 5, "category": "counterfeit_expression", "reason": "정품 동일 제작 표현 (단독으로는 약함)", "examples": ["1:1 제작"], "matchType": "keyword" },
@@ -85,10 +93,15 @@
     { "id": "CF_L008", "keyword": "샘플", "riskLevel": "LOW", "weight": 5, "category": "marketing_signal", "reason": "정품 샘플 사칭 가능성 (문맥 확인 필요)", "examples": ["샘플 판매"], "matchType": "keyword" },
     { "id": "CF_L009", "keyword": "B급", "riskLevel": "LOW", "weight": 5, "category": "counterfeit_expression", "reason": "위조상품 등급 표시로 통용 가능 (문맥 확인 필요)", "examples": ["B급 상품"], "matchType": "keyword" },
     { "id": "CF_L010", "keyword": "A급", "riskLevel": "LOW", "weight": 5, "category": "counterfeit_expression", "reason": "위조상품 등급 표시로 통용 가능 (문맥 확인 필요)", "examples": ["A급 상품"], "matchType": "keyword" },
+    { "id": "CF_L011", "keyword": "재고정리", "riskLevel": "LOW", "weight": 5, "category": "pricing_signal", "reason": "재고정리/이월 표현 — 비정상 저가·위조 신호와 결합 시 검토 필요 (단독으로는 약함)", "examples": ["재고정리 특가"], "matchType": "keyword" },
+    { "id": "CF_L012", "keyword": "구매대행", "riskLevel": "LOW", "weight": 5, "category": "pricing_signal", "reason": "구매대행 표현 — 정품일 수 있으나 위조 신호와 결합 시 오인 가능 (문맥 확인 필요)", "examples": ["해외 구매대행"], "matchType": "keyword" },
 
     { "id": "CF_C001", "keyword": "브랜드+위조표현 동시 등장", "riskLevel": "HIGH", "weight": 25, "category": "brand_replica_combo", "reason": "유명 브랜드명과 레플리카/미러급/SA급/S급/1:1/정품급/공장판 등이 같은 문장에 동시 등장하는 경우 위조 가능성 증가", "examples": ["샤넬 미러급", "롤렉스 1:1"], "matchType": "combo", "pattern": "(샤넬|루이비통|구찌|프라다|에르메스|디올|버버리|발렌시아가|롤렉스|오메가|나이키|아디다스|조던|뉴발란스)[^\\n\\.]{0,40}(레플리카|미러급|SA급|S급|정품급|1:1|공장판)" },
     { "id": "CF_C002", "keyword": "비공개 채널 + 거래 유도 동시 등장", "riskLevel": "HIGH", "weight": 15, "category": "secret_contact_combo", "reason": "공개 페이지에서 비공개 채널로 거래 유도 (단속 회피 신호)", "examples": ["가격은 카톡문의 주세요"], "matchType": "combo", "pattern": "(카톡|텔레|DM|오픈채팅)[^\\n\\.]{0,20}(문의|주문|구매|가격)" },
     { "id": "CF_C003", "keyword": "정품 보증 모방 표현", "riskLevel": "MEDIUM", "weight": 12, "category": "packaging_combo", "reason": "보증서/영수증/쇼핑백/더스트백 등 정품 구성품 모방 표현", "examples": ["보증서 + 쇼핑백 포함"], "matchType": "combo", "pattern": "(보증서|영수증|쇼핑백|더스트백|케어카드)[^\\n\\.]{0,20}(포함|동봉|구성)" },
-    { "id": "CF_C004", "keyword": "단속/세관 회피 표현", "riskLevel": "HIGH", "weight": 25, "category": "evasion_combo", "reason": "단속 회피 / 세관 우회 신호", "examples": ["단속 피해서 비밀배송"], "matchType": "combo", "pattern": "(단속|세관|통관)[^\\n\\.]{0,20}(피해|우회|문제\\s*없)" }
+    { "id": "CF_C004", "keyword": "단속/세관 회피 표현", "riskLevel": "HIGH", "weight": 25, "category": "evasion_combo", "reason": "단속 회피 / 세관 우회 신호", "examples": ["단속 피해서 비밀배송"], "matchType": "combo", "pattern": "(단속|세관|통관)[^\\n\\.]{0,20}(피해|우회|문제\\s*없)" },
+    { "id": "CF_C005", "keyword": "위조 등급 + 비정상 저가 동시 등장", "riskLevel": "HIGH", "weight": 25, "category": "pricing_combo", "reason": "레플리카/정품급/미러급 등 위조 등급 표현과 비정상 저가 표현이 함께 등장하는 경우 위조 가능성 증가", "examples": ["정품급 반값 급처"], "matchType": "combo", "pattern": "(레플리카|미러급|SA급|S급|AAA급|rep급|정품급|1:1)[^\\n\\.]{0,30}(초저가|반값|급처|땡처리|정가\\s*대비|말도\\s*안되는\\s*가격)" },
+    { "id": "CF_C006", "keyword": "병행수입 + 로고/상표 모방 동시 등장", "riskLevel": "MEDIUM", "weight": 15, "category": "parallel_import_combo", "reason": "병행수입을 내세우면서 로고/상표 모방 구현 표현이 함께 등장하는 위장 가능성", "examples": ["병행수입인데 로고 구현"], "matchType": "combo", "pattern": "(병행수입|구매대행|해외직구)[^\\n\\.]{0,30}(로고\\s*구현|자체제작\\s*로고|각인\\s*구현|상표\\s*동일)" },
+    { "id": "CF_C007", "keyword": "해외공장/공장직송 + 인기 브랜드명 동시 등장", "riskLevel": "HIGH", "weight": 25, "category": "factory_brand_combo", "reason": "해외공장·공장직송 표현과 인기 브랜드명이 함께 등장하는 경우 정식 유통이 아닌 위조 가능성 증가", "examples": ["해외공장 직송 샤넬"], "matchType": "combo", "pattern": "(해외공장|공장직송|공장판)[^\\n\\.]{0,30}(샤넬|루이비통|구찌|프라다|에르메스|디올|버버리|발렌시아가|롤렉스|오메가|나이키|아디다스|조던|뉴발란스)" }
   ]
 }

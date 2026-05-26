@@ -169,7 +169,8 @@ curl http://localhost:3001/api/cases
 - 현재 사용 가능 모듈: **건강기능식품 온라인 허위·과대광고 탐지**(1차 MVP). 식품·화장품·의료기기 전체를 한 번에 다루지 않으며, 건강기능식품 모듈이 안정화된 뒤 동일 패턴으로 카테고리를 확장합니다.
 - 2차 쉬운 확장: **일반식품 온라인 허위·과대광고 탐지**(`general_food_false_ad`) — 스코프 문서 [`docs/general_food_false_ad_scope.md`](./docs/general_food_false_ad_scope.md), 키워드 룰셋, 신고서 템플릿이 준비되었습니다. 건강기능식품 1차 MVP를 대체하지 않습니다.
 - 3차 쉬운 확장: **화장품 온라인 허위·과대광고 탐지**(`cosmetic_false_ad`) — 스코프 문서 [`docs/cosmetic_false_ad_scope.md`](./docs/cosmetic_false_ad_scope.md), 키워드 룰셋, 신고서 템플릿이 준비되었습니다. 건강기능식품·일반식품 모듈을 대체하지 않습니다.
-- 후속 쉬운 확장: **의료기기 온라인 허위·과대광고 탐지**(`medical_device_false_ad`) — 스코프 문서 [`docs/medical_device_false_ad_scope.md`](./docs/medical_device_false_ad_scope.md)와 키워드 룰셋이 준비되었습니다. 건강기능식품·일반식품·화장품 모듈을 대체하지 않으며, 신고서 템플릿·agency_config·샘플 E2E 테스트는 다음 단계입니다.
+- 후속 쉬운 확장: **의료기기 온라인 허위·과대광고 탐지**(`medical_device_false_ad`) — 스코프 문서 [`docs/medical_device_false_ad_scope.md`](./docs/medical_device_false_ad_scope.md), 키워드 룰셋, 신고서 템플릿이 준비되었습니다. 건강기능식품·일반식품·화장품 모듈을 대체하지 않습니다.
+- 후속 쉬운 확장: **위조상품 온라인 판매 의심 탐지**(`counterfeit_goods`) — 스코프 문서 [`docs/counterfeit_goods_online_sale_scope.md`](./docs/counterfeit_goods_online_sale_scope.md)와 키워드 룰셋(점검·보강)이 준비되었습니다. 위조 여부를 확정하지 않고 공개 판매글의 의심 신호를 검토 후보로 탐지하며, 앞선 모듈을 대체하지 않습니다.
 - 모든 모듈의 완료 기준: 공개자료 입력부터 사용자 직접 제출 및 접수번호·처리결과 수동 기록까지의 공통 흐름은 [`docs/roadmap_easy_first.md`](./docs/roadmap_easy_first.md)를 따릅니다.
 
 ## MVP Scope
