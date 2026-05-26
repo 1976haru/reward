@@ -26,6 +26,13 @@ import {
   LLM_EXPLANATION_NOTICE
 } from "../analysis/llmExplanationAnalysis.js";
 import {
+  runSubsidyPreReportFactCheck,
+  generateSubsidyFactCheckReport,
+  writeSubsidyFactCheckReport,
+  SUBSIDY_FACT_CHECK_NOTICE
+} from "../policy/subsidyPreReportChecklist.js";
+import type { SubsidyFactCheckInput } from "../types/subsidyFactCheck.js";
+import {
   analyzeSubsidySample,
   buildSubsidyReportMarkdown,
   getSubsidyCandidate,
@@ -611,6 +618,148 @@ subsidyRouter.get("/analysis/explain/latest", async (_req, res) => {
       disclaimer: SCORE_DISCLAIMER,
       humanReviewNotice: "설명형 분석은 공개자료 기준 검토 보조 의견입니다. 부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람 검토가 필요합니다.",
       safetyNotice: LLM_EXPLANATION_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// ---------- 신고 전 사실점검 11항목 (체크리스트 65) ----------
+
+const FACT_CHECK_OUTPUT_DIR = process.env.FACT_CHECK_OUTPUT_DIR ?? "data/fact-check";
+
+/** API 데모용 합성 Case (개인정보 원문 없음). 초안 가능 1건 + 차단 1건. */
+function buildDemoFactCheckCases(): SubsidyFactCheckInput[] {
+  return [
+    {
+      candidateId: "demo-ready-001",
+      evidenceIsPublic: true,
+      sourceUrl: "https://example.org/notice/1",
+      sourceFileName: "subsidy_2024.csv",
+      sourceRowNumber: 12,
+      collectedAt: "2026-05-01T00:00:00.000Z",
+      normalizedRecipientName: "정상검토대상협회",
+      normalizedProjectName: "청년지원사업",
+      amount: 30_000_000,
+      fiscalYear: 2024,
+      agencyName: "가상시청",
+      ruleHits: ["repeat_recipient", "similar_project_repeat"],
+      finalRiskScore: 72,
+      rewardPossibilityScore: 55,
+      explanation: {
+        summary: "공개자료 기준 검토 후보 설명.",
+        whyFlagged: ["반복수급 검토 후보"],
+        keyEvidence: ["공시URL:https://example.org/notice/1"],
+        additionalChecks: ["동일 기관 여부 확인"]
+      },
+      citationStrictPassed: true,
+      privacyScanPassed: true,
+      reviewerName: "검토자A",
+      reviewStatus: "approved",
+      reviewMemo: "공개자료 근거 확인 후 승인",
+      isFixtureBased: true
+    },
+    {
+      candidateId: "demo-blocked-002",
+      hasLoginRequiredSource: true,
+      normalizedProjectName: "사업명만 있음",
+      citationStrictPassed: false,
+      privacyScanPassed: false,
+      isFixtureBased: true
+    }
+  ];
+}
+
+const FactCheckRunSchema = z.object({
+  cases: z.array(z.any()).max(500).optional()
+});
+
+const FACT_CHECK_HUMAN_REVIEW_NOTICE =
+  "이 점검은 신고서 초안 생성 전 안전 확인 단계입니다. 부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람 검토가 필요합니다.";
+
+// POST /api/subsidy/fact-check/run — 11항목 점검 (cases 미지정 시 합성 데모)
+subsidyRouter.post("/fact-check/run", async (req, res) => {
+  try {
+    const body = FactCheckRunSchema.parse(req.body ?? {});
+    const usingDemo = !body.cases || body.cases.length === 0;
+    const cases = usingDemo ? buildDemoFactCheckCases() : (body.cases as SubsidyFactCheckInput[]);
+    const report = generateSubsidyFactCheckReport(cases, {
+      isFixtureBased: usingDemo,
+      sourceNote: usingDemo ? "api-demo-synthetic" : "api-input"
+    });
+    await writeSubsidyFactCheckReport(FACT_CHECK_OUTPUT_DIR, report);
+    res.json({
+      ok: true,
+      runId: report.runId,
+      totalCases: report.totalCases,
+      canGenerateCount: report.canGenerateCount,
+      overallSummary: report.overallSummary,
+      results: report.results,
+      reviewRequired: true,
+      notLegalConclusion: true,
+      autoSubmitAvailable: false,
+      rewardGuaranteed: false,
+      humanReviewNotice: FACT_CHECK_HUMAN_REVIEW_NOTICE,
+      safetyNotice: SUBSIDY_FACT_CHECK_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
+    }
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// GET /api/subsidy/fact-check/latest — 최근 사실점검 결과
+subsidyRouter.get("/fact-check/latest", async (_req, res) => {
+  try {
+    const runDir = await findLatestRunDir(FACT_CHECK_OUTPUT_DIR);
+    if (!runDir) {
+      return res.status(404).json(
+        errorBody("NO_RUN_FOUND", "사실점검 실행 기록이 없습니다. 먼저 POST /api/subsidy/fact-check/run 또는 `npm run subsidy:fact-check -- --fixture` 을 실행하세요.")
+      );
+    }
+    const report = JSON.parse(await readFile(path.join(runDir, "fact-check-report.json"), "utf8"));
+    res.json({
+      ok: true,
+      runId: report.runId,
+      createdAt: report.createdAt,
+      totalCases: report.totalCases,
+      canGenerateCount: report.canGenerateCount,
+      overallSummary: report.overallSummary,
+      results: report.results,
+      reviewRequired: true,
+      notLegalConclusion: true,
+      autoSubmitAvailable: false,
+      rewardGuaranteed: false,
+      humanReviewNotice: FACT_CHECK_HUMAN_REVIEW_NOTICE,
+      safetyNotice: SUBSIDY_FACT_CHECK_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// GET /api/subsidy/candidates/:id/fact-check — 후보 데모 11항목 점검(합성)
+subsidyRouter.get("/candidates/:id/fact-check", (req, res) => {
+  const id = req.params.id;
+  if (!/^[A-Za-z0-9_\-:]{1,64}$/.test(id)) {
+    return res.status(400).json(errorBody("VALIDATION_ERROR", `Invalid id: ${id}`));
+  }
+  try {
+    const demo = buildDemoFactCheckCases()[0];
+    const result = runSubsidyPreReportFactCheck({ ...demo, candidateId: id });
+    res.json({
+      ok: true,
+      result,
+      humanReviewNotice: FACT_CHECK_HUMAN_REVIEW_NOTICE,
+      safetyNotice: SUBSIDY_FACT_CHECK_NOTICE,
       autoReport: false,
       humanReviewRequired: true
     });

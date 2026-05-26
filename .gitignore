@@ -62,6 +62,8 @@ data/reward/score/*
 # 보상가능성 점수 API 산출물(체크리스트 62)은 커밋하지 않음
 data/reward-score/
 data/risk/score/runs/
+# 신고 전 사실점검 산출물(체크리스트 65)은 커밋하지 않음
+data/fact-check/
 # LLM 설명형 분석 산출물은 커밋하지 않음
 data/analysis/llm-explanation/runs/
 data/analysis/llm-explanation/tmp/

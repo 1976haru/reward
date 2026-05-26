@@ -155,6 +155,7 @@ export const FILE_WHITELIST = new Set([
   "scripts/check-output-settlement-risk-policy.js",
   "scripts/check-spending-anomaly-risk-policy.js",
   "scripts/check-subsidy-risk-rules-policy.js",
+  "scripts/check-subsidy-fact-check-policy.js",
   // 정규화/품질/룰 가이드·테스트 — 금지 표현표·단정 표현 검증 입력을 의도적으로 포함
   "docs/ENTITY_NORMALIZATION_GUIDE.md",
   "docs/ADDRESS_NORMALIZATION_GUIDE.md",
@@ -173,6 +174,7 @@ export const FILE_WHITELIST = new Set([
   "tests/outputSettlementRiskRule.test.ts",
   "tests/spendingAnomalyRiskRule.test.ts",
   "tests/subsidyRiskRules.test.ts",
+  "tests/subsidyPreReportFactCheck.test.ts",
   // 테스트 (검사 대상 문자열을 입력으로 사용)
   "tests/languagePolicy.test.ts",
   "tests/languagePolicy.test.js",

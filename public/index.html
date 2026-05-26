@@ -143,6 +143,20 @@
           </div>
           <p class="muted" style="font-size:12px;">현재 결과는 fixture 기반 검증이며 실제 신고 또는 보상·포상을 보장하지 않습니다. 실제 LLM API·외부 API는 호출하지 않습니다.</p>
           <div id="subsidyEngineDemoResult">엔진 현황을 불러오는 중...</div>
+
+          <!-- 신고 전 사실점검 11항목 안내 (체크리스트 65) -->
+          <div class="card" id="subsidyFactCheckCard" style="margin-top:12px;border:1px solid #e2e2e2;border-radius:8px;padding:12px;">
+            <h3 style="margin:0 0 6px;">신고 전 사실점검 11항목 (안전 확인 단계)</h3>
+            <p class="section-hint">신고서 초안 생성 전 반드시 거치는 안전 게이트입니다. 공개자료 여부 · 원본 출처 · 수집일시 · 식별 가능 여부 · 금액/연도/기관 · 위험룰 근거 · 위험점수/보상가능성 점수 · LLM 설명형 분석 · 근거검증 strict · 개인정보/API 키 스캔 · 사람 검토 승인을 점검합니다.</p>
+            <ul class="muted" style="font-size:12px;margin:6px 0;padding-left:18px;">
+              <li>이 점검은 신고서 초안 생성 전 안전 확인 단계입니다.</li>
+              <li>부정수급으로 단정하는 판단이 아닙니다.</li>
+              <li>근거 부족, 개인정보 노출, 사람 검토 없음 상태에서는 신고서 초안을 생성하지 않습니다.</li>
+              <li>각 항목은 PASS / WARNING / FAIL 로 표시되며, FAIL이 있으면 <code>canGenerateReportDraft=false</code> 입니다.</li>
+              <li>실제 신고는 사용자가 공식 창구에서 직접 제출해야 합니다.</li>
+            </ul>
+            <p class="muted" style="font-size:12px;">자동신고 없음 · 사람 검토 필수 · 포상금 보장 아님 — 운영 가이드: <code>docs/SUBSIDY_PRE_REPORT_FACT_CHECK.md</code></p>
+          </div>
         </section>
       </section>
 

@@ -833,6 +833,27 @@ npm run check:citations
 
 > 체크리스트 64: 검증 결과에 `totalClaims`·`supportedClaims`·`unsupportedClaims`·`warningClaims`·`failedClaims`·`strictPassed`·`suggestedFixes`·`privacyBlockedCitations`를 포함합니다. `rule-results.json`(룰 5종)을 직접 입력으로 받아 핵심 주장 근거를 검증합니다. `--fixture --strict`는 근거 누락 사례를 일부러 포함한 데모이며, `rule-results → analysis:llm-explain → validate:citations --strict` 실제 파이프라인으로 strict 통과를 확인할 수 있습니다. 선택 API: `POST /api/citations/validate`, `GET /api/citations/latest`.
 
+## 신고 전 사실점검 11항목 (Pre-Report Fact Check) · 체크리스트 65
+
+보조금 후보 Case가 **신고서 초안 생성**으로 넘어가기 전에 반드시 거쳐야 하는 **신고 전 사실점검 11항목** 안전 게이트입니다. 공개자료 여부·원본 출처·수집일시·식별 가능 여부·금액/연도/기관·위험룰 근거·위험점수/보상가능성 점수·LLM 설명형 분석·근거검증 strict·개인정보/API 키 스캔·사람 검토 승인을 점검합니다. **부정수급으로 단정하는 판단이 아닙니다.**
+
+- 게이트 모듈: [`src/policy/subsidyPreReportChecklist.ts`](./src/policy/subsidyPreReportChecklist.ts)
+- 표준 타입: [`src/types/subsidyFactCheck.ts`](./src/types/subsidyFactCheck.ts)
+- CLI: [`scripts/run-subsidy-fact-check.ts`](./scripts/run-subsidy-fact-check.ts)
+- 운영 가이드: [`docs/SUBSIDY_PRE_REPORT_FACT_CHECK.md`](./docs/SUBSIDY_PRE_REPORT_FACT_CHECK.md)
+
+각 항목은 `PASS`/`WARNING`/`FAIL`/`NOT_APPLICABLE`로 표시되고, **FAIL이 하나라도 있으면 `canGenerateReportDraft=false`** 입니다. 근거검증 strict 미통과·개인정보 스캔 미통과·사람 검토 승인 없음은 기본 차단(`BLOCKED`) 사유입니다. 결과에는 `overallStatus`·`canGenerateReportDraft`·`reviewRequired:true`·`notLegalConclusion:true`·`autoSubmitAvailable:false`·`rewardGuaranteed:false`가 포함됩니다.
+
+```bash
+npm run test:subsidy-fact-check
+npm run subsidy:fact-check -- --fixture
+npm run check:subsidy-fact-check
+```
+
+산출물(gitignore): `data/fact-check/runs/{runId}/` 에 `fact-check-report.json`·`fact-check-summary.md`·`metadata.json`. 선택 API: `POST /api/subsidy/fact-check/run`, `GET /api/subsidy/fact-check/latest`, `GET /api/subsidy/candidates/:id/fact-check`.
+
+> 다음 단계에서 사실점검을 통과(`canGenerateReportDraft=true`)한 Case에만 보조금 신고서 초안 생성·실제 신고처 연결·결과/보상 기록을 진행합니다(이번 범위 밖). 자동 신고·자동 제출은 없습니다.
+
 ## 브라우저에서 보조금 엔진 결과 확인 (UI 연결)
 
 체크리스트 11~25에서 구현한 보조금 탐지 엔진(수집기·파서·정규화·품질검증·룰 탐지·위험점수·보상가능성 점수·LLM 설명형 분석·근거 검증)을 브라우저 화면에서 직접 확인할 수 있습니다.
