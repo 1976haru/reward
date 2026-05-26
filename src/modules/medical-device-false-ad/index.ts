@@ -13,13 +13,15 @@ export const medicalDeviceFalseAdDefinition: ModuleDefinition = {
   category: "medical_device",
   status: "ready",
   capabilities: {
-    publicUrlAnalysis: false,
+    publicUrlAnalysis: true,
     ruleBasedDetection: true,
-    aiAnalysis: false,
-    evidencePackage: false,
-    reportDraft: false
+    aiAnalysis: true,
+    evidencePackage: true,
+    reportDraft: true
   },
   configPath: "src/modules/medical-device-false-ad/config.ts",
+  agencyConfigPath: "src/modules/medical-device-false-ad/agency_config.json",
+  reportTemplatePath: "src/modules/medical-device-false-ad/report_template.md",
   supportedInputTypes: ["public_url"],
   safetyNotes: [
     "건강기능식품(1차 MVP)·일반식품(2차)·화장품(3차)을 대체하지 않는 후속 확장 모듈",
@@ -39,7 +41,7 @@ export const medicalDeviceFalseAdDefinition: ModuleDefinition = {
       report: "식품의약품안전처, 국민신문고, 관할 보건소",
       evidence: "원본 URL, 광고 문구 원문, 화면 캡처, PDF 저장본, 판매자 공개 정보, 수집일시",
       reward: "사안·처분 결과·공식 기준에 따라 달라지며 수령을 보장하지 않습니다.",
-      caution: "현재는 스코프·키워드 룰셋까지 준비된 단계입니다. 신고서 초안·증거 패키지·agency_config 연결은 다음 단계에서 진행하며, 자동 신고는 하지 않습니다. 허가받은 효능·등급은 공식 허가 범위 내 표현일 수 있으므로 사람이 검토합니다."
+      caution: "키워드 룰셋·신고서 초안 템플릿·증거 패키지·신고처 안내가 연결된 확장 모듈입니다. 자동 신고는 하지 않으며, 실제 신고는 사람이 공식 창구에서 직접 제출합니다. 허가받은 효능·등급은 공식 허가 범위 내 표현일 수 있으므로 사람이 검토합니다."
     }
   }
 };

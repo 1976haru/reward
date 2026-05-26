@@ -145,6 +145,10 @@ export class ReportService {
     if (input.moduleId === "cosmetic_false_ad") {
       return this.buildCosmeticMarkdown(input, warnings);
     }
+    // 의료기기 허위·과대광고 (확장) — 허가 범위 초과·의료 효능 단정·의료기기 오인 관점의 전용 템플릿
+    if (input.moduleId === "medical_device_false_ad") {
+      return this.buildMedicalDeviceMarkdown(input, warnings);
+    }
     const title = sanitizeReportText(input.title ?? input.productName ?? input.caseId, warnings);
     const url = sanitizeReportText(input.url ?? "", warnings);
     const productName = sanitizeReportText(input.productName ?? "", warnings) || "(미식별)";
@@ -657,6 +661,131 @@ export class ReportService {
     lines.push(`## 9. 중립 신고 문구 예시`);
     lines.push("");
     lines.push(`다음 온라인 광고에서 화장품이 의약품·치료제처럼 오인될 수 있거나 인정된 기능성 화장품 범위를 넘는 표현이 포함된 것으로 보여 검토를 요청드립니다.`);
+    lines.push("");
+    lines.push(`첨부자료에는 원본 URL, 수집일시, 화면 캡처, PDF 저장본 및 의심 문구 정리표가 포함되어 있습니다. 본 신고는 법 위반을 단정하는 것이 아니라 관계 기관의 확인을 요청하는 취지입니다.`);
+    lines.push("");
+    lines.push(`## 10. 피해야 할 표현`);
+    lines.push("");
+    lines.push(`- 위반·불법 단정 표현 / 범죄·사기 단정 표현 / 무조건 처벌 요구`);
+    lines.push(`- 포상금 지급 요구·지급 단정 / 허위 사실 단정 / 고의성 단정`);
+    lines.push("");
+    lines.push(`## 11. 안내`);
+    lines.push("");
+    lines.push(`- 법 위반 확정 아님`);
+    lines.push(`- 포상금 지급 보장 아님`);
+    lines.push(`- 실제 신고는 사용자가 공식 창구에서 직접 제출`);
+    lines.push("");
+    lines.push(`---`);
+    lines.push(`자동 신고는 수행하지 않습니다. 본 초안은 사람 검토·수정 후 사용자가 직접 공식 신고 창구에 제출하는 자료입니다.`);
+    return lines.join("\n");
+  }
+
+  // ---------- 의료기기 허위·과대광고 신고서 초안 (체크리스트 42) ----------
+  // 기존 템플릿을 복사하지 않고, 의료기기(허가 범위 초과·의료 효능 단정·의료기기 오인) 맥락에 맞게 조정한다.
+  private buildMedicalDeviceMarkdown(input: ReportDraftInput, warnings: string[]): string {
+    const title = sanitizeReportText(input.title ?? input.productName ?? input.caseId, warnings);
+    const url = sanitizeReportText(input.url ?? "", warnings) || "(미기록)";
+    const productName = sanitizeReportText(input.productName ?? "", warnings) || "(미식별)";
+    const agency = sanitizeReportText(input.agencyCandidate ?? "식품의약품안전처 (후보)", warnings);
+    const priorityScore = typeof input.priorityScore === "number" ? input.priorityScore : null;
+    const priorityLabel = sanitizeReportText(input.priorityLabel ?? "", warnings) || "(미계산)";
+    const captured = sanitizeReportText(input.capturedAt ?? input.evidence?.capturedAt ?? "", warnings) || "(미기록)";
+
+    const matches = (input.ruleMatches ?? []).slice(0, 30);
+    const matchRows = matches.length
+      ? matches.map((m, i) =>
+          `| ${i + 1} | ${escapeMd(sanitizeReportText(m.sentence ?? m.keyword, warnings))} | ${escapeMd(m.riskLevel)} | ${escapeMd(m.sourceSection ?? m.category ?? "main")} | ${escapeMd(sanitizeReportText(m.reason, warnings))} |`
+        ).join("\n")
+      : "| - | - | - | - | 매치된 룰이 없습니다. |";
+
+    const evidenceFiles = input.evidence?.files ?? [];
+    const evidenceRows = evidenceFiles.length
+      ? evidenceFiles.map((f, i) => `| ${i + 1} | ${escapeMd(f.name)} | ${escapeMd(f.mimeType)} (${f.size}B) | \`${escapeMd((f.sha256 ?? "").slice(0, 16))}…\` |`).join("\n")
+      : "| - | - | 증거 패키지가 아직 생성되지 않았습니다. 신고 전 캡처/PDF 저장을 권장합니다. | - |";
+
+    const llm = input.llmAnalysis ?? null;
+    const aiSummary = sanitizeReportText(llm?.summary ?? "(AI 분석 요약이 제공되지 않았습니다)", warnings);
+    const aiLikelihood = llm ? `${llm.violationLikelihood} / ${llm.overallRisk}` : "(미수행)";
+    const scoring = input.scoringResult ?? null;
+    const scoringComps = scoring
+      ? scoring.components.map((c) => `- ${c.label}: ${c.score}/${c.maxPoints}`).join("\n")
+      : "- (점수 미계산)";
+
+    const lines: string[] = [];
+    lines.push(`# 의료기기 온라인 허위·과대광고 신고 후보 검토 요청서 초안`);
+    lines.push("");
+    lines.push(`> 본 문서는 **자동 신고서가 아닙니다.** 사람이 검토·수정 후 공식 신고 창구에 직접 제출하는 보조 자료입니다.`);
+    lines.push(`> 본 결과는 **법 위반 확정이 아닙니다.** 의료기기 광고가 허가 범위를 초과하거나 의료적 효능을 단정하는지, 또는 의료기기가 아닌 제품을 의료기기처럼 보이게 하는지 검토를 요청하는 취지이며, 포상금 지급을 보장하지 않습니다.`);
+    lines.push("");
+    lines.push(`## 1. 제목`);
+    lines.push("");
+    lines.push(`의료기기 온라인 광고 표현 관련 검토 요청 — ${title}`);
+    lines.push("");
+    lines.push(`## 2. 신고 후보 요약`);
+    lines.push("");
+    lines.push(`- 신고 후보 유형: 의료기기 온라인 허위·과대광고 의심`);
+    lines.push(`- 의료기기 광고 유형: 질병 치료·예방·완치 / 허가받지 않은 효능 단정 / 허가 범위 초과 / 의료기기 오인 / 통증·혈압·혈당·관절·디스크·불면 증상 오인 / 병원 치료 대체 / 즉시효과·100% 보장 / 체험담 단정 (해당 항목 사람 확인 필요)`);
+    lines.push(`- 의료기기 허가/인증 확인 필요 여부: 공식 허가·인증 여부 사람 확인 필요`);
+    lines.push(`- 허가 범위 초과 표현 확인 필요 여부: 허가 범위 내 표현인지 사람 확인 필요`);
+    lines.push(`- 신고처 후보: ${agency}`);
+    lines.push(`- 원본 URL: ${url}`);
+    lines.push(`- 수집일시: ${captured}`);
+    lines.push(`- 상품명 또는 광고 제목: ${productName}`);
+    lines.push(`- 판매자 표시 정보: ${(input.sellerCandidates ?? []).map((s) => sanitizeReportText(s, warnings)).join(" / ") || "(공개 표시 정보 확인 필요)"}`);
+    lines.push(`- 신고 후보 우선순위 점수: ${priorityScore != null ? `${priorityScore}/100 (${priorityLabel})` : "(미계산)"}`);
+    lines.push(`- 상태: ${sanitizeReportText(input.status ?? "DRAFT", warnings)}`);
+    lines.push(`- 주의: 본 문서는 자동 신고서가 아니라 사람이 검토·수정 후 제출할 수 있는 초안입니다.`);
+    lines.push("");
+    lines.push(`## 3. 의심 문구 (검토 후보)`);
+    lines.push("");
+    lines.push(`아래 문구는 의료기기 키워드 룰과 AI 문맥 검토로 분류된 검토 후보 표현입니다. 법 위반 확정이 아니라 관계 기관 검토 요청 대상입니다.`);
+    lines.push(`허가받은 효능·등급은 공식 허가 범위 내 표현일 수 있으므로, 범위를 넘는 단정·치료·완치 표현인지 사람이 검토해야 합니다.`);
+    lines.push("");
+    lines.push(`| No | 문구 | 위험도 | 위치/분류 | 검토 필요 사유 |`);
+    lines.push(`|----|------|--------|-----------|----------------|`);
+    lines.push(matchRows);
+    lines.push("");
+    lines.push(`## 4. AI 문맥 검토 요약`);
+    lines.push("");
+    lines.push(`- AI 분석 요약: ${aiSummary}`);
+    lines.push(`- 위반 가능성 검토 의견(후보): ${aiLikelihood}`);
+    lines.push(`AI 분석은 법률 자문이나 행정기관 판단을 대체하지 않습니다.`);
+    lines.push("");
+    lines.push(`## 5. 룰 탐지 결과 / 위험점수 (참고)`);
+    lines.push("");
+    lines.push(scoringComps);
+    lines.push("");
+    lines.push(`> 본 점수는 사람이 먼저 검토할 후보의 우선순위 참고용이며, 법 위반 확정이나 포상금 지급 가능성을 의미하지 않습니다.`);
+    lines.push("");
+    lines.push(`## 6. 증거 자료 목록`);
+    lines.push("");
+    lines.push(`| No | 파일명 | 유형 | 해시(앞 16자) |`);
+    lines.push(`|----|--------|------|----------------|`);
+    lines.push(evidenceRows);
+    lines.push("");
+    lines.push(`## 7. 신고 전 사람 검토 체크리스트`);
+    lines.push("");
+    lines.push(`- [ ] 원본 URL이 공개 페이지인지 확인`);
+    lines.push(`- [ ] 캡처와 PDF가 정상 열리는지 확인`);
+    lines.push(`- [ ] 의심 문구가 실제 광고 페이지에 표시되는지 확인`);
+    lines.push(`- [ ] 의료기기 허가/인증 여부 및 허가 범위 내 표현인지 확인`);
+    lines.push(`- [ ] 의료기기가 아닌 제품을 의료기기처럼 표시했는지 확인`);
+    lines.push(`- [ ] 개인정보가 불필요하게 포함되지 않았는지 확인`);
+    lines.push(`- [ ] 신고처 공식 안내를 확인`);
+    lines.push(`- [ ] 포상금 지급을 단정·약속하는 표현이 없는지 확인`);
+    lines.push(`- [ ] 최종 제출 문구를 사람이 직접 검토`);
+    lines.push("");
+    lines.push(`## 8. 공식 신고처 후보`);
+    lines.push("");
+    lines.push(`- 식품의약품안전처 (의료기기 표시·광고 관련 신고)`);
+    lines.push(`- 국민신문고`);
+    lines.push(`- 관할 지자체 · 보건소 · 관련 행정기관`);
+    lines.push("");
+    lines.push(`구체적 신고처와 포상금 지급 여부는 공식 기준과 조사 결과에 따라 달라질 수 있습니다. 공식 URL은 변경될 수 있으니 신고 전 공식 사이트에서 확인하세요.`);
+    lines.push("");
+    lines.push(`## 9. 중립 신고 문구 예시`);
+    lines.push("");
+    lines.push(`다음 온라인 광고에서 의료기기가 허가 범위를 초과하거나 의료적 효능을 단정하는 표현, 또는 의료기기가 아닌 제품을 의료기기처럼 오인하게 하는 표현이 포함된 것으로 보여 검토를 요청드립니다.`);
     lines.push("");
     lines.push(`첨부자료에는 원본 URL, 수집일시, 화면 캡처, PDF 저장본 및 의심 문구 정리표가 포함되어 있습니다. 본 신고는 법 위반을 단정하는 것이 아니라 관계 기관의 확인을 요청하는 취지입니다.`);
     lines.push("");

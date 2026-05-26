@@ -2097,6 +2097,56 @@ try {
     cmAgencies.every((a) => a.manualSubmissionOnly === true && a.autoSubmitAvailable === false));
 }
 
+// 의료기기 신고서 초안 템플릿 (체크리스트 42)
+const mdRptCaseId = "rpt_md_smoke_" + Math.random().toString(36).slice(2, 8);
+try {
+  const out = await rpt.generateDraft({
+    caseId: mdRptCaseId,
+    moduleId: "medical_device_false_ad",
+    title: "저주파치료기 광고",
+    url: "https://example.test/m",
+    productName: "저주파치료기",
+    status: "REVIEW",
+    agencyCandidate: "식품의약품안전처 (후보)",
+    priorityScore: 74,
+    priorityLabel: "검토 우선",
+    capturedAt: new Date().toISOString(),
+    ruleMatches: [
+      { ruleId: "MH006", keyword: "디스크 완치", riskLevel: "HIGH", weight: 25, category: "disease_cure_claim", reason: "척추질환 완치 표현 검토 필요", matchType: "keyword", sentence: "디스크 완치", excerpt: "디스크 완치", sourceSection: "claim" } as any
+    ],
+    evidence: { hasHtml: true, hasText: true, capturedAt: new Date().toISOString(), files: [] },
+    sellerCandidates: []
+  });
+  check("[CL42] 의료기기 신고서 제목", /의료기기 온라인 허위·과대광고 신고 후보/.test(out.markdown));
+  check("[CL42] 의료기기 신고서 ≠ 건강기능식품/일반식품/화장품 제목",
+    !/건강기능식품 온라인 허위·과대광고 신고 후보 검토 요청서/.test(out.markdown) &&
+    !/일반식품 온라인 허위·과대광고 신고 후보/.test(out.markdown) &&
+    !/화장품 온라인 허위·과대광고 신고 후보/.test(out.markdown));
+  check("[CL42] 의료기기 신고서 허가/인증 확인 항목", out.markdown.includes("의료기기 허가/인증 확인 필요 여부"));
+  check("[CL42] 의료기기 신고서 허가 범위 초과 확인 항목", out.markdown.includes("허가 범위 초과 표현 확인 필요 여부"));
+  check("[CL42] 의료기기 신고서 신고처 식약처/국민신문고 포함", out.markdown.includes("식품의약품안전처") && out.markdown.includes("국민신문고"));
+  check("[CL42] 의료기기 신고서 '법 위반 확정이 아닙니다' 안내", out.markdown.includes("법 위반 확정이 아닙니다"));
+  check("[CL42] 의료기기 신고서 '자동 신고서가 아닙니다' 안내", out.markdown.includes("자동 신고서가 아닙니다"));
+  const mdClaim = out.markdown.split("## 10. 피해야 할 표현")[0];
+  check("[CL42] 의료기기 신고서 주장부에 불법 확정 없음", !/불법\s*확정/.test(mdClaim));
+} finally {
+  const { rm: rmFn4 } = await import("node:fs/promises");
+  try { await rmFn4(rpt.getReportDir(mdRptCaseId), { recursive: true, force: true }); } catch { /* ignore */ }
+}
+
+// 의료기기 공식 신고처 Registry (체크리스트 42)
+{
+  const { reportingRegistryService } = await import("../services/reporting/ReportingRegistry.js");
+  const mdAgencies = reportingRegistryService.listByModule("medical_device_false_ad");
+  check("[CL42] medical_device 신고처 3곳 이상", mdAgencies.length >= 3);
+  check("[CL42] medical_device 신고처 식약처/국민신문고/지자체·행정기관 포함",
+    mdAgencies.some((a) => a.agencyName.includes("식품의약품안전처")) &&
+    mdAgencies.some((a) => a.agencyName.includes("국민신문고")) &&
+    mdAgencies.some((a) => a.agencyName.includes("지자체") || a.agencyName.includes("행정기관")));
+  check("[CL42] medical_device 신고처 manualSubmissionOnly/autoSubmitAvailable 고정",
+    mdAgencies.every((a) => a.manualSubmissionOnly === true && a.autoSubmitAvailable === false));
+}
+
 // 25) Subsidy Fraud Prototype — module registration, sample analysis, signals, scoring, report
 check("subsidy module id", subsidyFraudDefinition.id === "subsidy_fraud");
 check("subsidy module slug", subsidyFraudDefinition.slug === "subsidy-fraud");
