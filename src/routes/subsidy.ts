@@ -33,6 +33,12 @@ import {
 } from "../policy/subsidyPreReportChecklist.js";
 import type { SubsidyFactCheckInput } from "../types/subsidyFactCheck.js";
 import {
+  generateSubsidyReportDraft,
+  writeSubsidyReportDraft,
+  SUBSIDY_REPORT_DRAFT_NOTICE
+} from "../reports/subsidyReportDraft.js";
+import type { SubsidyReportDraftInput } from "../types/subsidyReportDraft.js";
+import {
   analyzeSubsidySample,
   buildSubsidyReportMarkdown,
   getSubsidyCandidate,
@@ -763,6 +769,90 @@ subsidyRouter.get("/candidates/:id/fact-check", (req, res) => {
       autoReport: false,
       humanReviewRequired: true
     });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// ---------- 보조금 신고서 초안 생성 (체크리스트 66) ----------
+
+const REPORTS_OUTPUT_DIR = process.env.REPORTS_OUTPUT_DIR ?? "data/reports";
+
+/** 초안 결과를 API 응답 형태(파일 경로 비노출)로 변환. */
+function toReportDraftApi(result: ReturnType<typeof generateSubsidyReportDraft>) {
+  return {
+    candidateId: result.candidateId,
+    caseId: result.caseId,
+    moduleId: result.moduleId,
+    draftCreated: result.draftCreated,
+    blockedReason: result.blockedReason,
+    blockedCode: result.blockedCode,
+    factCheckOverallStatus: result.factCheckOverallStatus,
+    canGenerateReportDraft: result.canGenerateReportDraft,
+    reportFiles: result.reportFiles.map((f) => ({ name: f.name, format: f.format, mime: f.mime })),
+    metadata: result.metadata,
+    warnings: result.warnings,
+    isDraft: true,
+    humanReviewRequired: true,
+    autoSubmitted: false,
+    rewardGuaranteed: false,
+    notLegalConclusion: true,
+    humanReviewNotice:
+      "신고서 초안은 실제 신고 제출이 아닙니다. 부정수급으로 단정하지 않으며 포상금 지급을 보장하지 않습니다. 사람이 근거와 개인정보를 다시 확인하고 공식 창구에서 직접 제출해야 합니다.",
+    safetyNotice: SUBSIDY_REPORT_DRAFT_NOTICE,
+    autoReport: false
+  };
+}
+
+const ReportDraftRunSchema = z.object({
+  cases: z.array(z.any()).max(200).optional()
+});
+
+// POST /api/subsidy/report-draft/run — 사실점검 게이트 후 신고서 초안 생성(cases 미지정 시 합성 데모)
+subsidyRouter.post("/report-draft/run", async (req, res) => {
+  try {
+    const body = ReportDraftRunSchema.parse(req.body ?? {});
+    const usingDemo = !body.cases || body.cases.length === 0;
+    const cases = (usingDemo ? buildDemoFactCheckCases() : body.cases) as SubsidyReportDraftInput[];
+    const drafts = [];
+    for (const input of cases) {
+      const result = generateSubsidyReportDraft(input);
+      if (result.draftCreated) await writeSubsidyReportDraft(REPORTS_OUTPUT_DIR, result);
+      drafts.push(toReportDraftApi(result));
+    }
+    res.json({
+      ok: true,
+      totalCases: cases.length,
+      draftCreatedCount: drafts.filter((d) => d.draftCreated).length,
+      blockedCount: drafts.filter((d) => !d.draftCreated).length,
+      drafts,
+      reviewRequired: true,
+      autoSubmitted: false,
+      rewardGuaranteed: false,
+      notLegalConclusion: true,
+      safetyNotice: SUBSIDY_REPORT_DRAFT_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
+    }
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// GET /api/subsidy/candidates/:id/report-draft — 후보 데모 초안 생성 상태(게이트 적용)
+subsidyRouter.get("/candidates/:id/report-draft", async (req, res) => {
+  const id = req.params.id;
+  if (!/^[A-Za-z0-9_\-:]{1,64}$/.test(id)) {
+    return res.status(400).json(errorBody("VALIDATION_ERROR", `Invalid id: ${id}`));
+  }
+  try {
+    const demo = buildDemoFactCheckCases()[0] as SubsidyReportDraftInput;
+    const result = generateSubsidyReportDraft({ ...demo, candidateId: id });
+    if (result.draftCreated) await writeSubsidyReportDraft(REPORTS_OUTPUT_DIR, result);
+    res.json({ ok: true, ...toReportDraftApi(result) });
   } catch (error) {
     res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
   }

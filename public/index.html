@@ -157,6 +157,21 @@
             </ul>
             <p class="muted" style="font-size:12px;">자동신고 없음 · 사람 검토 필수 · 포상금 보장 아님 — 운영 가이드: <code>docs/SUBSIDY_PRE_REPORT_FACT_CHECK.md</code></p>
           </div>
+
+          <!-- 보조금 신고서 초안 생성 안내 (체크리스트 66) -->
+          <div class="card" id="subsidyReportDraftCard" style="margin-top:12px;border:1px solid #e2e2e2;border-radius:8px;padding:12px;">
+            <h3 style="margin:0 0 6px;">보조금 신고서 초안 생성 (검토·수정용)</h3>
+            <p class="section-hint">신고 전 사실점검 11항목을 통과(<code>canGenerateReportDraft=true</code>)한 후보만 신고서 초안을 생성할 수 있습니다. 초안 생성 가능 여부는 사실점검 결과와 연결됩니다.</p>
+            <ul class="muted" style="font-size:12px;margin:6px 0;padding-left:18px;">
+              <li>신고서 초안은 실제 신고 제출이 아닙니다.</li>
+              <li>부정수급으로 단정하는 판단이 아닙니다.</li>
+              <li>사람이 근거와 개인정보를 다시 확인해야 합니다.</li>
+              <li>실제 신고는 사용자가 공식 창구에서 직접 제출해야 합니다.</li>
+              <li><code>canGenerateReportDraft=false</code>이면 초안 생성이 차단되고 한국어 보강 사유가 표시됩니다.</li>
+              <li>생성 시 report.md / report.txt / report.docx / report_metadata.json 파일 목록을 확인할 수 있습니다.</li>
+            </ul>
+            <p class="muted" style="font-size:12px;">자동신고 없음 · 사람 검토 필수 · 포상금 보장 아님 — 운영 가이드: <code>docs/SUBSIDY_REPORT_DRAFT_GUIDE.md</code></p>
+          </div>
         </section>
       </section>
 

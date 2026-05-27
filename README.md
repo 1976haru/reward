@@ -854,6 +854,27 @@ npm run check:subsidy-fact-check
 
 > 다음 단계에서 사실점검을 통과(`canGenerateReportDraft=true`)한 Case에만 보조금 신고서 초안 생성·실제 신고처 연결·결과/보상 기록을 진행합니다(이번 범위 밖). 자동 신고·자동 제출은 없습니다.
 
+## 보조금 신고서 초안 생성 (Gated Report Draft) · 체크리스트 66
+
+신고 전 사실점검 11항목을 통과(`canGenerateReportDraft=true`)한 후보에 한해 사람이 **검토·수정**할 수 있는 **신고서 초안**을 생성합니다. **실제 신고 제출이 아닙니다.** 근거검증 strict fail·개인정보 스캔 fail·사람 검토 없음·공개자료 근거 없음·원본 출처 없음·핵심 필드 부족이면 생성을 차단하고 안전 오류(`REPORT_DRAFT_BLOCKED_BY_FACT_CHECK`)와 한국어 사유를 반환합니다(서버 중단 없음).
+
+- 생성기: [`src/reports/subsidyReportDraft.ts`](./src/reports/subsidyReportDraft.ts)
+- 표준 타입: [`src/types/subsidyReportDraft.ts`](./src/types/subsidyReportDraft.ts)
+- CLI: [`scripts/run-subsidy-report-draft.ts`](./scripts/run-subsidy-report-draft.ts)
+- 운영 가이드: [`docs/SUBSIDY_REPORT_DRAFT_GUIDE.md`](./docs/SUBSIDY_REPORT_DRAFT_GUIDE.md)
+
+초안 파일은 `data/reports/subsidy/{candidateId}/` 에 `report.md`·`report.txt`·`report.docx`·`report_metadata.json`으로 저장(gitignore)됩니다. 결과에 `draftCreated`·`blockedReason`·`reportFiles`·`metadata`·`warnings`·`humanReviewRequired:true`·`autoSubmitted:false`·`rewardGuaranteed:false`·`notLegalConclusion:true`가 포함됩니다. 대표자명·연락처·계좌·상세주소 원문은 초안/metadata에 넣지 않습니다.
+
+```bash
+npm run test:subsidy-report-draft
+npm run subsidy:report-draft -- --fixture
+npm run check:subsidy-report-draft
+```
+
+선택 API: `POST /api/subsidy/report-draft/run`, `GET /api/subsidy/candidates/:id/report-draft`.
+
+> 다음 단계에서 사람이 초안을 검토·수정한 뒤 실제 신고처 수동 제출·수동 신고 기록·결과/보상 기록을 진행합니다(이번 범위 밖). 자동 신고·자동 로그인·공식 양식 자동입력은 없습니다.
+
 ## 브라우저에서 보조금 엔진 결과 확인 (UI 연결)
 
 체크리스트 11~25에서 구현한 보조금 탐지 엔진(수집기·파서·정규화·품질검증·룰 탐지·위험점수·보상가능성 점수·LLM 설명형 분석·근거 검증)을 브라우저 화면에서 직접 확인할 수 있습니다.

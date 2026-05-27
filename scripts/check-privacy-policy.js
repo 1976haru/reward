@@ -164,6 +164,8 @@ export const FILE_WHITELIST = new Set([
   "tests/subsidyRiskRules.test.ts",
   // 신고 전 사실점검 11항목 — 합성 PII 미포함 검증용 테스트 (체크리스트 65)
   "tests/subsidyPreReportFactCheck.test.ts",
+  // 보조금 신고서 초안 — 합성 PII 미포함 검증용 테스트 (체크리스트 66)
+  "tests/subsidyReportDraft.test.ts",
   // 모듈 분석 프롬프트 / 평가셋 (의도적 픽스처)
   "src/modules/false-ad/analysis_prompt.md",
   "src/modules/false-ad/agency_config.json",
