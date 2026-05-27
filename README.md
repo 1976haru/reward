@@ -875,6 +875,24 @@ npm run check:subsidy-report-draft
 
 > 다음 단계에서 사람이 초안을 검토·수정한 뒤 실제 신고처 수동 제출·수동 신고 기록·결과/보상 기록을 진행합니다(이번 범위 밖). 자동 신고·자동 로그인·공식 양식 자동입력은 없습니다.
 
+## 보조금 수동 신고 연결 + 결과·보상 기록 · 체크리스트 67~68
+
+신고서 초안 후보에 대해 **공식 신고처 외부 링크만** 안내하고, 사용자가 **직접** 제출한 뒤 접수번호·처리상태·결과·보상을 내부에 수동 기록합니다. **자동 신고·자동 로그인·공식 양식 자동입력·포상금 자동신청은 구현하지 않으며**, 외부로 신고서 내용·개인정보·식별자(caseId/candidateId)를 자동 전송하지 않습니다(URL query parameter 부착 금지).
+
+- 신고처 링크: [`src/services/subsidyReportingLinks.ts`](./src/services/subsidyReportingLinks.ts) · 운영 가이드 [`docs/SUBSIDY_MANUAL_REPORTING_GUIDE.md`](./docs/SUBSIDY_MANUAL_REPORTING_GUIDE.md)
+- 결과 기록: [`src/services/subsidyOutcomeTracker.ts`](./src/services/subsidyOutcomeTracker.ts) · 표준 타입 [`src/types/subsidyOutcome.ts`](./src/types/subsidyOutcome.ts) · 운영 가이드 [`docs/SUBSIDY_OUTCOME_TRACKING_GUIDE.md`](./docs/SUBSIDY_OUTCOME_TRACKING_GUIDE.md)
+
+상태 흐름: Draft → Review → Approved → Report Draft → Ready For Manual Submission → Submitted Manually → Under Review → Completed/Rejected. **자동으로 Submitted 상태가 되지 않습니다.** `submitted_manually` 전환에는 `confirmManualSubmission:true`·기록자·신고기관·접수번호(`externalReceiptNo`/`referenceNumber`)·`manualSubmissionNote`가 모두 필요합니다. `rewardAmount`는 실제 지급 확인(`rewardConfirmedAt`) 후에만 저장하고 예상액·자동 산정액은 저장하지 않습니다. 모든 텍스트는 저장 전 마스킹하며 응답/기록/로그에 `autoSubmitted:false`·`rewardGuaranteed:false`·`notLegalConclusion:true`가 포함됩니다. 산출물은 `data/outcomes/subsidy/`(gitignore)에 저장됩니다.
+
+```bash
+npm run test:subsidy-outcome
+npm run check:subsidy-manual-reporting
+```
+
+API: `GET /api/subsidy/reporting-links` · `POST/GET/PATCH /api/subsidy/candidates/:id/outcome` · `GET /api/subsidy/outcomes`.
+
+> 다음 단계에서 운영 대시보드·일일 운영 루틴·릴리즈 준비를 진행합니다(이번 범위 밖).
+
 ## 브라우저에서 보조금 엔진 결과 확인 (UI 연결)
 
 체크리스트 11~25에서 구현한 보조금 탐지 엔진(수집기·파서·정규화·품질검증·룰 탐지·위험점수·보상가능성 점수·LLM 설명형 분석·근거 검증)을 브라우저 화면에서 직접 확인할 수 있습니다.

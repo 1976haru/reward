@@ -39,6 +39,18 @@ import {
 } from "../reports/subsidyReportDraft.js";
 import type { SubsidyReportDraftInput } from "../types/subsidyReportDraft.js";
 import {
+  buildSubsidyReportingLinks,
+  SUBSIDY_REPORTING_LINKS_NOTICE
+} from "../services/subsidyReportingLinks.js";
+import {
+  recordSubsidyOutcome,
+  updateSubsidyOutcome,
+  getSubsidyOutcome,
+  listSubsidyOutcomes,
+  SUBSIDY_OUTCOME_NOTICE
+} from "../services/subsidyOutcomeTracker.js";
+import type { SubsidyOutcomeInput } from "../types/subsidyOutcome.js";
+import {
   analyzeSubsidySample,
   buildSubsidyReportMarkdown,
   getSubsidyCandidate,
@@ -853,6 +865,126 @@ subsidyRouter.get("/candidates/:id/report-draft", async (req, res) => {
     const result = generateSubsidyReportDraft({ ...demo, candidateId: id });
     if (result.draftCreated) await writeSubsidyReportDraft(REPORTS_OUTPUT_DIR, result);
     res.json({ ok: true, ...toReportDraftApi(result) });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// ---------- 수동 실제 신고 연결 (체크리스트 67) ----------
+
+// GET /api/subsidy/reporting-links — 공식 신고처 "단순 외부 링크" 안내(자동 전송 없음)
+subsidyRouter.get("/reporting-links", (_req, res) => {
+  try {
+    res.json({
+      ok: true,
+      category: "subsidy",
+      links: buildSubsidyReportingLinks(),
+      manualSubmissionOnly: true,
+      autoSubmitAvailable: false,
+      rewardGuaranteed: false,
+      notice: SUBSIDY_REPORTING_LINKS_NOTICE,
+      autoReport: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// ---------- 결과·보상 기록 (체크리스트 68) ----------
+
+const OUTCOMES_OUTPUT_DIR = process.env.OUTCOMES_OUTPUT_DIR ?? "data/outcomes/subsidy";
+const VALID_ID_RE = /^[A-Za-z0-9_\-:]{1,64}$/;
+
+const OutcomeBodySchema = z.object({
+  caseId: z.string().max(64).optional(),
+  submittedManually: z.boolean().optional(),
+  confirmManualSubmission: z.boolean().optional(),
+  recorderName: z.string().max(120).optional(),
+  reviewerName: z.string().max(120).optional(),
+  agencyName: z.string().max(200).optional(),
+  officialUrl: z.string().max(500).optional(),
+  externalReceiptNo: z.string().max(120).optional(),
+  referenceNumber: z.string().max(120).optional(),
+  manualSubmissionNote: z.string().max(2000).optional(),
+  submittedAt: z.string().max(40).optional(),
+  status: z.enum(["draft", "submitted_manually", "under_review", "completed", "rejected", "unknown"]).optional(),
+  decision: z.string().max(500).optional(),
+  result: z.string().max(500).optional(),
+  rewardRelated: z.boolean().optional(),
+  rewardAmount: z.number().optional(),
+  rewardConfirmedAt: z.string().max(40).optional(),
+  memo: z.string().max(2000).optional(),
+  changedBy: z.string().max(120).optional(),
+  reason: z.string().max(500).optional()
+});
+
+function outcomeResponse(extra: Record<string, unknown>) {
+  return {
+    autoSubmitted: false,
+    rewardGuaranteed: false,
+    notLegalConclusion: true,
+    humanReviewRequired: true,
+    notice: SUBSIDY_OUTCOME_NOTICE,
+    ...extra
+  };
+}
+
+// POST /api/subsidy/candidates/:id/outcome — 사용자가 직접 제출한 결과를 수동 기록
+subsidyRouter.post("/candidates/:id/outcome", async (req, res) => {
+  const id = req.params.id;
+  if (!VALID_ID_RE.test(id)) return res.status(400).json(errorBody("VALIDATION_ERROR", `Invalid id: ${id}`));
+  try {
+    const body = OutcomeBodySchema.parse(req.body ?? {});
+    const input: SubsidyOutcomeInput = { ...body, candidateId: id };
+    const result = await recordSubsidyOutcome(input, OUTCOMES_OUTPUT_DIR);
+    if (!result.ok) {
+      return res.status(400).json(errorBody(result.code ?? "OUTCOME_ERROR", result.message ?? "기록할 수 없습니다.", { warnings: result.warnings }));
+    }
+    res.json(outcomeResponse({ ok: true, outcome: result.record, warnings: result.warnings }));
+  } catch (error) {
+    if (error instanceof ZodError) return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// GET /api/subsidy/candidates/:id/outcome — 후보 결과 기록 조회
+subsidyRouter.get("/candidates/:id/outcome", async (req, res) => {
+  const id = req.params.id;
+  if (!VALID_ID_RE.test(id)) return res.status(400).json(errorBody("VALIDATION_ERROR", `Invalid id: ${id}`));
+  try {
+    const record = await getSubsidyOutcome(id, OUTCOMES_OUTPUT_DIR);
+    if (!record) return res.status(404).json(errorBody("OUTCOME_NOT_FOUND", "결과 기록이 없습니다."));
+    res.json(outcomeResponse({ ok: true, outcome: record }));
+  } catch (error) {
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// PATCH /api/subsidy/candidates/:id/outcome — 처리상태/결과/포상 업데이트(상태 전이 가드)
+subsidyRouter.patch("/candidates/:id/outcome", async (req, res) => {
+  const id = req.params.id;
+  if (!VALID_ID_RE.test(id)) return res.status(400).json(errorBody("VALIDATION_ERROR", `Invalid id: ${id}`));
+  try {
+    const body = OutcomeBodySchema.parse(req.body ?? {});
+    const result = await updateSubsidyOutcome(id, body, OUTCOMES_OUTPUT_DIR);
+    if (!result.ok) {
+      const code = result.code ?? "OUTCOME_ERROR";
+      const status = code === "OUTCOME_NOT_FOUND" ? 404 : 400;
+      return res.status(status).json(errorBody(code, result.message ?? "업데이트할 수 없습니다.", { warnings: result.warnings }));
+    }
+    res.json(outcomeResponse({ ok: true, outcome: result.record, warnings: result.warnings }));
+  } catch (error) {
+    if (error instanceof ZodError) return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
+// GET /api/subsidy/outcomes — 결과 기록 목록(내부 추적용)
+subsidyRouter.get("/outcomes", async (_req, res) => {
+  try {
+    const records = await listSubsidyOutcomes(OUTCOMES_OUTPUT_DIR);
+    res.json(outcomeResponse({ ok: true, total: records.length, outcomes: records }));
   } catch (error) {
     res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
   }
