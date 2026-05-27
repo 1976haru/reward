@@ -909,6 +909,13 @@ npm run test:operations
 
 > 다음 단계에서 GitHub 체크리스트 운영·릴리즈 기준·v1.0 태그 생성을 진행합니다(이번 범위 밖).
 
+## 체크리스트 진행 현황 · v1.0 릴리즈 기준 · 체크리스트 72~73
+
+- 체크리스트 진행 현황(완료/진행중/보류/보완필요/다음 단계 + 구간 요약 + 커밋 연결): [`docs/CHECKLIST_PROGRESS.md`](./docs/CHECKLIST_PROGRESS.md)
+- v1.0 릴리즈 기준·검증 명령·판정(PASS/PASS_WITH_WARNINGS/NEEDS_FIX/BLOCKED)·태그 절차: [`docs/RELEASE_CRITERIA.md`](./docs/RELEASE_CRITERIA.md)
+
+현재 판정: **PASS_WITH_WARNINGS** (필수 검증 build/test/check:policy/check:privacy/check:language 모두 통과). 보조금 모듈은 의도적으로 prototype(실전 버튼 잠금/준비중)이고 `validate:citations -- --fixture --strict`는 데모상 비통과(실제 파이프라인은 통과)이므로 **정식 `v1.0.0` 태그는 보류하고 `v1.0.0-rc`(릴리즈 후보 준비중)** 로 표시합니다. 실제 산출물은 `data/` 하위에 있고 GitHub에는 코드/문서/테스트만 올립니다. 자동신고 없음 · 사람 검토 필수 · 포상금 보장 아님.
+
 ## 브라우저에서 보조금 엔진 결과 확인 (UI 연결)
 
 체크리스트 11~25에서 구현한 보조금 탐지 엔진(수집기·파서·정규화·품질검증·룰 탐지·위험점수·보상가능성 점수·LLM 설명형 분석·근거 검증)을 브라우저 화면에서 직접 확인할 수 있습니다.
