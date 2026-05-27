@@ -10,7 +10,8 @@ export const FEEDBACK_DECISIONS = [
   "NEEDS_MORE_EVIDENCE",
   "DUPLICATE",
   "NOT_RELEVANT",
-  "FALSE_POSITIVE"
+  "FALSE_POSITIVE",
+  "OUTCOME_CONFIRMED"
 ] as const;
 export type FeedbackDecision = typeof FEEDBACK_DECISIONS[number];
 
@@ -21,7 +22,8 @@ export const FEEDBACK_DECISION_LABELS: Record<FeedbackDecision, string> = {
   NEEDS_MORE_EVIDENCE: "증거 부족",
   DUPLICATE: "중복",
   NOT_RELEVANT: "관련 없음",
-  FALSE_POSITIVE: "오탐"
+  FALSE_POSITIVE: "오탐",
+  OUTCOME_CONFIRMED: "결과 확인됨"
 };
 
 // 반려/오탐 사유 카테고리

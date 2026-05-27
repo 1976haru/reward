@@ -893,6 +893,22 @@ API: `GET /api/subsidy/reporting-links` · `POST/GET/PATCH /api/subsidy/candidat
 
 > 다음 단계에서 운영 대시보드·일일 운영 루틴·릴리즈 준비를 진행합니다(이번 범위 밖).
 
+## 운영 대시보드 · 일일 운영 루틴 · 피드백 개선 후보 · 체크리스트 69~71
+
+전체 모듈의 **오늘 운영 현황**을 한 화면에서 보고, 하루 단위 반복 루틴을 수동 체크하며, 신고 후 피드백을 **다음 버전 개선 후보**로만 반영합니다. 자동 신고·자동 룰/점수 변경은 하지 않습니다.
+
+- 운영 현황 요약: [`src/services/operationsSummary.ts`](./src/services/operationsSummary.ts) → `GET /api/dashboard/summary`(의 `operations` 블록: 오늘 수집/분석/검토/신고서 초안/수동 제출/결과 기록, 모듈별 현황, 잠금/준비중 모듈, 경고·검토 대기, 최근 이력, 빈 상태 안전)
+- 일일 운영 루틴(10단계): [`src/services/dailyOperationsRoutine.ts`](./src/services/dailyOperationsRoutine.ts) → `GET /api/dashboard/daily-routine`, `POST /api/dashboard/daily-routine/step` · 운영 가이드 [`docs/DAILY_OPERATIONS_ROUTINE.md`](./docs/DAILY_OPERATIONS_ROUTINE.md)
+- 피드백 개선 후보: `POST /api/feedback` · `GET /api/feedback/stats` · `GET /api/feedback/improvements`(룰/점수/신고서 문구 자동 변경 없음, memo 마스킹, `APPROVED/REJECTED/HOLD/NEEDS_MORE_EVIDENCE/FALSE_POSITIVE/NOT_RELEVANT/DUPLICATE/OUTCOME_CONFIRMED`)
+
+체크 상태·운영 산출물은 `data/operations/`(gitignore)에 저장됩니다. 메인 화면에 운영 현황판·오늘 할 일·개선 후보 카드가 표시됩니다.
+
+```bash
+npm run test:operations
+```
+
+> 다음 단계에서 GitHub 체크리스트 운영·릴리즈 기준·v1.0 태그 생성을 진행합니다(이번 범위 밖).
+
 ## 브라우저에서 보조금 엔진 결과 확인 (UI 연결)
 
 체크리스트 11~25에서 구현한 보조금 탐지 엔진(수집기·파서·정규화·품질검증·룰 탐지·위험점수·보상가능성 점수·LLM 설명형 분석·근거 검증)을 브라우저 화면에서 직접 확인할 수 있습니다.

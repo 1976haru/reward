@@ -108,6 +108,74 @@ feedbackRouter.get("/", async (req, res) => {
   }
 });
 
+// POST /api/feedback — 신고 후 피드백 입력(개선 후보 반영용, 룰/점수 자동 변경 없음)
+// 외부 표기(APPROVED/REJECTED)를 내부 코드(APPROVE/REJECT)로 매핑한다. memo 는 저장 전 마스킹된다.
+const DECISION_ALIAS: Record<string, string> = {
+  APPROVED: "APPROVE",
+  REJECTED: "REJECT",
+  APPROVE: "APPROVE",
+  REJECT: "REJECT",
+  HOLD: "HOLD",
+  NEEDS_MORE_EVIDENCE: "NEEDS_MORE_EVIDENCE",
+  DUPLICATE: "DUPLICATE",
+  NOT_RELEVANT: "NOT_RELEVANT",
+  FALSE_POSITIVE: "FALSE_POSITIVE",
+  OUTCOME_CONFIRMED: "OUTCOME_CONFIRMED"
+};
+
+const PostFeedbackSchema = z.object({
+  caseId: z.string().max(64).optional(),
+  candidateId: z.string().max(64).optional(),
+  moduleId: z.string().max(80).optional(),
+  decision: z.string().max(40),
+  reasonCategory: z.enum(FEEDBACK_REASON_CATEGORIES).optional(),
+  reasonCategories: z.array(z.enum(FEEDBACK_REASON_CATEGORIES)).optional(),
+  reviewerName: z.string().max(80).optional(),
+  memo: z.string().max(FEEDBACK_MEMO_MAX).optional(),
+  relatedKeywords: z.array(z.string().max(100)).max(50).optional()
+});
+
+feedbackRouter.post("/", async (req, res) => {
+  try {
+    const body = PostFeedbackSchema.parse(req.body ?? {});
+    const decision = DECISION_ALIAS[String(body.decision).toUpperCase()];
+    if (!decision) {
+      return res
+        .status(400)
+        .json(errorBody("VALIDATION_ERROR", `decision은 ${FEEDBACK_DECISIONS.join("/")} (또는 APPROVED/REJECTED) 중 하나여야 합니다.`));
+    }
+    const reasonCategories = body.reasonCategories ?? (body.reasonCategory ? [body.reasonCategory] : []);
+    const result = await feedbackRepo.create({
+      caseId: body.caseId ?? body.candidateId ?? `manual_${Date.now()}`,
+      moduleId: body.moduleId,
+      decision: decision as never,
+      reasonCategories,
+      reviewerName: body.reviewerName,
+      memo: body.memo,
+      relatedKeywords: body.relatedKeywords
+    } as never);
+    res.status(201).json({
+      ok: true,
+      feedback: result.feedback,
+      piiMasked: result.piiMasked,
+      message: "피드백은 다음 버전 개선 후보로만 반영됩니다. 자동으로 신고 기준이나 점수를 바꾸지 않습니다. 사람 검토 후 다음 버전에 반영합니다.",
+      safetyNotice: FEEDBACK_SAFETY_NOTICE,
+      autoRuleChange: false,
+      autoReport: false,
+      rewardGuaranteed: false,
+      humanReviewRequired: true
+    });
+  } catch (error) {
+    if (error instanceof FeedbackValidationError) {
+      return res.status(400).json(errorBody("VALIDATION_ERROR", error.message));
+    }
+    if (error instanceof ZodError) {
+      return res.status(400).json(errorBody("VALIDATION_ERROR", zodErrorMessage(error)));
+    }
+    res.status(500).json(errorBody("INTERNAL_ERROR", (error as Error).message));
+  }
+});
+
 // GET /api/feedback/stats
 feedbackRouter.get("/stats", async (_req, res) => {
   try {

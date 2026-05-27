@@ -64,6 +64,8 @@ data/reward-score/
 data/risk/score/runs/
 # 신고 전 사실점검 산출물(체크리스트 65)은 커밋하지 않음
 data/fact-check/
+# 일일 운영 루틴 체크 상태(체크리스트 70)는 커밋하지 않음
+data/operations/
 # LLM 설명형 분석 산출물은 커밋하지 않음
 data/analysis/llm-explanation/runs/
 data/analysis/llm-explanation/tmp/

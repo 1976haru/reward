@@ -64,6 +64,7 @@
     "test:subsidy-fact-check": "tsx tests/subsidyPreReportFactCheck.test.ts",
     "test:subsidy-report-draft": "tsx tests/subsidyReportDraft.test.ts",
     "test:subsidy-outcome": "tsx tests/subsidyOutcomeTracker.test.ts",
+    "test:operations": "tsx tests/operationsDashboard.test.ts",
     "test:reward-score": "tsx tests/rewardPossibilityScore.test.ts",
     "test:llm-explanation": "tsx tests/llmExplanationAnalysis.test.ts",
     "test:citations": "tsx tests/citationValidator.test.ts",

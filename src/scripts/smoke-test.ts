@@ -1296,7 +1296,8 @@ check("batch dedupe rate > 0", batch.summary.duplicateRate > 0, `rate=${batch.su
 check("batch kept < total", batch.summary.kept < batch.summary.total);
 
 // 21) Feedback DB — types, repository, PII masking, stats, improvements
-check("FEEDBACK_DECISIONS has 7 codes", FEEDBACK_DECISIONS.length === 7);
+check("FEEDBACK_DECISIONS has 8 codes", FEEDBACK_DECISIONS.length === 8);
+check("FEEDBACK_DECISIONS includes OUTCOME_CONFIRMED", (FEEDBACK_DECISIONS as readonly string[]).includes("OUTCOME_CONFIRMED"));
 check("FEEDBACK_REASON_CATEGORIES has 17 codes", FEEDBACK_REASON_CATEGORIES.length === 17);
 check("FEEDBACK_DECISIONS includes FALSE_POSITIVE", (FEEDBACK_DECISIONS as readonly string[]).includes("FALSE_POSITIVE"));
 check("FEEDBACK_REASON_CATEGORIES includes RULE_FALSE_POSITIVE", (FEEDBACK_REASON_CATEGORIES as readonly string[]).includes("RULE_FALSE_POSITIVE"));
