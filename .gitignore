@@ -90,3 +90,6 @@ data/analysis/citation-validation/*
 
 # Forensics delivery bundle (source is tracked under src/scripts/tests)
 L2-forensics*.zip
+# 포렌식 해시체인 로그(chain.jsonl)는 런타임 산출물 — 커밋하지 않는다 (.gitkeep만 유지)
+data/audit/*
+!data/audit/.gitkeep
