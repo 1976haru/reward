@@ -87,3 +87,6 @@ data/analysis/citation-validation/*
 !data/eval/runs/.gitkeep
 !data/traces/.gitkeep
 !data/outcomes/.gitkeep
+
+# Forensics delivery bundle (source is tracked under src/scripts/tests)
+L2-forensics*.zip
