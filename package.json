@@ -14,6 +14,7 @@
     "forensics:chain:verify": "tsx scripts/forensics-verify-chain.ts",
     "forensics:ots:verify": "tsx scripts/forensics-ots-verify.ts",
     "forensics:bundle": "tsx scripts/forensics-bundle.ts",
+    "forensics:seal": "tsx scripts/forensics-seal.ts",
     "check:policy": "node scripts/check-approval-gate.js && node scripts/check-language-policy.js && node scripts/check-privacy-policy.js && node scripts/check-collector-policy.js && node scripts/check-upload-parser-policy.js && node scripts/check-entity-normalizer-policy.js && node scripts/check-address-normalizer-policy.js && node scripts/check-project-similarity-policy.js && node scripts/check-data-baseline-policy.js && node scripts/check-repeat-risk-policy.js && node scripts/check-address-cluster-risk-policy.js && node scripts/check-output-settlement-risk-policy.js && node scripts/check-spending-anomaly-risk-policy.js && node scripts/check-contractor-network-risk-policy.js && node scripts/check-risk-score-policy.js && node scripts/check-subsidy-risk-rules-policy.js && node scripts/check-subsidy-fact-check-policy.js && node scripts/check-subsidy-report-draft-policy.js && node scripts/check-subsidy-manual-reporting-policy.js && node scripts/check-reward-score-policy.js && node scripts/check-llm-explanation-policy.js && node scripts/check-citation-validation-policy.js && node scripts/check-subsidy-ui-demo-policy.js && node scripts/check-api-key-safety.js",
     "check:language": "node scripts/check-language-policy.js",
     "check:privacy": "node scripts/check-privacy-policy.js",
