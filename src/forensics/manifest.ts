@@ -8,8 +8,8 @@ import type {
   ChainEntry,
   Sha256Hex,
   AttestationRef,
-} from '../types/forensics';
-import { HashChain } from './hashChain';
+} from '../types/forensics.js';
+import { HashChain } from './hashChain.js';
 
 export interface ManifestBuildInput {
   caseId: string;

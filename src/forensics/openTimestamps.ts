@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { createHash } from 'node:crypto';
-import type { OtsReceipt, Sha256Hex } from '../types/forensics';
+import type { OtsReceipt, Sha256Hex } from '../types/forensics.js';
 
 /**
  * OpenTimestamps wrapper.
