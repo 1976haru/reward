@@ -118,7 +118,7 @@
     "@types/express": "latest",
     "@types/node": "latest",
     "@types/node-cron": "^3.0.11",
-    "archiver": "^8.0.0",
+    "archiver": "^7.0.1",
     "tsx": "latest",
     "typescript": "latest"
   }
