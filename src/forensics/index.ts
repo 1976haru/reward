@@ -1,6 +1,6 @@
-export * from './hashChain';
-export * from './warc';
-export * from './manifest';
-export * from './openTimestamps';
-export * from './attestation';
-export type * from '../types/forensics';
+export * from './hashChain.js';
+export * from './warc.js';
+export * from './manifest.js';
+export * from './openTimestamps.js';
+export * from './attestation.js';
+export type * from '../types/forensics.js';

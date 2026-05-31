@@ -8,8 +8,8 @@ import type {
   ChainEntry,
   Sha256Hex,
   AttestationRef,
-} from '../types/forensics';
-import { HashChain } from './hashChain';
+} from '../types/forensics.js';
+import { HashChain } from './hashChain.js';
 
 export interface ManifestBuildInput {
   caseId: string;
@@ -40,7 +40,7 @@ export interface ManifestBuildInput {
  */
 export async function buildAndWriteManifest(
   input: ManifestBuildInput,
-  options: { caseDir: string; chainLogPath: string }
+  options: { caseDir: string; chainLogPath: string; manifestFileName?: string }
 ): Promise<{ manifest: EvidenceManifest; manifestPath: string }> {
   const bodyWithoutChain = canonicalize({
     version: '2.0',
@@ -114,7 +114,7 @@ export async function buildAndWriteManifest(
   };
 
   await fs.mkdir(options.caseDir, { recursive: true });
-  const manifestPath = path.join(options.caseDir, 'manifest.json');
+  const manifestPath = path.join(options.caseDir, options.manifestFileName ?? 'manifest.json');
   await fs.writeFile(manifestPath, JSON.stringify(finalManifest, null, 2), 'utf8');
   return { manifest: finalManifest, manifestPath };
 }

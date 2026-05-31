@@ -5,7 +5,7 @@ import type {
   CollectorAttestation,
   AttestationRef,
   Sha256Hex,
-} from '../types/forensics';
+} from '../types/forensics.js';
 
 /**
  * 11-point fact-check (from docs/PRE_SUBMISSION_FACT_CHECKLIST.md).

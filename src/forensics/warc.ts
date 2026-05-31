@@ -3,7 +3,7 @@ import { createWriteStream } from 'node:fs';
 import { createGzip } from 'node:zlib';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
-import type { Sha256Hex } from '../types/forensics';
+import type { Sha256Hex } from '../types/forensics.js';
 
 /**
  * Minimal WARC 1.1 writer.

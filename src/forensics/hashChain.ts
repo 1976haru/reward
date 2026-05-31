@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
-import type { Sha256Hex } from '../types/forensics';
-import { GENESIS_HASH } from '../types/forensics';
+import type { Sha256Hex } from '../types/forensics.js';
+import { GENESIS_HASH } from '../types/forensics.js';
 
 export interface ChainLogEntry {
   readonly index: number;

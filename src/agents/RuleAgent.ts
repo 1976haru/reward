@@ -71,6 +71,21 @@ export interface DetectInput {
 const SAFETY_NOTICE =
   "탐지 결과는 위반 의심 또는 검토 필요 문구이며, 법 위반 여부를 확정하지 않습니다. 최종 신고는 사람이 직접 검토한 뒤 진행해야 합니다.";
 
+/**
+ * 한글 음절 사이의 공백만 제거한다("당 뇨 완 치" → "당뇨완치").
+ * 띄어쓰기를 이용한 탐지 회피("당뇨 완 치")를 막기 위한 보조 정규화.
+ *
+ * 과교정 방지 규칙:
+ *  - 한글 음절과 한글 음절 사이의 단일/연속 "공백·탭"만 접는다.
+ *  - 영문/숫자 사이 공백은 보존한다("vitamin c", "30 정"은 그대로).
+ *  - 줄바꿈(\n, \r)·문장부호로 분리된 경계는 접지 않는다(서로 다른 문장/구를 붙이지 않음).
+ */
+export function collapseKoreanSpaces(s: string): string {
+  if (!s) return s;
+  // 한글 다음에 오는 (줄바꿈 제외) 공백/탭이, 그 뒤가 다시 한글일 때만 제거.
+  return s.replace(/([가-힣])[ \t]+(?=[가-힣])/g, "$1");
+}
+
 function riskLevelFromScore(score: number): RuleDetectionResult["riskLevel"] {
   if (score >= 80) return "매우 높음";
   if (score >= 60) return "높음";
@@ -231,6 +246,61 @@ export class RuleAgent {
                 excerpt: excerptAround(sentence, m[0]),
                 sourceSection: section.name
               });
+            }
+          }
+        }
+      }
+    }
+
+    // 띄어쓰기 회피 보조 탐지(약점 a 수정):
+    // 한글 음절 사이 공백을 접은 전체 텍스트에서, 위 per-sentence 루프가 놓친 룰을 재검사한다.
+    //  - 판정에만 collapsed 텍스트를 쓰고, 보고하는 keyword 는 원문 키워드를 유지한다(증거 추적성).
+    //  - 이미 매칭된 룰은 건너뛰어 원문·접은본 중복 hit 을 만들지 않는다(룰 단위 dedupe).
+    //  - 접었을 때 원문과 달라지는 경우(=한글 음절 사이 공백이 있던 경우)에만 동작 → 정상문 과탐지 방지.
+    {
+      const originalJoined = sectionInputs.flatMap((s) => s.sentences).join(" ");
+      const collapsedJoined = collapseKoreanSpaces(originalJoined);
+      if (collapsedJoined && collapsedJoined !== originalJoined) {
+        const matchedRuleIds = new Set(matches.map((m) => m.ruleId));
+        const repSection: SectionName = sectionInputs[0]?.name ?? "main";
+        for (const rule of this.config.rules) {
+          if (matchedRuleIds.has(rule.id)) continue;
+          if (rule.matchType === "keyword") {
+            const collapsedKeyword = collapseKoreanSpaces(rule.keyword);
+            if (collapsedKeyword && collapsedJoined.includes(collapsedKeyword)) {
+              matches.push({
+                ruleId: rule.id,
+                keyword: rule.keyword,
+                riskLevel: rule.riskLevel,
+                weight: rule.weight,
+                category: rule.category,
+                reason: rule.reason,
+                matchType: rule.matchType,
+                sentence: originalJoined,
+                excerpt: excerptAround(originalJoined, rule.keyword),
+                sourceSection: repSection
+              });
+              matchedRuleIds.add(rule.id);
+            }
+          } else {
+            const re = this.compiledRegex.get(rule.id);
+            if (!re) continue;
+            re.lastIndex = 0;
+            const m = re.exec(collapsedJoined);
+            if (m) {
+              matches.push({
+                ruleId: rule.id,
+                keyword: rule.keyword,
+                riskLevel: rule.riskLevel,
+                weight: rule.weight,
+                category: rule.category,
+                reason: rule.reason,
+                matchType: rule.matchType,
+                sentence: originalJoined,
+                excerpt: excerptAround(originalJoined, m[0]),
+                sourceSection: repSection
+              });
+              matchedRuleIds.add(rule.id);
             }
           }
         }
