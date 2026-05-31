@@ -4,6 +4,7 @@ import { schedule, validate, type ScheduledTask } from "node-cron";
 import { config } from "../../utils/config.js";
 import { ensureDir, readJson, writeJson } from "../../utils/fs.js";
 import { scoutAgent } from "../scout/ScoutAgent.js";
+import { autoPipeline } from "../pipeline/AutoPipeline.js";
 import type {
   SchedulerAttemptEntry,
   SchedulerConfig,
@@ -70,6 +71,7 @@ export class SchedulerService {
       cron: this.cfg.cron,
       timezone: this.cfg.timezone,
       mode: this.cfg.mode,
+      pipelineMode: this.cfg.pipelineMode,
       topics: this.cfg.topics,
       sources: this.cfg.sources,
       maxCandidates: this.cfg.maxCandidates,
@@ -179,7 +181,7 @@ export class SchedulerService {
       warnings.push("활성 어댑터가 없어 mock 폴백이 사용되었거나 0건 발굴");
     }
 
-    return {
+    const result: NonNullable<SchedulerRunRecord["result"]> = {
       totalFound: out.candidates.length,
       totalSaved: out.added.length,
       duplicatesRemoved: out.candidates.length - out.added.length,
@@ -187,6 +189,32 @@ export class SchedulerService {
       sourceFallbacks: out.sourceFallbacks,
       warnings
     };
+
+    // pipelineMode=full: 발굴에서 멈추지 않고 AutoPipeline 분석~검수 적재까지 이어서 실행한다.
+    // (기본 discover_only 는 기존 동작 그대로 — 명시적 opt-in 으로만 full 활성화.)
+    if (this.cfg.pipelineMode === "full") {
+      const summary = await autoPipeline.processCandidates(out.added, {
+        moduleId: "false_ad",
+        reason: "scheduler:full"
+      });
+      result.pipeline = {
+        mode: "full",
+        analyzed: summary.analyzed,
+        autoReviewQueued: summary.autoReviewQueued,
+        needsTriageQueued: summary.needsTriageQueued,
+        noiseDropped: summary.noiseDropped,
+        duplicatesSkipped: summary.duplicatesSkipped,
+        failed: summary.failed,
+        limitReached: summary.limitReached,
+        autoSubmitted: false,
+        humanReviewRequired: true
+      };
+      if (summary.limitReached) {
+        warnings.push(`AutoPipeline: MAX_ANALYSES(${summary.maxAnalyses}) 상한 도달 — 남은 후보는 다음 run 으로 이월`);
+      }
+    }
+
+    return result;
   }
 
   // ---------- run log ----------

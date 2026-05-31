@@ -46,6 +46,12 @@ import {
 import { detectFalseAdRules } from "../src/modules/false-ad/config.js";
 import { canonicalizeUrl } from "../src/services/dedupe/UrlCanonicalizer.js";
 import { similarity } from "../src/services/dedupe/TextSimilarity.js";
+import {
+  PIPELINE_SAFETY,
+  assertNoSubmissionAutomation,
+  type PipelineSummary
+} from "../src/services/pipeline/AutoPipeline.js";
+import { createReviewRequest, isForbiddenGateStatus } from "../src/policy/approvalWorkflow.js";
 
 // ---------- 테스트 러너 ----------
 
@@ -494,6 +500,70 @@ section("[5] Dedupe — URL 정규화 / 텍스트 유사도");
   expect("초장문 유사도 무예외", !threw);
   expect("초장문 유사도 [0,1]", !threw && s >= 0 && s <= 1, `s=${s}`);
   expect("초장문 유사도 < 3초", ms < 3000, `${ms}ms`);
+}
+
+// ====================================================================
+// [6] AutoPipeline — 제출 자동화 부재 (자율 발굴→분석→검수 적재 사슬의 안전 끝점)
+// ====================================================================
+section("[6] AutoPipeline — 제출 자동화 부재 (검수 대기에서 멈춤)");
+
+// 6-1) 파이프라인 안전 상수: 자동 제출 false, 끝점은 human_review_required
+expect("PIPELINE_SAFETY.autoSubmitted === false", PIPELINE_SAFETY.autoSubmitted === false, String(PIPELINE_SAFETY.autoSubmitted));
+expect("PIPELINE_SAFETY.humanReviewRequired === true", PIPELINE_SAFETY.humanReviewRequired === true);
+expect(
+  'PIPELINE_SAFETY.terminalReviewStatus === "human_review_required"',
+  PIPELINE_SAFETY.terminalReviewStatus === "human_review_required",
+  PIPELINE_SAFETY.terminalReviewStatus
+);
+
+// 6-2) 파이프라인이 케이스에 부여할 수 있는 상태에 SUBMITTED/금지 게이트 상태가 없어야 함
+{
+  const assignable = PIPELINE_SAFETY.assignableCaseStatuses as readonly string[];
+  expect("파이프라인 부여 상태에 SUBMITTED 없음", !assignable.includes("SUBMITTED"), assignable.join(","));
+  const anyForbidden = assignable.some((s) => isForbiddenGateStatus(s));
+  expect("파이프라인 부여 상태에 금지 게이트 상태 없음", !anyForbidden, assignable.join(","));
+}
+
+// 6-3) createReviewRequest 는 항상 human_review_required (자동 제출 상태를 만들지 않음)
+{
+  const rr = createReviewRequest({ caseId: "case-stress-1", evidencePackageId: "ev-1", draftReportId: "drf-1" });
+  expect('createReviewRequest 끝점 === "human_review_required"', rr.status === "human_review_required", rr.status);
+  expect("createReviewRequest 상태는 금지 게이트 상태가 아님", !isForbiddenGateStatus(rr.status));
+}
+
+// 6-4) assertNoSubmissionAutomation — 정상 요약은 통과, 제출 상태가 섞이면 거부
+{
+  const base: PipelineSummary = {
+    runId: "run-stress",
+    moduleId: "false_ad",
+    totalCandidates: 2,
+    analyzed: 2,
+    autoReviewQueued: 1,
+    needsTriageQueued: 1,
+    noiseDropped: 0,
+    duplicatesSkipped: 0,
+    skippedNotNew: 0,
+    failed: 0,
+    limitReached: false,
+    maxAnalyses: 20,
+    results: [
+      { candidateId: "c1", url: "https://a.example/1", outcome: "auto_review", caseId: "case1", caseStatus: "REVIEW", reviewRequestStatus: "human_review_required", score: 80, confidence: 0.8 },
+      { candidateId: "c2", url: "https://a.example/2", outcome: "needs_human_triage", caseId: "case2", caseStatus: "DRAFT", score: 40, confidence: 0.5 }
+    ],
+    autoSubmitted: false,
+    humanReviewRequired: true,
+    terminalState: "human_review_required",
+    safetyNotice: "test",
+    generatedAt: new Date().toISOString()
+  };
+  expect("정상 요약 → 제출 자동화 부재 PASS", assertNoSubmissionAutomation(base) === true);
+
+  // 적대적 변조: 케이스 상태를 SUBMITTED 로 위조하면 가드가 거부해야 함
+  const tampered: PipelineSummary = {
+    ...base,
+    results: [{ ...base.results[0], caseStatus: "SUBMITTED" }, base.results[1]]
+  };
+  expect("위조 SUBMITTED 케이스 → 가드 거부", assertNoSubmissionAutomation(tampered) === false);
 }
 
 // ====================================================================

@@ -18,6 +18,17 @@ import { ScoringAgent } from "./ScoringAgent.js";
 
 const FALLBACK_TAIL_MAX = 8000;
 
+/**
+ * analyze() 옵션.
+ * - persist=false: 분석 결과(RewardCase 초안)를 빌드하되 신고서 초안 생성·저장은 하지 않고 반환한다.
+ *   AutoPipeline 이 신뢰도 기반 라우팅으로 "케이스를 만들지 말지"를 먼저 판단한 뒤,
+ *   유지할 케이스만 commitCase() 로 영속화하기 위함이다 (노이즈 케이스가 대기열을 오염시키지 않게).
+ *   미지정(기본 true) 시 기존 동작과 100% 동일하다.
+ */
+export interface AnalyzeOptions {
+  persist?: boolean;
+}
+
 export class OrchestratorAgent {
   private collector = new CollectorAgent();
   private rules = new RuleAgent();
@@ -29,7 +40,7 @@ export class OrchestratorAgent {
   private extractor = new TextExtractor();
   private scoring = new ScoringAgent();
 
-  async analyze(request: AnalyzeRequest): Promise<RewardCase> {
+  async analyze(request: AnalyzeRequest, options: AnalyzeOptions = {}): Promise<RewardCase> {
     const doc = await this.collector.collectUrl(request.url);
     const policyWarnings = this.policy.validatePublicAnalysis(doc);
 
@@ -218,8 +229,39 @@ export class OrchestratorAgent {
       }
     };
 
-    const reportPath = await this.reports.createReport(draft);
-    const completed: RewardCase = { ...draft, reportPath };
+    // persist=false 면 초안만 반환 (신고서 초안 생성·저장 보류). AutoPipeline 라우팅 후 commitCase 로 확정한다.
+    if (options.persist === false) {
+      return draft;
+    }
+    return this.commitCase(draft);
+  }
+
+  /**
+   * analyze({persist:false}) 가 만든 RewardCase 초안을 신고서 초안 생성 + 저장으로 확정한다.
+   * - statusOverride 로 검수 흐름 상태(REVIEW/DRAFT 등)를 지정할 수 있다 (AutoPipeline 신뢰도 라우팅용).
+   * - 자동 제출은 수행하지 않는다. 끝점은 사람 검수 대기열 적재까지다.
+   */
+  async commitCase(draft: RewardCase, options: { statusOverride?: CaseStatus; statusNote?: string } = {}): Promise<RewardCase> {
+    let toCommit = draft;
+    if (options.statusOverride && options.statusOverride !== draft.status) {
+      const now = new Date().toISOString();
+      toCommit = {
+        ...draft,
+        status: options.statusOverride,
+        updatedAt: now,
+        statusHistory: [
+          ...(draft.statusHistory ?? []),
+          {
+            at: now,
+            from: draft.status,
+            to: options.statusOverride,
+            note: options.statusNote ?? "AutoPipeline 신뢰도 기반 라우팅"
+          }
+        ]
+      };
+    }
+    const reportPath = await this.reports.createReport(toCommit);
+    const completed: RewardCase = { ...toCommit, reportPath };
     return this.repository.save(completed);
   }
 }

@@ -122,8 +122,30 @@ import { JsonOutcomeRepository, OutcomeValidationError } from "../repositories/O
 import { OUTCOME_STATUSES, OUTCOME_DECISIONS, REWARD_OUTCOMES } from "../types/outcome.js";
 
 const failures: string[] = [];
+const skipped: string[] = [];
+let totalChecks = 0;
 function check(name: string, cond: boolean, detail?: string) {
+  totalChecks++;
   if (!cond) failures.push(`${name}${detail ? ` (${detail})` : ""}`);
+}
+
+// 환경 자동감지 — 실가동(real AI)/Naver 활성 환경에서는 "mock 전제" 단언만 명시적으로 SKIP 한다.
+// 단언을 삭제하지 않으며, mock 환경(키 없음/MOCK_AI=true)에서는 100% 동일하게 모든 단언이 실행된다.
+const isRealAiMode = process.env.MOCK_AI === "false" && !!process.env.OPENAI_API_KEY;
+const isNaverEnabled = !!process.env.NAVER_CLIENT_ID && !!process.env.NAVER_CLIENT_SECRET;
+const REAL_AI_SKIP_REASON = "real AI mode detected (MOCK_AI=false, key present)";
+const NAVER_ENABLED_SKIP_REASON = "Naver API enabled (NAVER_CLIENT_ID/SECRET present)";
+/**
+ * 환경 조건(skip=true)이면 단언을 실행하지 않고 SKIP 처리하며, 콘솔에 사유를 남긴다.
+ * skip=false 면 일반 check 와 동일하게 동작한다(= PASS/FAIL 집계 포함).
+ */
+function checkUnlessSkip(name: string, cond: boolean, skip: boolean, skipReason: string, detail?: string) {
+  if (skip) {
+    skipped.push(name);
+    console.log(`SKIP ${name} — ${skipReason}`);
+    return;
+  }
+  check(name, cond, detail);
 }
 
 // 1) 규칙 탐지 — 의심 표현이 들어간 문장에서 최소 2건 이상 탐지
@@ -734,7 +756,7 @@ check("schema required has notLegalConclusion", Array.isArray(schemaParsed?.requ
 check("schema required has rewardGuaranteed", Array.isArray(schemaParsed?.required) && schemaParsed.required.includes("rewardGuaranteed"));
 
 const az = new AnalyzerAgent();
-check("MOCK 모드 동작 (OPENAI_API_KEY 없으면 mock)", az.isMockMode());
+checkUnlessSkip("MOCK 모드 동작 (OPENAI_API_KEY 없으면 mock)", az.isMockMode(), isRealAiMode, REAL_AI_SKIP_REASON);
 
 const highRiskInput = {
   moduleId: "false_ad" as const,
@@ -780,19 +802,19 @@ check("sanitize 시 safetyWarnings에 경고 추가", dirty.safetyWarnings.some(
 // 결정성 (mock)
 const r1 = await az.analyzeWithContext(highRiskInput);
 const r2 = await az.analyzeWithContext(highRiskInput);
-check("동일 입력 mock 결과 enum 동일", r1.overallRisk === r2.overallRisk && r1.violationLikelihood === r2.violationLikelihood);
+checkUnlessSkip("동일 입력 mock 결과 enum 동일", r1.overallRisk === r2.overallRisk && r1.violationLikelihood === r2.violationLikelihood, isRealAiMode, REAL_AI_SKIP_REASON);
 
 // Mock/Real/Fallback 분리 (체크리스트 16)
-check("mock 모드 analysisMode === 'mock'", llmHigh.analysisMode === "mock", `mode=${llmHigh.analysisMode}`);
-check("mock 모드 usedExternalApi === false", llmHigh.usedExternalApi === false);
-check("mock 모드에서 외부 API 미호출 (isMockMode)", az.isMockMode());
+checkUnlessSkip("mock 모드 analysisMode === 'mock'", llmHigh.analysisMode === "mock", isRealAiMode, REAL_AI_SKIP_REASON, `mode=${llmHigh.analysisMode}`);
+checkUnlessSkip("mock 모드 usedExternalApi === false", llmHigh.usedExternalApi === false, isRealAiMode, REAL_AI_SKIP_REASON);
+checkUnlessSkip("mock 모드에서 외부 API 미호출 (isMockMode)", az.isMockMode(), isRealAiMode, REAL_AI_SKIP_REASON);
 // 기본값(MOCK_AI 미설정)은 mock 이어야 한다 — 실제 OpenAI 호출 금지
-check("기본 분석 경로는 외부 API 미사용", llmHigh.usedExternalApi !== true);
+checkUnlessSkip("기본 분석 경로는 외부 API 미사용", llmHigh.usedExternalApi !== true, isRealAiMode, REAL_AI_SKIP_REASON);
 
 // OpenAI Real 모드 안전 준비 (체크리스트 22)
 // - MOCK_AI=true(또는 키 없음)이면 외부 API를 호출하지 않는다.
-check("[CL22] mock 모드 usedExternalApi=false", llmHigh.usedExternalApi === false);
-check("[CL22] mock 모드 analysisMode는 mock/fallback 중 하나", llmHigh.analysisMode === "mock" || llmHigh.analysisMode === "fallback", `mode=${llmHigh.analysisMode}`);
+checkUnlessSkip("[CL22] mock 모드 usedExternalApi=false", llmHigh.usedExternalApi === false, isRealAiMode, REAL_AI_SKIP_REASON);
+checkUnlessSkip("[CL22] mock 모드 analysisMode는 mock/fallback 중 하나", llmHigh.analysisMode === "mock" || llmHigh.analysisMode === "fallback", isRealAiMode, REAL_AI_SKIP_REASON, `mode=${llmHigh.analysisMode}`);
 // - MOCK_AI=false 인데 키가 없어도 서버가 죽지 않고 안전 결과(mock)를 반환한다.
 const noKeyAgent = new AnalyzerAgent();
 let noKeyDidNotThrow = true;
@@ -800,7 +822,7 @@ let noKeyResult: any = null;
 try { noKeyResult = await noKeyAgent.analyzeWithContext(highRiskInput); }
 catch { noKeyDidNotThrow = false; }
 check("[CL22] 키 없음 상태에서 분석이 예외 없이 동작", noKeyDidNotThrow && noKeyResult !== null);
-check("[CL22] 키 없음 상태에서 외부 API 미사용", noKeyResult && noKeyResult.usedExternalApi === false);
+checkUnlessSkip("[CL22] 키 없음 상태에서 외부 API 미사용", Boolean(noKeyResult) && noKeyResult.usedExternalApi === false, isRealAiMode, REAL_AI_SKIP_REASON);
 // - 응답 필수 안전 필드.
 check("[CL22] notLegalConclusion=true", llmHigh.notLegalConclusion === true);
 check("[CL22] rewardGuaranteed=false", llmHigh.rewardGuaranteed === false);
@@ -1163,7 +1185,7 @@ check("scout sources count == 4", sources.length === 4);
 const mockSrc = sources.find((s) => s.sourceType === "mock");
 check("mock source active", mockSrc?.status === "active");
 const naverSrc = sources.find((s) => s.sourceType === "naver");
-check("naver source disabled without keys", naverSrc?.status === "disabled");
+checkUnlessSkip("naver source disabled without keys", naverSrc?.status === "disabled", isNaverEnabled, NAVER_ENABLED_SKIP_REASON);
 const openAiSrc = sources.find((s) => s.sourceType === "openai_web_search");
 check("openai_web_search source planned", openAiSrc?.status === "planned");
 const rssSrc = sources.find((s) => s.sourceType === "rss");
@@ -1176,7 +1198,7 @@ check("MockSearchAdapter returns candidates", mockResults.length > 0);
 check("Mock results use reserved domains", mockResults.every((c) => /(\.test|\.example|\.invalid)/.test(c.url)));
 
 const naverAdapter = new NaverSearchAdapter();
-check("NaverSearchAdapter disabled without keys", !naverAdapter.isEnabled());
+checkUnlessSkip("NaverSearchAdapter disabled without keys", !naverAdapter.isEnabled(), isNaverEnabled, NAVER_ENABLED_SKIP_REASON);
 
 check("scoutAgent.listTopics returns 12", scoutAgent.listTopics("false_ad").length === 12);
 
@@ -1188,12 +1210,12 @@ check("scoutAgent.listTopics returns 12", scoutAgent.listTopics("false_ad").leng
   try { naverOut = await naverAdapter.search("당뇨 완치", { limit: 5, moduleId: "false_ad", topicId: "blood-sugar" }); }
   catch { naverDidNotThrow = false; }
   check("[CL23] 키 없음 상태에서 Naver search 예외 없이 동작", naverDidNotThrow);
-  check("[CL23] 키 없음 상태에서 Naver는 외부 호출 없이 빈 결과", Array.isArray(naverOut) && naverOut.length === 0);
+  checkUnlessSkip("[CL23] 키 없음 상태에서 Naver는 외부 호출 없이 빈 결과", Array.isArray(naverOut) && naverOut.length === 0, isNaverEnabled, NAVER_ENABLED_SKIP_REASON);
 
   // 2) scoutAgent.discover는 sourceTypes:["naver"]를 받아도 키 없으면 mock으로 폴백한다.
   const disc = await scoutAgent.discover({ moduleId: "false_ad", topics: [], mode: "quick", sourceTypes: ["naver"], maxCandidates: 5 });
-  check("[CL23] 키 없음 → naver는 fallback 처리", disc.sourceFallbacks.includes("naver"));
-  check("[CL23] 키 없음 → 외부 API 미사용(usedSources에 naver 없음)", !disc.usedSources.includes("naver"));
+  checkUnlessSkip("[CL23] 키 없음 → naver는 fallback 처리", disc.sourceFallbacks.includes("naver"), isNaverEnabled, NAVER_ENABLED_SKIP_REASON);
+  checkUnlessSkip("[CL23] 키 없음 → 외부 API 미사용(usedSources에 naver 없음)", !disc.usedSources.includes("naver"), isNaverEnabled, NAVER_ENABLED_SKIP_REASON);
   check("[CL23] mock 폴백 후보가 반환되거나 안전 빈 결과", Array.isArray(disc.candidates));
 
   // 3) 응답에 Naver 키 원문/패턴이 포함되지 않는다 (mock 환경에서는 키 자체가 없음).
@@ -4388,6 +4410,14 @@ check("outcome UI does NOT call localStorage",
   }
 }
 
+// 요약 — PASS/SKIP/FAIL 집계. skip 사유는 위 SKIP 로그로 이미 출력됨.
+const passCount = totalChecks - failures.length;
+console.log(`SMOKE_TEST_SUMMARY: PASS=${passCount} SKIP=${skipped.length} FAIL=${failures.length}`);
+if (skipped.length > 0) {
+  console.log(`SKIPPED (${skipped.length}) — 환경 자동감지로 제외된 mock 전제 단언:`);
+  for (const s of skipped) console.log("  -", s);
+}
+
 if (failures.length > 0) {
   console.error("SMOKE_TEST_FAIL");
   for (const f of failures) console.error(" -", f);
@@ -4395,6 +4425,10 @@ if (failures.length > 0) {
 }
 
 console.log("SMOKE_TEST_OK", {
+  passed: passCount,
+  skipped: skipped.length,
+  isRealAiMode,
+  isNaverEnabled,
   hits: hits.length,
   score,
   cleanScore,

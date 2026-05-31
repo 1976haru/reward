@@ -53,6 +53,8 @@ export const config = {
     cron: process.env.SCHEDULER_CRON ?? "0 9 * * *",
     timezone: process.env.SCHEDULER_TIMEZONE ?? "Asia/Seoul",
     mode: (process.env.SCHEDULER_MODE ?? "standard"),
+    // discover_only(기본): 기존 동작 유지(발굴만). full: 발굴 후 AutoPipeline 분석~검수 적재까지 명시적 opt-in.
+    pipelineMode: (process.env.SCHEDULER_PIPELINE_MODE ?? "discover_only"),
     topics: (process.env.SCHEDULER_TOPICS ?? "blood-sugar,joint-cartilage,diet-body-fat,liver-detox,immunity")
       .split(",").map((s) => s.trim()).filter(Boolean),
     sources: (process.env.SCHEDULER_SOURCES ?? "mock")
@@ -61,6 +63,19 @@ export const config = {
     retryAttempts: Number(process.env.SCHEDULER_RETRY_ATTEMPTS ?? 2),
     retryDelayMs: Number(process.env.SCHEDULER_RETRY_DELAY_MS ?? 2000),
     maxRunLog: Number(process.env.SCHEDULER_MAX_RUN_LOG ?? 200)
+  },
+  // AutoPipeline (자율 발굴→분석→검수 대기열 적재) 라우팅 임계값·안전 가드. 하드코딩 금지 — 모두 .env 외부화.
+  // 제출은 절대 자동화하지 않으며, 끝점은 항상 "human_review_required(검수 대기)" 까지다.
+  pipeline: {
+    // 비용 가드: 한 번의 run 에서 OrchestratorAgent.analyze(LLM) 호출 상한. 초과 시 중단·로그.
+    maxAnalyses: Number(process.env.AUTO_PIPELINE_MAX_ANALYSES ?? 20),
+    // 高위험 & 高신뢰도 → 검수 대기열 자동 적재 임계값. score 0..100, confidence 0..1.
+    minScore: Number(process.env.AUTO_QUEUE_MIN_SCORE ?? 60),
+    minConfidence: Number(process.env.AUTO_QUEUE_MIN_CONFIDENCE ?? 0.6),
+    // 中간/모호 → needs_human_triage(낮은 우선순위) 로 분리 적재하는 하한. 이 미만은 노이즈로 케이스 미생성.
+    triageMinScore: Number(process.env.AUTO_QUEUE_TRIAGE_MIN_SCORE ?? 35),
+    // 레이트 가드: 후보 분석(외부 수집 포함) 사이 최소 간격(ms). 기본 0 — 운영 시 .env 로 상향.
+    requestDelayMs: Number(process.env.AUTO_PIPELINE_REQUEST_DELAY_MS ?? 0)
   },
   feedback: {
     dir: process.env.FEEDBACK_DIR ?? path.join(dataDir, "feedback"),

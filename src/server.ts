@@ -16,6 +16,7 @@ import { reviewRouter } from "./routes/review.js";
 import { policyRouter } from "./routes/policy.js";
 import { scoutRouter } from "./routes/scout.js";
 import { schedulerRouter } from "./routes/scheduler.js";
+import { pipelineRouter } from "./routes/pipeline.js";
 import { schedulerService } from "./services/scheduler/SchedulerService.js";
 import { dedupeRouter } from "./routes/dedupe.js";
 import { feedbackRouter, caseFeedbackRouter } from "./routes/feedback.js";
@@ -256,6 +257,9 @@ app.use("/api/scout", scoutRouter);
 
 // Dedup Engine — URL canonicalize / 후보 중복 제거 (확정 판단 아님)
 app.use("/api/dedupe", dedupeRouter);
+
+// AutoPipeline — 발굴→분석→검수 대기열 적재 1회 실행 (자동 제출 없음). 끝점은 사람 검수 대기.
+app.use("/api/pipeline", pipelineRouter);
 
 // Scheduler — 정기 후보 수집 (자동 신고 미수행). SCHEDULER_ENABLED=true + NODE_ENV != test 일 때만 cron 등록.
 app.use("/api/scheduler", schedulerRouter);

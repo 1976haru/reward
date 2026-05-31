@@ -3,11 +3,15 @@
 
 export type SchedulerMode = "quick" | "standard" | "deep";
 
+// discover_only: 기존 동작(발굴만). full: 발굴 후 AutoPipeline 분석~검수 적재까지 (명시적 opt-in).
+export type SchedulerPipelineMode = "discover_only" | "full";
+
 export interface SchedulerConfig {
   enabled: boolean;
   cron: string;
   timezone: string;
   mode: SchedulerMode;
+  pipelineMode: SchedulerPipelineMode;
   topics: string[];
   sources: string[];
   maxCandidates: number;
@@ -24,6 +28,20 @@ export interface SchedulerAttemptEntry {
   error?: string;
 }
 
+export interface SchedulerPipelinePayload {
+  mode: SchedulerPipelineMode;
+  analyzed: number;
+  autoReviewQueued: number;
+  needsTriageQueued: number;
+  noiseDropped: number;
+  duplicatesSkipped: number;
+  failed: number;
+  limitReached: boolean;
+  // 끝점은 항상 사람 검수 대기. 자동 제출은 수행하지 않는다.
+  autoSubmitted: false;
+  humanReviewRequired: true;
+}
+
 export interface SchedulerRunResultPayload {
   totalFound: number;
   totalSaved: number;
@@ -31,6 +49,8 @@ export interface SchedulerRunResultPayload {
   usedSources: string[];
   sourceFallbacks: string[];
   warnings: string[];
+  // pipelineMode=full 일 때만 채워진다.
+  pipeline?: SchedulerPipelinePayload;
 }
 
 export interface SchedulerRunRecord {
@@ -52,6 +72,7 @@ export interface SchedulerStatusResponse {
   cron: string;
   timezone: string;
   mode: SchedulerMode;
+  pipelineMode: SchedulerPipelineMode;
   topics: string[];
   sources: string[];
   maxCandidates: number;
