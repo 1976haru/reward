@@ -74,6 +74,7 @@
     "test:llm-explanation": "tsx tests/llmExplanationAnalysis.test.ts",
     "test:citations": "tsx tests/citationValidator.test.ts",
     "test:subsidy-ui-demo": "tsx tests/subsidyUiDemo.test.ts",
+    "test:stress": "tsx scripts/stress-test.ts",
     "collect:public-api": "tsx scripts/collect-public-data-api.ts",
     "parse:uploads": "tsx scripts/parse-uploaded-subsidy-files.ts",
     "build:baseline": "tsx scripts/build-data-baseline.ts",

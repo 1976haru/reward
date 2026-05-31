@@ -170,6 +170,8 @@ export const FILE_WHITELIST = new Set([
   "src/modules/false-ad/analysis_prompt.md",
   "src/modules/false-ad/agency_config.json",
   "src/scripts/smoke-test.ts",
+  // 통합 적대적 스트레스 테스트 — 마스킹/탐지 검증용 합성 PII(예약 도메인·가짜 번호) 의도적 포함
+  "scripts/stress-test.ts",
   // 마스킹/추출 기능 자체의 예시 코드/문서 (의도적으로 샘플 PII 포함)
   "docs/text_extractor.md",
   "src/services/TextExtractor.ts"
