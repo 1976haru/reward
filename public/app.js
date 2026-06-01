@@ -911,6 +911,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderHomeOverview(null);
   await loadModuleRegistry();
   renderModules();
+  renderAutoPipelineModules();
+  bindAutoPipeline();
   renderGuide();
   renderProcess("pending");
   bindForm();
@@ -1044,6 +1046,153 @@ async function runSchedulerOnce() {
   } finally {
     if (btn) btn.disabled = false;
   }
+}
+
+// ---------- 자동 실행 (하이브리드) — 단계 범위 선택 + 시작 ----------
+const AUTO_PIPELINE_STOP_LABELS = {
+  collect: "수집까지",
+  analyze: "분석까지 (미리보기 · 저장 안 됨)",
+  queue: "검수 대기까지 (사람 검수 대기 적재)"
+};
+
+function bindAutoPipeline() {
+  const btn = document.getElementById("autoPipelineStartBtn");
+  if (!btn) return;
+  btn.addEventListener("click", (e) => { e.preventDefault(); runAutoPipeline(); });
+}
+
+// 모듈 드롭다운을 현재 MODULES(사용 가능)로 채운다. 기본 false_ad(건강기능식품).
+function renderAutoPipelineModules() {
+  const sel = document.getElementById("autoPipelineModule");
+  if (!sel) return;
+  const available = MODULES.filter((m) => m.available);
+  const list = available.length ? available : MODULES;
+  const prev = sel.value;
+  sel.innerHTML = list.map((m) => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name)}</option>`).join("");
+  const desired = prev || (list.find((m) => m.id === "false_ad") ? "false_ad" : (list[0] && list[0].id));
+  if (desired) sel.value = desired;
+}
+
+function selectedStopAfter() {
+  const checked = document.querySelector('input[name="autoPipelineStopAfter"]:checked');
+  return checked ? checked.value : "queue";
+}
+
+async function runAutoPipeline() {
+  const btn = document.getElementById("autoPipelineStartBtn");
+  const statusEl = document.getElementById("autoPipelineStatus");
+  const resultEl = document.getElementById("autoPipelineResult");
+  const stopAfter = selectedStopAfter();
+  const moduleId = (document.getElementById("autoPipelineModule") || {}).value || "false_ad";
+  const limit = parseInt((document.getElementById("autoPipelineLimit") || {}).value, 10);
+  const maxAnalyses = parseInt((document.getElementById("autoPipelineMaxAnalyses") || {}).value, 10);
+
+  // 중복 클릭 방지 + 진행 표시.
+  if (btn) btn.disabled = true;
+  const stages = stopAfter === "collect"
+    ? "수집 중…"
+    : stopAfter === "analyze"
+      ? "수집 중… → 분석 중…"
+      : "수집 중… → 분석 중… → 적재 중…";
+  if (statusEl) statusEl.innerHTML = `<span class="badge warn">실행 중</span> ${escapeHtml(stages)}`;
+  if (resultEl) resultEl.innerHTML = "";
+
+  const body = { stopAfter, moduleId };
+  if (Number.isFinite(limit) && limit > 0) body.limit = limit;
+  if (Number.isFinite(maxAnalyses) && maxAnalyses > 0) body.maxAnalyses = maxAnalyses;
+
+  try {
+    const res = await fetch("/api/pipeline/run", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      const msg = data && data.message ? data.message : `HTTP ${res.status}`;
+      if (statusEl) statusEl.innerHTML = `<span class="badge danger">실패</span> ${escapeHtml(msg)}`;
+      return;
+    }
+    if (statusEl) statusEl.innerHTML = `<span class="badge ok">완료</span> ${escapeHtml(data.message || "")}`;
+    renderAutoPipelineResult(data);
+  } catch (err) {
+    if (statusEl) statusEl.innerHTML = `<span class="badge danger">실패</span> ${escapeHtml(err.message)}`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function renderAutoPipelineResult(data) {
+  const root = document.getElementById("autoPipelineResult");
+  if (!root) return;
+  const ex = data.execSummary || {};
+  const stopAfter = data.stopAfter || "queue";
+  const applied = data.applied || {};
+  const items = Array.isArray(ex.items) ? ex.items : [];
+
+  const clampNote = (applied.limitClamped || applied.maxAnalysesClamped)
+    ? `<p class="muted" style="font-size:12px;">※ 서버 상한으로 조정됨: ${applied.limitClamped ? `수집 건수 → ${applied.limitMax}` : ""}${applied.limitClamped && applied.maxAnalysesClamped ? " · " : ""}${applied.maxAnalysesClamped ? `분석 상한 → ${applied.analysesMax}` : ""}.</p>`
+    : "";
+
+  const kpi = `
+    <div class="evidence-grid" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr));">
+      <div class="evi-item"><div class="label">수집(discovered)</div><div class="value">${ex.discovered ?? 0}</div></div>
+      <div class="evi-item"><div class="label">분석(analyzed)</div><div class="value">${ex.analyzed ?? 0}</div></div>
+      <div class="evi-item"><div class="label">적재(queued)</div><div class="value">${ex.queued ?? 0}</div></div>
+      <div class="evi-item"><div class="label">스킵(skipped)</div><div class="value">${ex.skipped ?? 0}</div></div>
+      <div class="evi-item"><div class="label">오류(errors)</div><div class="value">${ex.errors ?? 0}</div></div>
+    </div>`;
+
+  const previewBanner = stopAfter === "analyze"
+    ? `<div class="input-notice" style="margin:8px 0;"><strong>미리보기 (저장 안 됨)</strong> — 아래 결과는 점수/판단 미리보기이며 케이스로 저장되거나 검수 대기열에 적재되지 않았습니다. 적재하려면 "③ 검수 대기까지"로 다시 실행하세요.</div>`
+    : "";
+
+  const queueLink = (stopAfter === "queue" && (ex.queued ?? 0) > 0)
+    ? `<p style="margin:8px 0;"><button class="ghost" type="button" data-view-target="review">검수 대기열로 이동 →</button> <span class="muted" style="font-size:12px;">적재된 ${ex.queued}건은 사람 검토 대기 상태입니다. 제출은 검토 후 직접 수행합니다.</span></p>`
+    : "";
+
+  let listHtml = "";
+  if (items.length) {
+    const rows = items.slice(0, 50).map((it) => {
+      let badge;
+      if (it.outcome === "collected") badge = '<span class="badge muted">수집됨</span>';
+      else if (it.outcome === "preview") badge = '<span class="badge warn">미리보기</span>';
+      else if (it.outcome === "auto_review") badge = '<span class="badge ok">검수 적재</span>';
+      else if (it.outcome === "needs_human_triage") badge = '<span class="badge warn">검토 분류</span>';
+      else if (it.outcome === "noise") badge = '<span class="badge muted">노이즈</span>';
+      else if (it.outcome === "duplicate_skipped") badge = '<span class="badge muted">중복</span>';
+      else if (it.outcome === "skipped_not_new") badge = '<span class="badge muted">처리됨</span>';
+      else if (it.outcome === "limit_skipped") badge = '<span class="badge muted">상한초과</span>';
+      else if (it.outcome === "failed") badge = '<span class="badge danger">실패</span>';
+      else badge = `<span class="badge muted">${escapeHtml(it.outcome)}</span>`;
+      const score = typeof it.score === "number"
+        ? ` · 점수 ${it.score}${typeof it.confidence === "number" ? ` / 신뢰도 ${Math.round(it.confidence * 100)}%` : ""}`
+        : "";
+      const route = it.route ? ` · 라우팅 ${escapeHtml(it.route)}` : "";
+      const persisted = it.persisted ? '저장됨' : '저장 안 됨';
+      const reason = it.reason ? `<div class="muted" style="font-size:12px;">${escapeHtml(it.reason)}</div>` : "";
+      const caseInfo = it.caseId ? `<div class="muted" style="font-size:12px;">case=${escapeHtml(it.caseId)} · 상태 ${escapeHtml(it.caseStatus || "-")}${it.reviewRequestStatus ? ` · 검수요청 ${escapeHtml(it.reviewRequestStatus)}` : ""}</div>` : "";
+      return `<div class="evi-item" style="margin-bottom:6px;">
+        <div class="label">${badge} <span class="muted" style="font-size:11px;">(${persisted})</span>${score}${route}</div>
+        <div class="value" style="word-break:break-all;font-size:12px;">${escapeHtml(it.title || it.url || it.candidateId || "")}</div>
+        ${reason}${caseInfo}
+      </div>`;
+    }).join("");
+    listHtml = `<div style="margin-top:8px;">${rows}</div>`;
+    if (items.length > 50) listHtml += `<p class="muted" style="font-size:12px;">…외 ${items.length - 50}건</p>`;
+  } else {
+    listHtml = '<p class="muted">표시할 결과가 없습니다.</p>';
+  }
+
+  root.innerHTML = `
+    <h4 style="margin:6px 0;">실행 요약 · ${escapeHtml(AUTO_PIPELINE_STOP_LABELS[stopAfter] || stopAfter)}</h4>
+    ${kpi}
+    ${clampNote}
+    ${previewBanner}
+    ${queueLink}
+    ${listHtml}
+    <p class="muted" style="font-size:11px;margin-top:8px;">${escapeHtml(data.safetyNotice || "")}</p>
+  `;
 }
 
 // /api/modules에서 받은 ModuleDefinition을 UI MODULES 형태로 변환

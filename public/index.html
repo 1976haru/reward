@@ -271,6 +271,54 @@
           </button>
         </div>
 
+        <!-- 자동 실행 (하이브리드) — 단계 범위 선택 + 시작 -->
+        <section class="card" id="autoPipelineCard">
+          <h2>자동 실행 (하이브리드)</h2>
+          <p class="section-hint">어디까지 자동으로 진행할지 고르고 <strong>시작</strong>을 누르세요. 선택한 단계까지만 자동으로 실행됩니다. <strong>제출은 항상 직접 하셔야 합니다.</strong></p>
+          <div class="safety-banner" style="margin:10px 0;">
+            ⚠ 자동 신고 없음 · 사람 검토 필수 · 포상금 보장 아님. 자동 실행의 최대 종착점은 <strong>검수 대기열 적재(human_review_required)</strong>까지이며, 외부 신고기관 제출은 어떤 단계 옵션으로도 수행하지 않습니다.
+          </div>
+
+          <fieldset style="border:1px solid var(--border,#e2e8f0);border-radius:8px;padding:10px 14px;margin:0 0 12px;">
+            <legend style="font-weight:700;font-size:13px;padding:0 6px;">어디까지 자동으로 진행할까요?</legend>
+            <label class="ap-seg" style="display:block;margin:4px 0;cursor:pointer;">
+              <input type="radio" name="autoPipelineStopAfter" value="collect" />
+              <strong>① 수집까지</strong> <span class="muted">— 후보만 수집 (분석·적재 안 함, 비용 0)</span>
+            </label>
+            <label class="ap-seg" style="display:block;margin:4px 0;cursor:pointer;">
+              <input type="radio" name="autoPipelineStopAfter" value="analyze" />
+              <strong>② 분석까지 (미리보기)</strong> <span class="muted">— 수집 + 점수/판단. 결과는 저장하지 않는 미리보기</span>
+            </label>
+            <label class="ap-seg" style="display:block;margin:4px 0;cursor:pointer;">
+              <input type="radio" name="autoPipelineStopAfter" value="queue" checked />
+              <strong>③ 검수 대기까지</strong> <span class="muted">— 수집 + 분석 + 신뢰도 라우팅 + 검수 대기열 적재 (기본)</span>
+            </label>
+          </fieldset>
+
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+            <div style="flex:1 1 200px;">
+              <label for="autoPipelineModule" style="font-size:12px;">신고 분야 (모듈)</label>
+              <select id="autoPipelineModule" style="width:100%;"></select>
+            </div>
+            <div style="flex:0 0 110px;">
+              <label for="autoPipelineLimit" style="font-size:12px;">수집 건수</label>
+              <input id="autoPipelineLimit" type="number" min="1" max="30" step="1" value="5" style="width:100%;" />
+            </div>
+            <div style="flex:0 0 120px;">
+              <label for="autoPipelineMaxAnalyses" style="font-size:12px;">분석 상한</label>
+              <input id="autoPipelineMaxAnalyses" type="number" min="1" max="20" step="1" value="5" style="width:100%;" />
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <button class="primary" type="button" id="autoPipelineStartBtn" style="font-size:16px;padding:10px 26px;">시작</button>
+            <span class="muted" style="font-size:12px;">어디까지 자동으로 진행할지 고르세요. 제출은 항상 직접 하셔야 합니다.</span>
+          </div>
+
+          <div id="autoPipelineStatus" class="muted" style="margin-top:12px;"></div>
+          <div id="autoPipelineResult" style="margin-top:10px;"></div>
+        </section>
+
         <!-- Home / Notice (기존) — 오늘 날짜·버전·실전 상태 -->
         <section class="card home-notice" id="homeNoticeCard">
           <h2>Home / Notice — 오늘 날짜 · 버전 · 실전 상태</h2>

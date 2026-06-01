@@ -271,6 +271,139 @@ test("제출은 여전히 수동: 출력에 자동 제출/제출 상태 없음 �
 });
 
 // ====================================================================
+// 단계 범위(stopAfter) — 하이브리드 자동 실행
+// ====================================================================
+
+test('stopAfter="collect": 후보만 수집 · 케이스 0 · 큐 0 · LLM 분석 0회', async () => {
+  const outcomes = new Map([
+    ["https://c.example/p1", { score: 80, confidence: 0.8 }],
+    ["https://c.example/p2", { score: 40, confidence: 0.5 }]
+  ]);
+  const { pipeline, candidateRepo, caseRepo, orchestrator } = buildPipeline(outcomes);
+  const cands = [
+    makeCandidate({ url: "https://c.example/p1", title: "수집 광고 1" }),
+    makeCandidate({ url: "https://c.example/p2", title: "수집 광고 2" })
+  ];
+  await candidateRepo.createMany(cands);
+
+  const summary = await pipeline.processCandidates(cands, { moduleId: "false_ad", stopAfter: "collect" });
+
+  assert.equal(summary.stopAfter, "collect");
+  assert.equal(orchestrator.analyzeCalls, 0, "LLM 분석 0회 (비용 0)");
+  assert.equal(summary.analyzed, 0);
+  assert.equal(summary.autoReviewQueued + summary.needsTriageQueued, 0, "큐 적재 0");
+  assert.equal(summary.collected, 2, "수집 후보 2건");
+  assert.ok(summary.results.every((r) => r.persisted === false), "어떤 결과도 저장되지 않음");
+
+  const all = await caseRepo.list({ limit: 500 });
+  assert.equal(all.total, 0, "케이스 0건");
+
+  // 후보 상태는 NEW 로 보존 — 이어서 analyze/queue 가능.
+  for (const c of cands) {
+    const cur = await candidateRepo.getById(c.id);
+    assert.equal(cur.status, "NEW", "collect 모드는 후보 상태를 바꾸지 않음");
+  }
+
+  assert.equal(assertNoSubmissionAutomation(summary), true);
+});
+
+test('stopAfter="analyze": 분석/점수 수행 · 케이스 0 · 큐 0(persisted:false) · preview>0', async () => {
+  const outcomes = new Map([
+    ["https://a.example/p1", { score: 80, confidence: 0.8 }],
+    ["https://a.example/p2", { score: 40, confidence: 0.5 }],
+    ["https://a.example/p3", { score: 10, confidence: 0.2 }]
+  ]);
+  const { pipeline, candidateRepo, caseRepo, orchestrator } = buildPipeline(outcomes);
+  const cands = [
+    makeCandidate({ url: "https://a.example/p1", title: "분석 광고 1" }),
+    makeCandidate({ url: "https://a.example/p2", title: "분석 광고 2" }),
+    makeCandidate({ url: "https://a.example/p3", title: "분석 광고 3" })
+  ];
+  await candidateRepo.createMany(cands);
+
+  const summary = await pipeline.processCandidates(cands, { moduleId: "false_ad", stopAfter: "analyze" });
+
+  assert.equal(summary.stopAfter, "analyze");
+  assert.equal(orchestrator.analyzeCalls, 3, "3건 모두 분석/점수 산출");
+  assert.equal(summary.analyzed, 3);
+  assert.equal(summary.previewed, 3, "preview 3건");
+  assert.ok(summary.previewed > 0, "preview 개수 > 0");
+  assert.equal(summary.autoReviewQueued + summary.needsTriageQueued, 0, "큐 적재 0");
+  assert.equal(summary.noiseDropped, 0, "analyze 모드는 노이즈도 마감하지 않음(미리보기만)");
+
+  // 모든 preview 는 persisted:false 이고 점수/근거를 담는다.
+  const previews = summary.results.filter((r) => r.outcome === "preview");
+  assert.equal(previews.length, 3);
+  assert.ok(previews.every((r) => r.persisted === false), "preview 는 저장 안 됨");
+  assert.ok(previews.every((r) => typeof r.score === "number" && typeof r.route === "string"), "점수·라우팅 근거 표시");
+
+  const all = await caseRepo.list({ limit: 500 });
+  assert.equal(all.total, 0, "케이스 0건 — 저장 안 됨");
+
+  // 후보 상태는 NEW 로 보존.
+  for (const c of cands) {
+    const cur = await candidateRepo.getById(c.id);
+    assert.equal(cur.status, "NEW", "analyze 모드는 후보 상태를 바꾸지 않음");
+  }
+
+  assert.equal(assertNoSubmissionAutomation(summary), true);
+});
+
+test('stopAfter="queue"(기본): 고위험은 검수 대기열 적재 — 기존 동작 유지', async () => {
+  const outcomes = new Map([
+    ["https://q.example/p1", { score: 90, confidence: 0.9 }],
+    ["https://q.example/p2", { score: 10, confidence: 0.2 }]
+  ]);
+  const { pipeline, candidateRepo, caseRepo } = buildPipeline(outcomes);
+  const cands = [
+    makeCandidate({ url: "https://q.example/p1", title: "적재 광고 1" }),
+    makeCandidate({ url: "https://q.example/p2", title: "적재 광고 2" })
+  ];
+  await candidateRepo.createMany(cands);
+
+  // stopAfter 미지정 → "queue" 기본값으로 동작해야 한다.
+  const summary = await pipeline.processCandidates(cands, { moduleId: "false_ad" });
+
+  assert.equal(summary.stopAfter, "queue", "미지정 시 기본 queue");
+  assert.equal(summary.autoReviewQueued, 1, "고위험 1건 검수 대기열 적재");
+  assert.equal(summary.noiseDropped, 1, "저위험 1건 케이스 미생성");
+
+  const high = summary.results.find((r) => r.url === "https://q.example/p1")!;
+  assert.equal(high.outcome, "auto_review");
+  assert.equal(high.persisted, true, "적재 건은 persisted:true");
+  assert.equal(high.caseStatus, "REVIEW");
+  assert.equal(high.reviewRequestStatus, "human_review_required");
+
+  const all = await caseRepo.list({ limit: 500 });
+  assert.equal(all.total, 1, "케이스 1건 적재");
+  assert.equal(canAutoSubmit(), false, "canAutoSubmit 불변");
+  assert.equal(assertNoSubmissionAutomation(summary), true);
+});
+
+test("어느 stopAfter 모드에서도 SUBMITTED/auto-submit 상태가 생기지 않음", async () => {
+  const outcomes = new Map([["https://s.example/p1", { score: 95, confidence: 0.95 }]]);
+  for (const stopAfter of ["collect", "analyze", "queue"] as const) {
+    const { pipeline, candidateRepo, caseRepo } = buildPipeline(outcomes);
+    const cands = [makeCandidate({ url: "https://s.example/p1", title: "제출불가 광고" })];
+    await candidateRepo.createMany(cands);
+
+    const summary = await pipeline.processCandidates(cands, { moduleId: "false_ad", stopAfter });
+
+    assert.equal(summary.autoSubmitted, false, `${stopAfter}: autoSubmitted=false`);
+    assert.equal(summary.terminalState, "human_review_required", `${stopAfter}: 끝점 human_review_required`);
+    assert.equal(assertNoSubmissionAutomation(summary), true, `${stopAfter}: 제출 자동화 없음`);
+    for (const r of summary.results) {
+      assert.notEqual(r.caseStatus, "SUBMITTED", `${stopAfter}: SUBMITTED 케이스 없음`);
+    }
+    const all = await caseRepo.list({ limit: 500 });
+    for (const c of all.cases) {
+      assert.notEqual(c.status, "SUBMITTED", `${stopAfter}: 저장소에 SUBMITTED 없음`);
+    }
+    assert.equal(canAutoSubmit(), false, `${stopAfter}: canAutoSubmit()===false 불변`);
+  }
+});
+
+// ====================================================================
 
 (async () => {
   let pass = 0;
