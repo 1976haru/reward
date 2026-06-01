@@ -133,8 +133,11 @@ function check(name: string, cond: boolean, detail?: string) {
 // 단언을 삭제하지 않으며, mock 환경(키 없음/MOCK_AI=true)에서는 100% 동일하게 모든 단언이 실행된다.
 const isRealAiMode = process.env.MOCK_AI === "false" && !!process.env.OPENAI_API_KEY;
 const isNaverEnabled = !!process.env.NAVER_CLIENT_ID && !!process.env.NAVER_CLIENT_SECRET;
+// 기본 true(mock). MOCK_SCOUT=false 로 명시한 실가동 수집 모드에서만 false 가 되어 mock 전제 단언을 SKIP 한다.
+const isScoutMockMode = process.env.MOCK_SCOUT !== "false";
 const REAL_AI_SKIP_REASON = "real AI mode detected (MOCK_AI=false, key present)";
 const NAVER_ENABLED_SKIP_REASON = "Naver API enabled (NAVER_CLIENT_ID/SECRET present)";
+const SCOUT_REAL_SKIP_REASON = "real scout mode (MOCK_SCOUT=false)";
 /**
  * 환경 조건(skip=true)이면 단언을 실행하지 않고 SKIP 처리하며, 콘솔에 사유를 남긴다.
  * skip=false 면 일반 check 와 동일하게 동작한다(= PASS/FAIL 집계 포함).
@@ -1192,7 +1195,7 @@ const rssSrc = sources.find((s) => s.sourceType === "rss");
 check("rss source planned", rssSrc?.status === "planned");
 
 const mockAdapter = new MockSearchAdapter();
-check("MockSearchAdapter isEnabled", mockAdapter.isEnabled());
+checkUnlessSkip("MockSearchAdapter isEnabled", mockAdapter.isEnabled(), !isScoutMockMode, SCOUT_REAL_SKIP_REASON);
 const mockResults = await mockAdapter.search("당뇨 완치", { limit: 5, moduleId: "false_ad", topicId: "blood-sugar" });
 check("MockSearchAdapter returns candidates", mockResults.length > 0);
 check("Mock results use reserved domains", mockResults.every((c) => /(\.test|\.example|\.invalid)/.test(c.url)));
@@ -4429,6 +4432,7 @@ console.log("SMOKE_TEST_OK", {
   skipped: skipped.length,
   isRealAiMode,
   isNaverEnabled,
+  isScoutMockMode,
   hits: hits.length,
   score,
   cleanScore,
