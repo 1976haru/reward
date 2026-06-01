@@ -35,12 +35,24 @@ const SAFETY_NOTICE =
   "AutoPipeline 은 발굴→분석→검수 대기열 적재까지만 자동화하며 외부 신고기관에 자동 제출하지 않습니다. " +
   "모든 케이스는 human_review_required(사람 검수 대기) 상태에서 멈추고, 실제 제출은 사람이 공식 창구에서 직접 수행합니다.";
 
+// ---------- 단계 범위 (하이브리드 자동 실행) ----------
+
+// 사용자가 "어디까지 자동으로 진행할지" 고르는 정지점. 제출은 어떤 값으로도 자동화되지 않으며,
+// 자동 실행의 최대 종착점은 언제나 "검수 대기열 적재(human_review_required)" 까지다.
+//   collect : 수집까지만 (후보만, 중복제거 포함 가능). LLM 분석/케이스 생성/큐 적재 없음 (비용 0).
+//   analyze : 수집 + 분석/점수까지. 결과는 preview(persisted:false) — 케이스 미생성·큐 미적재.
+//   queue   : 수집 + 분석 + 신뢰도 라우팅 + 검수 대기열 적재 (기존 전체 동작). 기본값.
+export type PipelineStopAfter = "collect" | "analyze" | "queue";
+export const PIPELINE_STOP_AFTERS: readonly PipelineStopAfter[] = ["collect", "analyze", "queue"];
+
 // ---------- 라우팅 ----------
 
 export type PipelineRoute = "auto_review" | "needs_human_triage" | "noise";
 
 export type PipelineCandidateOutcome =
   | PipelineRoute
+  | "collected"           // collect 모드: 수집/중복제거만 통과한 후보 (분석/적재 안 함, persisted:false)
+  | "preview"             // analyze 모드: 분석/점수 산출했으나 저장 안 함 (persisted:false)
   | "duplicate_skipped"   // 이미 동일 대상 케이스가 있어 재분석/중복 케이스 생성 방지
   | "skipped_not_new"     // 멱등성: 이미 처리(ANALYZED/QUEUED/REJECTED)된 후보
   | "limit_skipped"       // 비용 가드(MAX_ANALYSES) 초과 — 다음 run 에서 재시도 (NEW 유지)
@@ -49,7 +61,15 @@ export type PipelineCandidateOutcome =
 export interface PipelineCandidateResult {
   candidateId: string;
   url: string;
+  title?: string;
   outcome: PipelineCandidateOutcome;
+  /**
+   * 이 후보 처리 결과로 케이스/큐에 "저장"이 일어났는지. collect/analyze 모드와 노이즈/중복/실패/스킵은 false.
+   * auto_review·needs_human_triage(queue 모드 적재)만 true. UI 가 "미리보기(저장 안 됨)"를 명확히 표시하는 근거.
+   */
+  persisted: boolean;
+  /** 신뢰도 라우팅 결정 (analyze 미리보기 / queue 적재 시 표시). collect 모드는 없음. */
+  route?: PipelineRoute;
   caseId?: string;
   /** 적재된 케이스의 내부 검토 상태 (REVIEW=검수 대기 / DRAFT=triage). 제출 상태(SUBMITTED)는 절대 만들지 않는다. */
   caseStatus?: CaseStatus;
@@ -63,13 +83,20 @@ export interface PipelineCandidateResult {
 export interface PipelineSummary {
   runId: string;
   moduleId: string;
+  /** 이번 실행에서 사용자가 고른 정지점. 기본 "queue". */
+  stopAfter: PipelineStopAfter;
   totalCandidates: number;
   analyzed: number;
   autoReviewQueued: number;
   needsTriageQueued: number;
   noiseDropped: number;
+  /** collect 모드: 수집만 통과한 후보 수. */
+  collected: number;
+  /** analyze 모드: 분석/점수만 산출하고 저장하지 않은 미리보기 수 (persisted:false). */
+  previewed: number;
   duplicatesSkipped: number;
   skippedNotNew: number;
+  limitSkipped: number;
   failed: number;
   limitReached: boolean;
   maxAnalyses: number;
@@ -82,9 +109,29 @@ export interface PipelineSummary {
   generatedAt: string;
 }
 
+/**
+ * 실행 요약 — 단계 범위 UI/엔드포인트가 화면에 그대로 표시하는 평탄한 집계.
+ * items[] 의 persisted 플래그로 "저장됨(queue 적재)" vs "미리보기(저장 안 됨)" 를 구분한다.
+ */
+export interface PipelineExecSummary {
+  stopAfter: PipelineStopAfter;
+  /** 사람이 읽기 쉬운 모드 설명 (UI 라벨용). */
+  mode: string;
+  discovered: number;     // 발굴되어 파이프라인에 투입된 신규 후보 수
+  deduped: number;        // 중복으로 제거된 수
+  analyzed: number;       // LLM 분석 호출 수 (collect=0)
+  queued: number;         // 검수 대기열에 적재된 케이스 수 (collect/analyze=0)
+  previewed: number;      // 분석되었으나 저장하지 않은 미리보기 수 (analyze 모드)
+  collected: number;      // 수집만 된 후보 수 (collect 모드)
+  skipped: number;        // 멱등 스킵 + 중복 + 비용가드 초과
+  errors: number;         // 분석 실패(격리)
+  items: PipelineCandidateResult[];
+}
+
 export interface PipelineRunResult {
   runId: string;
   moduleId: string;
+  stopAfter: PipelineStopAfter;
   discovery: {
     totalFound: number;
     totalAdded: number;
@@ -92,6 +139,8 @@ export interface PipelineRunResult {
     sourceFallbacks: ScoutSourceType[];
   };
   pipeline: PipelineSummary;
+  /** 단계 범위 실행 요약 (UI/엔드포인트 표시용). */
+  execSummary: PipelineExecSummary;
   autoSubmitted: false;
   humanReviewRequired: true;
   safetyNotice: string;
@@ -191,22 +240,30 @@ export class AutoPipeline {
     };
   }
 
-  /** 1회 전체 실행: discover → 분석~검수 적재. 수동 트리거 라우트 / 스케줄러 full 모드에서 사용. */
+  /**
+   * 1회 전체 실행: discover → (stopAfter 에 따라) 수집/분석/적재. 수동 트리거 라우트 / 스케줄러 full 모드에서 사용.
+   * stopAfter 미지정 시 "queue" — 기존 전체 동작과 동일 (하위 호환).
+   */
   async run(opts: {
     moduleId?: string;
     topics?: string[];
     mode?: DiscoveryMode;
     sourceTypes?: ScoutSourceType[];
     maxCandidates?: number;
+    /** 이번 run 의 비용 가드 상한 (config 기본값을 초과할 수 없음 — 더 낮게만 조정). */
+    maxAnalyses?: number;
+    stopAfter?: PipelineStopAfter;
     reason?: string;
   } = {}): Promise<PipelineRunResult> {
     const runId = createRunId("pipeline");
     const moduleId = opts.moduleId ?? "false_ad";
+    const stopAfter: PipelineStopAfter = opts.stopAfter ?? "queue";
+    const mode: DiscoveryMode = opts.mode ?? "standard";
 
     const discovery = await this.scout.discover({
       moduleId,
       topics: opts.topics ?? [],
-      mode: opts.mode ?? "standard",
+      mode,
       sourceTypes: opts.sourceTypes,
       maxCandidates: opts.maxCandidates
     });
@@ -214,12 +271,15 @@ export class AutoPipeline {
     const pipeline = await this.processCandidates(discovery.added, {
       runId,
       moduleId,
-      reason: opts.reason ?? "pipeline:run"
+      reason: opts.reason ?? "pipeline:run",
+      stopAfter,
+      maxAnalyses: opts.maxAnalyses
     });
 
     return {
       runId,
       moduleId,
+      stopAfter,
       discovery: {
         totalFound: discovery.candidates.length,
         totalAdded: discovery.added.length,
@@ -227,6 +287,7 @@ export class AutoPipeline {
         sourceFallbacks: discovery.sourceFallbacks
       },
       pipeline,
+      execSummary: buildExecSummary(pipeline, mode),
       autoSubmitted: false,
       humanReviewRequired: true,
       safetyNotice: SAFETY_NOTICE
@@ -239,10 +300,15 @@ export class AutoPipeline {
    */
   async processCandidates(
     candidates: DiscoveryCandidate[],
-    ctx: { runId?: string; moduleId?: string; reason?: string } = {}
+    ctx: { runId?: string; moduleId?: string; reason?: string; stopAfter?: PipelineStopAfter; maxAnalyses?: number } = {}
   ): Promise<PipelineSummary> {
     const runId = ctx.runId ?? createRunId("pipeline");
     const moduleId = ctx.moduleId ?? "false_ad";
+    const stopAfter: PipelineStopAfter = ctx.stopAfter ?? "queue";
+    // 비용 가드: per-run 값은 config 상한을 넘을 수 없다 (더 낮게만). 방어적 clamp.
+    const maxAnalyses = typeof ctx.maxAnalyses === "number" && Number.isFinite(ctx.maxAnalyses)
+      ? Math.max(0, Math.min(Math.floor(ctx.maxAnalyses), this.cfg.maxAnalyses))
+      : this.cfg.maxAnalyses;
     const results: PipelineCandidateResult[] = [];
     let limitReached = false;
 
@@ -252,8 +318,8 @@ export class AutoPipeline {
       runId,
       moduleId,
       agentName: "AutoPipeline",
-      message: `자율 파이프라인 시작 (후보 ${candidates.length}건, maxAnalyses=${this.cfg.maxAnalyses})`,
-      meta: { reason: ctx.reason, total: candidates.length, autoSubmitted: false }
+      message: `자율 파이프라인 시작 (후보 ${candidates.length}건, stopAfter=${stopAfter}, maxAnalyses=${maxAnalyses})`,
+      meta: { reason: ctx.reason, total: candidates.length, stopAfter, autoSubmitted: false }
     });
 
     // 1) 멱등성: 저장소 현재 상태 재확인 → NEW 만 처리. 이미 처리된 후보는 재실행해도 건너뛴다.
@@ -263,11 +329,11 @@ export class AutoPipeline {
       try {
         current = await this.candidateRepo.getById(cand.id);
       } catch {
-        results.push({ candidateId: cand.id, url: cand.url, outcome: "failed", reason: "후보를 저장소에서 찾을 수 없음" });
+        results.push({ candidateId: cand.id, url: cand.url, title: cand.title, outcome: "failed", persisted: false, reason: "후보를 저장소에서 찾을 수 없음" });
         continue;
       }
       if (current.status !== "NEW") {
-        results.push({ candidateId: current.id, url: current.url, outcome: "skipped_not_new", caseId: current.caseId, reason: `상태=${current.status}` });
+        results.push({ candidateId: current.id, url: current.url, title: current.title, outcome: "skipped_not_new", persisted: false, caseId: current.caseId, reason: `상태=${current.status}` });
         continue;
       }
       fresh.push(current);
@@ -292,9 +358,12 @@ export class AutoPipeline {
     for (const cand of fresh) {
       if (duplicateOf.has(cand.id)) {
         const dupCaseId = duplicateOf.get(cand.id);
-        // 이미 동일 대상 케이스가 있으므로 재분석하지 않고 후보를 ANALYZED 로 연결 (멱등성 + 대기열 오염 방지).
-        await this.candidateRepo.updateStatus(cand.id, "ANALYZED", dupCaseId ? { caseId: dupCaseId } : undefined);
-        results.push({ candidateId: cand.id, url: cand.url, outcome: "duplicate_skipped", caseId: dupCaseId, reason: "기존 케이스와 중복" });
+        // queue 모드에서만 상태를 전이한다 (멱등성 + 대기열 오염 방지). collect/analyze 는 후보를 NEW 로 보존해
+        // 사용자가 이어서 queue 모드로 다시 돌릴 수 있게 한다 (미리보기는 부수효과를 남기지 않는다).
+        if (stopAfter === "queue") {
+          await this.candidateRepo.updateStatus(cand.id, "ANALYZED", dupCaseId ? { caseId: dupCaseId } : undefined);
+        }
+        results.push({ candidateId: cand.id, url: cand.url, title: cand.title, outcome: "duplicate_skipped", persisted: false, caseId: dupCaseId, reason: "기존 케이스와 중복" });
         await this.trace.log({
           eventType: "guardrail",
           severity: "info",
@@ -303,20 +372,29 @@ export class AutoPipeline {
           candidateId: cand.id,
           agentName: "AutoPipeline",
           message: "중복 후보 — 재분석/중복 케이스 생성 생략",
-          meta: { duplicateOf: dupCaseId }
+          meta: { duplicateOf: dupCaseId, stopAfter }
         });
         continue;
       }
       survivors.push(cand);
     }
 
-    // 3) 분석 + 라우팅 (비용/레이트/실패격리 가드)
+    // stopAfter="collect": 수집/중복제거까지만. LLM 분석·케이스 생성·큐 적재 없음 (비용 0).
+    // 생존 후보를 "collected" 로 보고하고 상태는 NEW 로 보존한다 (이어서 analyze/queue 가능).
+    if (stopAfter === "collect") {
+      for (const cand of survivors) {
+        results.push({ candidateId: cand.id, url: cand.url, title: cand.title, outcome: "collected", persisted: false });
+      }
+      return this.finalizeSummary({ runId, moduleId, stopAfter, candidates, results, analysesUsed: 0, maxAnalyses, limitReached: false });
+    }
+
+    // 3) 분석 + 라우팅 (비용/레이트/실패격리 가드). stopAfter="analyze" 는 분석/점수까지만 (미리보기), queue 는 전체.
     let analysesUsed = 0;
     for (const cand of survivors) {
-      // 비용 가드: 상한 초과 시 남은 후보는 NEW 로 두고 다음 run 으로 미룬다.
-      if (analysesUsed >= this.cfg.maxAnalyses) {
+      // 비용 가드: 상한 초과 시 남은 후보는 NEW 로 두고 다음 run 으로 미룬다. analyze 모드에도 동일 적용.
+      if (analysesUsed >= maxAnalyses) {
         limitReached = true;
-        results.push({ candidateId: cand.id, url: cand.url, outcome: "limit_skipped", reason: `MAX_ANALYSES(${this.cfg.maxAnalyses}) 초과` });
+        results.push({ candidateId: cand.id, url: cand.url, title: cand.title, outcome: "limit_skipped", persisted: false, reason: `MAX_ANALYSES(${maxAnalyses}) 초과` });
         continue;
       }
 
@@ -335,10 +413,41 @@ export class AutoPipeline {
           : (typeof draft.aiFinding?.confidence === "number" ? draft.aiFinding.confidence / 100 : 0);
         const route = decideRoute(score, confidence, this.cfg);
 
+        // stopAfter="analyze": 분석/점수까지만. 케이스 미생성·큐 미적재. 결과는 preview(persisted:false).
+        // 후보 상태는 NEW 로 보존 — 사용자가 미리보기를 보고 이어서 queue 모드로 적재할 수 있다.
+        if (stopAfter === "analyze") {
+          results.push({
+            candidateId: cand.id,
+            url: cand.url,
+            title: cand.title,
+            outcome: "preview",
+            persisted: false,
+            route,
+            score,
+            confidence,
+            reason: route === "noise"
+              ? "미리보기: 임계값 미만 (queue 모드에서는 케이스 미생성)"
+              : route === "auto_review"
+                ? "미리보기: 高위험·高신뢰도 (queue 모드에서는 검수 대기열 적재)"
+                : "미리보기: 中간/모호 (queue 모드에서는 needs_human_triage)"
+          });
+          await this.trace.log({
+            eventType: "service_call",
+            severity: "info",
+            runId,
+            moduleId,
+            candidateId: cand.id,
+            agentName: "AutoPipeline",
+            message: "분석 미리보기 산출 (저장 안 함 — persisted:false)",
+            meta: { route, score, confidence, stopAfter, persisted: false, autoSubmitted: false }
+          });
+          continue;
+        }
+
         if (route === "noise") {
           // 低위험/노이즈 → 케이스 생성하지 않고 로그만. 후보는 REJECTED 로 마감 (멱등성).
           await this.candidateRepo.updateStatus(cand.id, "REJECTED");
-          results.push({ candidateId: cand.id, url: cand.url, outcome: "noise", score, confidence, reason: "임계값 미만 — 케이스 미생성" });
+          results.push({ candidateId: cand.id, url: cand.url, title: cand.title, outcome: "noise", persisted: false, route, score, confidence, reason: "임계값 미만 — 케이스 미생성" });
           await this.trace.log({
             eventType: "guardrail",
             severity: "info",
@@ -374,7 +483,10 @@ export class AutoPipeline {
         results.push({
           candidateId: cand.id,
           url: cand.url,
+          title: cand.title,
           outcome: route,
+          persisted: true,
+          route,
           caseId: committed.id,
           caseStatus: committed.status,
           reviewRequestStatus,
@@ -398,7 +510,7 @@ export class AutoPipeline {
       } catch (error) {
         // 실패 격리: 후보 1건 실패가 전체 run 을 죽이지 않는다. 후보는 NEW 로 두고 사유 기록.
         const reason = (error as Error).message;
-        results.push({ candidateId: cand.id, url: cand.url, outcome: "failed", reason });
+        results.push({ candidateId: cand.id, url: cand.url, title: cand.title, outcome: "failed", persisted: false, reason });
         await this.trace.log({
           eventType: "agent_error",
           severity: "error",
@@ -411,19 +523,38 @@ export class AutoPipeline {
       }
     }
 
+    return this.finalizeSummary({ runId, moduleId, stopAfter, candidates, results, analysesUsed, maxAnalyses, limitReached });
+  }
+
+  /** PipelineSummary 조립 + agent_end 추적 로그. collect 조기반환과 일반 종료가 공유한다. */
+  private async finalizeSummary(args: {
+    runId: string;
+    moduleId: string;
+    stopAfter: PipelineStopAfter;
+    candidates: DiscoveryCandidate[];
+    results: PipelineCandidateResult[];
+    analysesUsed: number;
+    maxAnalyses: number;
+    limitReached: boolean;
+  }): Promise<PipelineSummary> {
+    const { runId, moduleId, stopAfter, candidates, results, analysesUsed, maxAnalyses, limitReached } = args;
     const summary: PipelineSummary = {
       runId,
       moduleId,
+      stopAfter,
       totalCandidates: candidates.length,
       analyzed: analysesUsed,
       autoReviewQueued: results.filter((r) => r.outcome === "auto_review").length,
       needsTriageQueued: results.filter((r) => r.outcome === "needs_human_triage").length,
       noiseDropped: results.filter((r) => r.outcome === "noise").length,
+      collected: results.filter((r) => r.outcome === "collected").length,
+      previewed: results.filter((r) => r.outcome === "preview").length,
       duplicatesSkipped: results.filter((r) => r.outcome === "duplicate_skipped").length,
       skippedNotNew: results.filter((r) => r.outcome === "skipped_not_new").length,
+      limitSkipped: results.filter((r) => r.outcome === "limit_skipped").length,
       failed: results.filter((r) => r.outcome === "failed").length,
       limitReached,
-      maxAnalyses: this.cfg.maxAnalyses,
+      maxAnalyses,
       results,
       autoSubmitted: false,
       humanReviewRequired: true,
@@ -438,10 +569,13 @@ export class AutoPipeline {
       runId,
       moduleId,
       agentName: "AutoPipeline",
-      message: `자율 파이프라인 종료 (적재 ${summary.autoReviewQueued + summary.needsTriageQueued}건, 노이즈 ${summary.noiseDropped}건, 실패 ${summary.failed}건)`,
+      message: `자율 파이프라인 종료 (stopAfter=${stopAfter}, 적재 ${summary.autoReviewQueued + summary.needsTriageQueued}건, 미리보기 ${summary.previewed}건, 수집 ${summary.collected}건, 노이즈 ${summary.noiseDropped}건, 실패 ${summary.failed}건)`,
       meta: {
+        stopAfter,
         autoReviewQueued: summary.autoReviewQueued,
         needsTriageQueued: summary.needsTriageQueued,
+        previewed: summary.previewed,
+        collected: summary.collected,
         noiseDropped: summary.noiseDropped,
         duplicatesSkipped: summary.duplicatesSkipped,
         failed: summary.failed,
@@ -453,6 +587,29 @@ export class AutoPipeline {
 
     return summary;
   }
+}
+
+const STOP_AFTER_MODE_LABEL: Record<PipelineStopAfter, string> = {
+  collect: "수집까지 (후보만)",
+  analyze: "분석까지 (미리보기 · 저장 안 됨)",
+  queue: "검수 대기열까지 (사람 검수 대기 적재)"
+};
+
+/** PipelineSummary → 평탄한 실행 요약. UI/엔드포인트가 그대로 표시한다. */
+export function buildExecSummary(summary: PipelineSummary, mode: string): PipelineExecSummary {
+  return {
+    stopAfter: summary.stopAfter,
+    mode: `${STOP_AFTER_MODE_LABEL[summary.stopAfter]} · 발굴=${mode}`,
+    discovered: summary.totalCandidates,
+    deduped: summary.duplicatesSkipped,
+    analyzed: summary.analyzed,
+    queued: summary.autoReviewQueued + summary.needsTriageQueued,
+    previewed: summary.previewed,
+    collected: summary.collected,
+    skipped: summary.skippedNotNew + summary.duplicatesSkipped + summary.limitSkipped,
+    errors: summary.failed,
+    items: summary.results
+  };
 }
 
 /** 파이프라인 출력에 어떤 자동 제출/제출 상태도 없는지 단언하는 순수 검증기 (스트레스/테스트용). */
