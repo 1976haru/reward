@@ -329,7 +329,7 @@ export class GuideService {
     return {
       schemaVersion: "1.0.0",
       generatedAt: new Date().toISOString(),
-      title: "공익레이더 사용 가이드",
+      title: "애드세이프(AdSafe) 사용 가이드",
       subtitle: "무엇을 수집하고 어디에 신고하는지 이해하기 위한 안내",
       description:
         "공익레이더는 공개자료 기반 신고 후보 탐지·증거정리·신고서 초안 생성 도구입니다. 실제 제출은 사람이 공식 창구에서 직접 수행하며, 포상금 수령을 보장하지 않습니다.",

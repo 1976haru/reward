@@ -211,11 +211,13 @@ function readLS(key, fallback) {
 function writeLS(key, val) { try { localStorage.setItem(key, val); } catch { /* ignore */ } }
 
 // ---------- View navigation (실전 재점검 10·11) ----------
-const APP_VIEWS = ["field", "home", "discover", "analyze", "review", "report", "outcome", "guide", "ops", "settings"];
-const APP_VIEW_LS_KEY = "rewardAgent.activeView";
+// AdSafe(애드세이프) 광고 사전점검이 메인 흐름. 기존 신고 지향 뷰(discover/report/outcome)는
+// 코드 보존을 위해 등록은 유지하되 메인 내비에서 내린다(경쟁사 광고 벤치마킹 등 재활용 여지).
+const APP_VIEWS = ["adsafe", "field", "home", "discover", "analyze", "review", "report", "outcome", "guide", "ops", "settings"];
+const APP_VIEW_LS_KEY = "adsafe.activeView";
 
 function initialView() {
-  // URL hash 우선, 다음 localStorage, 기본 field (신고분야 선택 화면).
+  // URL hash 우선, 다음 localStorage, 기본 adsafe (광고 사전점검 화면).
   try {
     const hash = (location.hash || "").replace(/^#/, "").trim();
     if (APP_VIEWS.includes(hash)) return hash;
@@ -224,7 +226,7 @@ function initialView() {
     const saved = localStorage.getItem(APP_VIEW_LS_KEY);
     if (saved && APP_VIEWS.includes(saved)) return saved;
   } catch { /* ignore */ }
-  return "field";
+  return "adsafe";
 }
 
 function switchView(view) {

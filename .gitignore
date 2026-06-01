@@ -95,3 +95,7 @@ data/audit/*
 !data/audit/.gitkeep
 # 검토자 진술서 답변 작업파일(forensics:seal --init 산출물) — 커밋하지 않는다
 forensics-attestation.*.json
+
+# 잘못된 리다이렉트로 생긴 Windows 콘솔 산출물 — 커밋하지 않는다
+nul
+nul)

@@ -37,6 +37,7 @@ import { falseAdGuideRouter } from "./routes/falseAdGuide.js";
 import { counterfeitGuideRouter } from "./routes/counterfeitGuide.js";
 import { bidCollusionGuideRouter } from "./routes/bidCollusionGuide.js";
 import { subsidyGuideRouter } from "./routes/subsidyGuide.js";
+import { adsafeRouter } from "./routes/adsafe.js";
 
 const app = express();
 const orchestrator = new OrchestratorAgent();
@@ -242,6 +243,10 @@ app.use("/api/detect", detectRouter);
 
 // Analyzer Agent (LLM 또는 mock) — 신고 후보 검토 의견 생성
 app.use("/api/analyze", analyzeRouter);
+
+// AdSafe (애드세이프) — 게시 전 광고 사전점검(Compliance Check). 분석 엔진(RuleAgent) 재사용.
+// 외부 신고/제출 없음. 적법성·위반 여부를 확정하지 않으며, 최종 판단은 사람이 합니다.
+app.use("/api/adsafe", adsafeRouter);
 
 // Scoring Agent — 신고 후보 우선순위 점수 (0..100)
 app.use("/api/score", scoreRouter);

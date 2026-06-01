@@ -231,7 +231,7 @@ export interface DashboardSummary {
 const FALLBACK_APP_VERSION = "0.1.0";
 // 사용자 화면 / API 응답에 표시되는 제품명 — package.json 의 npm name 과 분리.
 // package.json.name 은 npm/내부 repo 식별자이며, UI 표시명은 항상 공익레이더(또는 PRODUCT_DISPLAY_NAME env override).
-const PRODUCT_DISPLAY_NAME = process.env.PRODUCT_DISPLAY_NAME?.trim() || "공익레이더";
+const PRODUCT_DISPLAY_NAME = process.env.PRODUCT_DISPLAY_NAME?.trim() || "애드세이프(AdSafe)";
 const PRODUCT_INTERNAL_NAME = "reward-agent-mvp";
 
 let cachedAppInfo: { name: string; version: string } | null = null;

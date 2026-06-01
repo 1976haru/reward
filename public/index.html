@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>공익레이더 | 공개자료 기반 신고 후보 탐지</title>
+  <title>애드세이프(AdSafe) | 게시 전 광고 위반 위험 사전점검</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -11,30 +11,87 @@
     <!-- ===== Header ===== -->
     <header class="app-header" id="appHeader">
       <div class="app-brand-block">
-        <h1 class="app-brand">공익레이더</h1>
-        <p class="app-tagline">공개자료 기반 신고 후보 탐지·증거정리·신고서 초안 생성 도구</p>
+        <h1 class="app-brand">애드세이프 <span style="font-size:0.6em;opacity:0.8;">AdSafe</span></h1>
+        <p class="app-tagline">게시 전 광고 위반 위험을 미리 점검하는 도구</p>
       </div>
       <div class="app-header-meta" id="appHeaderMeta">
         <span class="status-chip status-chip-mode" id="headerModeBadge" title="현재 운영 모드">MODE: —</span>
         <span class="status-chip" id="headerOpenAiBadge" title="OpenAI API 키 연결 여부">OpenAI: —</span>
         <span class="status-chip" id="headerNaverBadge" title="Naver Search API 키 연결 여부">Naver: —</span>
-        <span class="status-chip status-chip-safety" title="외부 신고기관 자동 제출·자동 로그인·공식 양식 자동입력·포상금 자동신청은 금지됩니다.">자동신고 없음 · 사람 검토 필수 · 수동 제출 기록만 가능</span>
+        <span class="status-chip status-chip-safety" title="본 점검은 참고용이며 정식 자율심의·법적 자문을 대체하지 않습니다.">최종 판단은 사람이 합니다 · 본 점검은 참고용이며 정식 자율심의·법적 자문을 대체하지 않습니다</span>
         <span class="status-chip" id="headerDate" title="오늘 날짜 (UTC)">—</span>
       </div>
       <nav class="app-secondary-nav app-nav" aria-label="보조 메뉴">
-        <button class="nav-button is-active" type="button" data-view-target="field">분야</button>
+        <button class="nav-button is-active" type="button" data-view-target="adsafe">광고 점검</button>
         <button class="nav-button" type="button" data-view-target="home">대시보드</button>
         <button class="nav-button" type="button" data-view-target="guide">가이드</button>
         <button class="nav-button" type="button" data-view-target="ops">운영/품질</button>
         <button class="nav-button" type="button" data-view-target="settings">설정</button>
+        <button class="nav-button" type="button" data-view-target="field" title="기존 신고 지향 흐름(보존)">분야(보존)</button>
       </nav>
     </header>
 
     <!-- ===== Main ===== -->
     <main class="app-main" id="appMain">
 
+      <!-- ===== AdSafe View (광고 사전점검 — 메인 흐름) ===== -->
+      <section class="view-section is-active" data-view="adsafe" id="viewAdsafe">
+        <div class="section-toolbar">
+          <h2 class="view-title">광고 점검 (Compliance Check)</h2>
+          <p class="view-subtitle">내 광고 문구를 게시·출시 전에 붙여넣으면 식약처·표시광고법 기준 위반 위험을 미리 점검합니다. 분석 엔진은 그대로 재사용합니다.</p>
+        </div>
+
+        <div class="safety-banner" style="margin:10px 0;">
+          ⚠ 최종 판단은 사람이 합니다 · 본 점검은 참고용이며 정식 자율심의·법적 자문을 대체하지 않습니다. 애드세이프는 적법성·위반 여부를 확정하지 않습니다.
+        </div>
+
+        <section class="card">
+          <h2>① 광고 문구 입력</h2>
+          <p class="section-hint">광고 문구를 직접 붙여넣거나(권장), 광고 페이지 URL을 입력하세요. 제품 유형을 고르면 해당 점검 카테고리 룰로 점검합니다.</p>
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px;">
+            <div style="flex:1 1 220px;">
+              <label for="adsafeProductType" style="font-size:12px;">제품 유형(점검 카테고리)</label>
+              <select id="adsafeProductType" style="width:100%;"></select>
+            </div>
+          </div>
+          <label for="adsafeTitle" style="font-size:12px;">광고 제목/헤드라인 (선택)</label>
+          <input id="adsafeTitle" type="text" placeholder="예: 단 일주일 만에 효과! 암 완치 도움" />
+          <label for="adsafeText" style="font-size:12px;">광고 문구 (붙여넣기)</label>
+          <textarea id="adsafeText" placeholder="점검할 광고 문구 전체를 붙여넣으세요." style="min-height:120px;"></textarea>
+          <label for="adsafeUrl" style="font-size:12px;">광고 페이지 URL (선택, 참고용)</label>
+          <input id="adsafeUrl" type="url" placeholder="https://example.com/my-ad" />
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+            <button class="primary" type="button" id="adsafeCheckBtn" style="font-size:15px;padding:9px 22px;">점검하기</button>
+            <button class="ghost" type="button" id="adsafeRecheckBtn" title="현재 입력을 직전 점검과 비교">수정 후 재점검(이전 대비 비교)</button>
+            <span id="adsafeStatus" class="muted" style="font-size:12px;"></span>
+          </div>
+          <p class="muted" id="adsafeFormalNotice" style="font-size:12px;margin-top:10px;"></p>
+        </section>
+
+        <section class="card">
+          <h2>② 광고 점검 리포트</h2>
+          <div id="adsafeReport"><p class="muted">아직 점검 결과가 없습니다. 위에서 광고 문구를 입력해 점검을 시작하세요.</p></div>
+        </section>
+
+        <details class="card" id="adsafeBatchSection" style="padding:14px 20px;">
+          <summary style="cursor:pointer;font-weight:700;font-size:16px;">③ 배치 점검 — 여러 광고 문구를 한 번에</summary>
+          <p class="section-hint" style="margin-top:10px;">상세페이지 여러 개를 한꺼번에 점검합니다. 한 줄에 광고 문구 하나씩 입력하세요. 비용 가드로 점검 건수에 상한이 적용됩니다.</p>
+          <textarea id="adsafeBatchText" placeholder="광고 문구 1&#10;광고 문구 2&#10;광고 문구 3" style="min-height:100px;"></textarea>
+          <div style="margin-top:8px;"><button class="primary" type="button" id="adsafeBatchBtn">배치 점검 실행</button> <span id="adsafeBatchStatus" class="muted" style="font-size:12px;"></span></div>
+          <div id="adsafeBatchResult" style="margin-top:10px;"></div>
+        </details>
+
+        <details class="card" id="adsafeDictSection" style="padding:14px 20px;">
+          <summary style="cursor:pointer;font-weight:700;font-size:16px;">④ 위반 표현 사전 (참고)</summary>
+          <p class="section-hint" style="margin-top:10px;">공개 보도·식약처 공개 자료 기반의 저촉 가능 표현 패턴 예시입니다. 적법성·위반 여부를 확정하지 않습니다.</p>
+          <div id="adsafeDictResult" class="muted">불러오는 중...</div>
+        </details>
+
+        <p class="muted" id="adsafeFooterNote" style="font-size:12px;margin-top:8px;"></p>
+      </section>
+
       <!-- ===== Field View (실전 재점검 11 — Field-first Redesign) ===== -->
-      <section class="view-section is-active" data-view="field" id="viewField">
+      <section class="view-section" data-view="field" id="viewField">
         <div class="section-toolbar">
           <h2 class="view-title">신고 분야 선택</h2>
           <p class="view-subtitle">현재 1차 실전 MVP는 건강기능식품 온라인 허위·과대광고 탐지입니다. 개발 순서는 건강기능식품 → 일반식품 → 화장품 → 의료기기 → 위조상품 → 원산지 → 보조금 → 입찰담합입니다.</p>
@@ -896,5 +953,147 @@
   </div>
 
   <script src="/app.js"></script>
+  <!-- AdSafe(애드세이프) 광고 사전점검 — 자기완결 인라인 스크립트 (메인 흐름) -->
+  <script>
+  (function () {
+    function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
+    function $(id){return document.getElementById(id);}
+    var lastReport = null; // 재점검 비교용 직전 리포트 입력
+
+    var RATING_COLORS = { safe:"#15803d", caution:"#b45309", risk:"#b91c1c" };
+
+    function ratingBadge(r){
+      var c = RATING_COLORS[r.rating] || "#444";
+      return '<span style="display:inline-block;padding:4px 12px;border-radius:14px;color:#fff;font-weight:700;background:'+c+';">'+esc(r.ratingLabel)+' ('+esc(r.rating)+') · 점수 '+esc(r.score)+'</span>';
+    }
+
+    function renderReport(r){
+      if(!r){return '<p class="muted">점검 결과가 없습니다.</p>';}
+      var h = '';
+      h += '<div style="margin-bottom:10px;">'+ratingBadge(r)+'</div>';
+      h += '<p>'+esc(r.summary)+'</p>';
+      h += '<p class="muted" style="font-size:13px;">통과 가능성: '+esc(r.passLikelihood)+'</p>';
+      if(r.findings && r.findings.length){
+        h += '<h4 style="margin:12px 0 6px;">위반 의심 표현 '+r.findings.length+'건</h4>';
+        h += '<div style="display:flex;flex-direction:column;gap:8px;">';
+        r.findings.forEach(function(f){
+          var c = (f.riskLevel==="HIGH"||f.riskLevel==="combo") ? "#b91c1c" : (f.riskLevel==="MEDIUM"?"#b45309":"#6b7280");
+          h += '<div style="border-left:4px solid '+c+';padding:8px 12px;background:#f8fafc;border-radius:4px;">';
+          h += '<div style="font-weight:700;">['+esc(f.categoryLabel)+' · '+esc(f.riskLevel)+'] '+esc(f.matchedExpression)+'</div>';
+          h += '<div style="font-size:13px;margin-top:4px;"><strong>인용:</strong> '+esc(f.quotedText)+'</div>';
+          h += '<div style="font-size:13px;margin-top:2px;"><strong>왜 문제인지:</strong> '+esc(f.reason)+'</div>';
+          h += '<div style="font-size:13px;margin-top:2px;color:#1d4ed8;"><strong>수정 제안:</strong> '+esc(f.suggestion)+'</div>';
+          h += '</div>';
+        });
+        h += '</div>';
+      } else {
+        h += '<p class="muted">명백한 위반 의심 표현은 발견되지 않았습니다. 다만 본 점검은 참고용이며 통과를 보장하지 않습니다.</p>';
+      }
+      if(r.sanitizeWarnings && r.sanitizeWarnings.length){
+        h += '<p class="muted" style="font-size:12px;margin-top:8px;">⚠ '+esc(r.sanitizeWarnings.join(" / "))+'</p>';
+      }
+      h += '<p class="muted" style="font-size:12px;margin-top:10px;border-top:1px solid #e5e7eb;padding-top:8px;">'+esc(r.disclaimerFooter)+'</p>';
+      return h;
+    }
+
+    function renderComparison(cmp){
+      if(!cmp) return '';
+      var color = cmp.improved ? "#15803d" : "#b91c1c";
+      return '<div style="margin:10px 0;padding:8px 12px;border-radius:6px;background:#ecfdf5;border:1px solid '+color+';font-size:13px;">'
+        +'<strong style="color:'+color+';">재점검 비교:</strong> '+esc(cmp.message)
+        +' (이전 표현 '+cmp.previousFindings+'건 → 현재 '+cmp.currentFindings+'건, 점수 '+cmp.previousScore+' → '+cmp.currentScore+')</div>';
+    }
+
+    function currentInput(){
+      return {
+        moduleId: ($("adsafeProductType")||{}).value || "false_ad",
+        title: ($("adsafeTitle")||{}).value || "",
+        text: ($("adsafeText")||{}).value || "",
+        url: ($("adsafeUrl")||{}).value || ""
+      };
+    }
+
+    function loadInfo(){
+      fetch("/api/adsafe/info").then(function(r){return r.json();}).then(function(j){
+        if(!j||!j.ok)return;
+        var sel = $("adsafeProductType");
+        if(sel && j.productTypes){ sel.innerHTML = j.productTypes.map(function(p){return '<option value="'+esc(p.moduleId)+'">'+esc(p.label)+'</option>';}).join(""); }
+        var fn = $("adsafeFormalNotice"); if(fn) fn.textContent = j.formalReviewNotice || "";
+        var ft = $("adsafeFooterNote"); if(ft) ft.textContent = j.disclaimerFooter || "";
+      }).catch(function(){});
+    }
+
+    function loadDictionary(){
+      var el = $("adsafeDictResult"); if(!el) return;
+      fetch("/api/adsafe/dictionary").then(function(r){return r.json();}).then(function(j){
+        if(!j||!j.ok){el.textContent="사전을 불러오지 못했습니다.";return;}
+        var h = '<p class="muted" style="font-size:12px;">'+esc(j.notice)+'</p>';
+        (j.categories||[]).forEach(function(c){
+          h += '<h4 style="margin:10px 0 4px;">'+esc(c.categoryLabel)+'</h4><ul style="font-size:13px;margin:0;padding-left:18px;">';
+          (c.entries||[]).forEach(function(e){
+            h += '<li style="margin:4px 0;"><strong>"'+esc(e.phrase)+'"</strong> — '+esc(e.why)+' <span style="color:#1d4ed8;">→ '+esc(e.saferDirection)+'</span></li>';
+          });
+          h += '</ul>';
+        });
+        el.innerHTML = h;
+      }).catch(function(){el.textContent="사전을 불러오지 못했습니다.";});
+    }
+
+    function runCheck(compareWithPrev){
+      var inp = currentInput();
+      if(!(inp.text.trim()||inp.title.trim())){ $("adsafeStatus").textContent="광고 문구를 입력하세요."; return; }
+      $("adsafeStatus").textContent="점검 중...";
+      if(compareWithPrev && lastReport){
+        fetch("/api/adsafe/compare",{method:"POST",headers:{"content-type":"application/json"},
+          body:JSON.stringify({moduleId:inp.moduleId, previous:lastReport, current:{title:inp.title,text:inp.text,url:inp.url}})})
+        .then(function(r){return r.json();}).then(function(j){
+          $("adsafeStatus").textContent="";
+          if(!j||!j.ok){$("adsafeReport").innerHTML='<p class="muted">점검 실패: '+esc((j&&j.message)||"")+'</p>';return;}
+          $("adsafeReport").innerHTML = renderComparison(j.comparison) + renderReport(j.current);
+          lastReport = {title:inp.title,text:inp.text,url:inp.url};
+        }).catch(function(e){$("adsafeStatus").textContent="오류: "+e;});
+        return;
+      }
+      fetch("/api/adsafe/check",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(inp)})
+      .then(function(r){return r.json();}).then(function(j){
+        $("adsafeStatus").textContent="";
+        if(!j||!j.ok){$("adsafeReport").innerHTML='<p class="muted">점검 실패: '+esc((j&&j.message)||"")+'</p>';return;}
+        $("adsafeReport").innerHTML = renderReport(j.report);
+        lastReport = {title:inp.title,text:inp.text,url:inp.url};
+      }).catch(function(e){$("adsafeStatus").textContent="오류: "+e;});
+    }
+
+    function runBatch(){
+      var moduleId = ($("adsafeProductType")||{}).value || "false_ad";
+      var lines = (($("adsafeBatchText")||{}).value||"").split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+      if(!lines.length){ $("adsafeBatchStatus").textContent="광고 문구를 한 줄에 하나씩 입력하세요."; return; }
+      $("adsafeBatchStatus").textContent="배치 점검 중...";
+      fetch("/api/adsafe/check/batch",{method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({moduleId:moduleId, items:lines.map(function(t){return {text:t};})})})
+      .then(function(r){return r.json();}).then(function(j){
+        $("adsafeBatchStatus").textContent="";
+        if(!j||!j.ok){$("adsafeBatchResult").innerHTML='<p class="muted">배치 점검 실패.</p>';return;}
+        var h = '<p class="muted" style="font-size:13px;">'+esc(j.guardNote)+'</p>';
+        h += '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="text-align:left;border-bottom:1px solid #e5e7eb;"><th>#</th><th>위험도</th><th>점수</th><th>위반표현</th></tr></thead><tbody>';
+        (j.results||[]).forEach(function(e,i){
+          var c = RATING_COLORS[e.report.rating]||"#444";
+          h += '<tr style="border-bottom:1px solid #f1f5f9;"><td>'+(i+1)+'</td><td style="color:'+c+';font-weight:700;">'+esc(e.report.ratingLabel)+'</td><td>'+esc(e.report.score)+'</td><td>'+e.report.findings.length+'건</td></tr>';
+        });
+        h += '</tbody></table>';
+        h += '<p class="muted" style="font-size:12px;margin-top:8px;">'+esc(j.disclaimerFooter)+'</p>';
+        $("adsafeBatchResult").innerHTML = h;
+      }).catch(function(e){$("adsafeBatchStatus").textContent="오류: "+e;});
+    }
+
+    function init(){
+      if(!$("viewAdsafe")) return;
+      loadInfo(); loadDictionary();
+      var b1=$("adsafeCheckBtn"); if(b1) b1.addEventListener("click",function(){runCheck(false);});
+      var b2=$("adsafeRecheckBtn"); if(b2) b2.addEventListener("click",function(){runCheck(true);});
+      var b3=$("adsafeBatchBtn"); if(b3) b3.addEventListener("click",runBatch);
+    }
+    if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init); else init();
+  })();
+  </script>
 </body>
 </html>

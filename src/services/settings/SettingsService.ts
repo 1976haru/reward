@@ -152,7 +152,7 @@ export interface SettingsPayload {
 export const SETTINGS_SAFETY_NOTICE =
   "설정 화면은 상태만 표시하며 API 키 원문을 표시하지 않습니다. 외부 신고기관 자동 제출 기능은 제공하지 않습니다.";
 
-const PRODUCT_DISPLAY_NAME = process.env.PRODUCT_DISPLAY_NAME?.trim() || "공익레이더";
+const PRODUCT_DISPLAY_NAME = process.env.PRODUCT_DISPLAY_NAME?.trim() || "애드세이프(AdSafe)";
 const FALLBACK_APP_VERSION = "0.1.0";
 
 let cachedVersion: string | null = null;

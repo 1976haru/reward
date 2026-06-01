@@ -1,9 +1,9 @@
 {
-  "name": "reward-agent-mvp",
+  "name": "adsafe-agent-mvp",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Agentic public-report evidence builder MVP for online false advertising analysis.",
+  "description": "AdSafe (애드세이프) — 게시 전 광고 위반 위험을 미리 점검하는 사전점검 도구. 분석 엔진(extract/analyze/score/rules)을 재사용한 광고 컴플라이언스 점검 MVP.",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
@@ -76,6 +76,8 @@
     "test:subsidy-ui-demo": "tsx tests/subsidyUiDemo.test.ts",
     "test:auto-pipeline": "tsx tests/autoPipeline.test.ts",
     "test:pipeline-route": "tsx tests/pipelineRoute.test.ts",
+    "test:adsafe": "tsx tests/adsafeComplianceCheck.test.ts",
+    "adsafe:mock": "tsx scripts/run-adsafe-mock.ts",
     "pipeline:mock": "tsx scripts/run-auto-pipeline-mock.ts",
     "pipeline:mock-stages": "tsx scripts/run-auto-pipeline-stages-mock.ts",
     "test:stress": "tsx scripts/stress-test.ts",

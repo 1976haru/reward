@@ -1787,20 +1787,21 @@ check("notices payload does NOT leak OPENAI_API_KEY",
 check("notices payload does NOT leak NAVER_CLIENT_SECRET",
   realNaverSecret2.length === 0 || !dashJsonForNotices.includes(realNaverSecret2));
 
-// 23-D) Product rename — 공익레이더
-const PRODUCT_NAME = "공익레이더";
-check("dashboard app.name === 공익레이더", dashSummary.app.name === PRODUCT_NAME);
-check("public/index.html <title> contains 공익레이더",
-  /<title>[^<]*공익레이더[^<]*<\/title>/.test(indexHtml));
-check("public/index.html primary h1 is 공익레이더",
-  /<h1[^>]*>\s*공익레이더\s*<\/h1>/.test(indexHtml));
-check("public/index.html body contains 공익레이더", indexHtml.includes(PRODUCT_NAME));
-check("README.md heading contains 공익레이더",
-  /^#\s+공익레이더/m.test(readmeRaw));
-check("scope.md mentions 공익레이더",
-  (await readFile(path.join(process.cwd(), "scope.md"), "utf8")).includes(PRODUCT_NAME));
-check("mvp_scope.md mentions 공익레이더",
-  (await readFile(path.join(process.cwd(), "mvp_scope.md"), "utf8")).includes(PRODUCT_NAME));
+// 23-D) Product rename — 애드세이프(AdSafe) (용도 전환: 공익레이더 → AdSafe)
+const PRODUCT_NAME = "애드세이프";
+const LEGACY_PRODUCT_NAME = "공익레이더"; // 보존된 신고 흐름 문서(scope.md/mvp_scope.md)는 기존 명칭 유지
+check("dashboard app.name contains 애드세이프", String(dashSummary.app.name).includes(PRODUCT_NAME));
+check("public/index.html <title> contains 애드세이프",
+  /<title>[^<]*애드세이프[^<]*<\/title>/.test(indexHtml));
+check("public/index.html primary h1 contains 애드세이프",
+  /<h1[^>]*>[\s\S]*?애드세이프[\s\S]*?<\/h1>/.test(indexHtml));
+check("public/index.html body contains 애드세이프", indexHtml.includes(PRODUCT_NAME));
+check("README.md heading contains 애드세이프",
+  /^#\s+애드세이프/m.test(readmeRaw));
+check("scope.md retains legacy product reference (보존 흐름)",
+  (await readFile(path.join(process.cwd(), "scope.md"), "utf8")).includes(LEGACY_PRODUCT_NAME));
+check("mvp_scope.md retains legacy product reference (보존 흐름)",
+  (await readFile(path.join(process.cwd(), "mvp_scope.md"), "utf8")).includes(LEGACY_PRODUCT_NAME));
 check("safetyNotice still mentions 자동 제출 아님",
   /자동\s*제출하지\s*않|자동\s*신고[^\n]*하지\s*않/.test(dashSummary.safetyNotice));
 
@@ -1835,7 +1836,7 @@ for (const t of renameTargets) {
 // 23-E) Guide / Q&A — 실전 재점검 03
 const guidePayload = guideService.getGuide();
 check("guide schemaVersion 1.0.0", guidePayload.schemaVersion === "1.0.0");
-check("guide title mentions 공익레이더", typeof guidePayload.title === "string" && guidePayload.title.includes("공익레이더"));
+check("guide title mentions 애드세이프", typeof guidePayload.title === "string" && guidePayload.title.includes("애드세이프"));
 check("guide.firstRunSteps length >= 5", Array.isArray(guidePayload.firstRunSteps) && guidePayload.firstRunSteps.length >= 5);
 check("guide.moduleGuides length >= 4", Array.isArray(guidePayload.moduleGuides) && guidePayload.moduleGuides.length >= 4);
 
@@ -3098,7 +3099,7 @@ check("outcome UI does NOT call localStorage",
 
   const s = settingsService.getSettings();
   // 핵심 응답 구조
-  check("settings.app.name === 공익레이더", s.app?.name === "공익레이더");
+  check("settings.app.name contains 애드세이프", typeof s.app?.name === "string" && s.app.name.includes("애드세이프"));
   check("settings.app.port is number", typeof s.app?.port === "number" && s.app.port > 0);
   check("settings.runtime.runtimeMode in enum",
     ["MOCK", "MIXED", "REAL_READY"].includes(s.runtime?.runtimeMode));
@@ -4151,8 +4152,8 @@ check("outcome UI does NOT call localStorage",
     check(`entry point to view "${v}" exists (static nav or dynamic step action)`,
       targetRe.test(indexHtml) || targetRe.test(appJsHome) || actionRe.test(appJsHome));
   }
-  check("public/index.html declares default active view (field)",
-    /<section[^>]*class="view-section is-active"[^>]*data-view="field"/.test(indexHtml));
+  check("public/index.html declares default active view (adsafe)",
+    /<section[^>]*class="view-section is-active"[^>]*data-view="adsafe"/.test(indexHtml));
 
   // Status chips in header
   check("public/index.html includes headerModeBadge",
@@ -4299,8 +4300,8 @@ check("outcome UI does NOT call localStorage",
   // HTML markers for new shell + field view
   check("public/index.html declares field-first-layout class",
     /class="app-shell field-first-layout"/.test(indexHtml));
-  check("public/index.html declares field view section",
-    /<section[^>]*class="view-section is-active"[^>]*data-view="field"/.test(indexHtml));
+  check("public/index.html declares field view section (보존)",
+    /<section[^>]*class="view-section"[^>]*data-view="field"/.test(indexHtml));
   check("public/index.html declares field-layout grid",
     /class="field-layout"/.test(indexHtml));
   check("public/index.html declares field-sidebar",
@@ -4339,10 +4340,10 @@ check("outcome UI does NOT call localStorage",
     check(`public/app.js exposes ${fn}`,
       new RegExp(`function\\s+${fn}\\s*\\(`).test(appJsHome));
   }
-  check("public/app.js initialView defaults to field",
-    /return\s+"field"/.test(appJsHome));
-  check("public/app.js APP_VIEWS lists field first",
-    /APP_VIEWS\s*=\s*\["field"/.test(appJsHome));
+  check("public/app.js initialView defaults to adsafe",
+    /return\s+"adsafe"/.test(appJsHome));
+  check("public/app.js APP_VIEWS lists adsafe first",
+    /APP_VIEWS\s*=\s*\["adsafe"/.test(appJsHome));
   check("public/app.js boot calls bindFieldFirst",
     /bindFieldFirst\s*\(\s*\)/.test(appJsHome));
   check("public/app.js boot calls initFieldFirst",
